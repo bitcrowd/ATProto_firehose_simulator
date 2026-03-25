@@ -1,0 +1,13 @@
+diff --git a/packages/dev-env/src/network.ts b/packages/dev-env/src/network.ts
+index 4346ef60f..a8a3626c3 100644
+--- a/packages/dev-env/src/network.ts
++++ b/packages/dev-env/src/network.ts
+@@ -69,7 +69,7 @@ export class TestNetwork extends TestNetworkNoAppView {
+       pdsPort,
+       rolodexUrl: process.env.BSKY_ROLODEX_URL,
+       rolodexIgnoreBadTls: true,
+-      repoProvider: `ws://localhost:${pdsPort}`,
++      repoProvider: `ws://localhost:4000`,
+       dbPostgresSchema: `appview_${dbPostgresSchema}`,
+       dbPostgresUrl,
+       redisHost,
