@@ -20,10 +20,11 @@ defmodule FirehoseSimulatorWeb.Router do
     live "/", FirehoseControlLive
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", FirehoseSimulatorWeb do
-  #   pipe_through :api
-  # end
+  scope "/xrpc", FirehoseSimulatorWeb do
+    pipe_through :api
+
+    get "/com.atproto.sync.listRepos", SyncController, :list_repos
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:firehose_simulator, :dev_routes) do
