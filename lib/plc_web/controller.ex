@@ -11,7 +11,11 @@ defmodule PLCWeb.Controller do
       |> put_resp_content_type("application/did+ld+json")
       |> send_resp(200, JSON.encode!(doc))
     else
-      send_resp(conn, 404, "DID not registered: #{did}")
+      doc = PLC.DID.document(did)
+
+      conn
+      |> put_resp_content_type("application/did+ld+json")
+      |> send_resp(200, JSON.encode!(doc))
     end
   end
 
