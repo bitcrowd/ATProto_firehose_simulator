@@ -12,17 +12,18 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "renders the empty event state", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     assert has_element?(view, "#event-config-form")
     assert has_element?(view, "#event_config_time_ms")
     assert has_element?(view, "#configured-events-empty")
+    assert has_element?(view, "nav a[href=\"/firehose\"]")
     refute has_element?(view, "#configured-events")
     refute render(view) =~ "Current DID"
   end
 
   test "shows follow inputs for manual graph follow", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     html =
       view
@@ -41,7 +42,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "shows post inputs for manual post create", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     html =
       view
@@ -60,7 +61,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "hides per-event inputs for random mode", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     html =
       view
@@ -78,7 +79,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "adds a manual follow row", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -112,7 +113,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "adds a manual post row", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -144,7 +145,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "adds a random row", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -160,7 +161,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "updates emitted count after an event emission", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -190,7 +191,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "removes a configured event row", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -214,7 +215,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "shows validation errors for an invalid manual follow", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -244,7 +245,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "shows validation errors for an invalid manual post", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     view
     |> form("#event-config-form", %{
@@ -274,7 +275,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
   end
 
   test "shows validation errors for an invalid emit frequency", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/firehose")
 
     html =
       view

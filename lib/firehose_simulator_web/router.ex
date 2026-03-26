@@ -17,7 +17,8 @@ defmodule FirehoseSimulatorWeb.Router do
   scope "/", FirehoseSimulatorWeb do
     pipe_through :browser
 
-    live "/", FirehoseControlLive
+    get "/", PageController, :home
+    live "/firehose", FirehoseControlLive
   end
 
   scope "/xrpc", FirehoseSimulatorWeb do

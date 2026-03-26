@@ -21,7 +21,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_path={~p"/firehose"}>
       <section class="mx-auto w-full max-w-5xl space-y-8">
         <div class="space-y-4">
           <h2 class="text-2xl font-semibold">Firehose Control</h2>
