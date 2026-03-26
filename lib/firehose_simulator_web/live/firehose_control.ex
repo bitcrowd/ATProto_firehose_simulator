@@ -71,14 +71,14 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
                   field={@event_form[:author_did]}
                   type="text"
                   label="Author DID"
-                  placeholder="did:plc:..."
+                  placeholder="did:sim:123"
                 />
                 <.input
                   :if={FirehoseEventForm.follow?(@event_form)}
                   field={@event_form[:subject_did]}
                   type="text"
                   label="Subject DID"
-                  placeholder="did:plc:..."
+                  placeholder="did:sim:456"
                 />
 
                 <.input
@@ -86,7 +86,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
                   field={@event_form[:author_did]}
                   type="text"
                   label="Author DID"
-                  placeholder="did:plc:..."
+                  placeholder="did:sim:123"
                 />
                 <.input
                   :if={FirehoseEventForm.post?(@event_form)}

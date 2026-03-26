@@ -1,9 +1,10 @@
 defmodule FirehoseSimulator.Event do
   alias Aether.ATProto.TID
+  alias FirehoseSimulator.Data
+
   @clock_id 0
-  @post_type "app.bsky.feed.post"
-  @follow_type "app.bsky.graph.follow"
-  @random_chars Enum.to_list(?a..?z) ++ Enum.to_list(?0..?9)
+  @post_type Data.post_type()
+  @follow_type Data.follow_type()
 
   def from_config(config) when is_map(config) do
     {did, record} = build_record(config)
@@ -13,36 +14,11 @@ defmodule FirehoseSimulator.Event do
     commit_event(did, cid_link, ops, record)
   end
 
-  defp create_record(type, opts)
-
-  defp create_record("app.bsky.graph.follow" = type, opts) do
-    subject = Keyword.fetch!(opts, :subject)
-    created_at = Keyword.get(opts, :created_at, DateTime.utc_now() |> DateTime.to_iso8601())
-
-    %{
-      "$type" => type,
-      "subject" => subject,
-      "createdAt" => created_at
-    }
-  end
-
-  defp create_record("app.bsky.feed.post" = type, opts) do
-    text = Keyword.fetch!(opts, :text)
-    created_at = Keyword.get(opts, :created_at, DateTime.utc_now() |> DateTime.to_iso8601())
-
-    %{
-      "$type" => type,
-      "text" => text,
-      "langs" => ["en"],
-      "createdAt" => created_at
-    }
-  end
-
   defp build_record(%{"type" => @follow_type, "random" => true}) do
-    author_did = random_did()
-    subject_did = random_did(author_did)
+    author_did = Data.random_did()
+    subject_did = Data.random_did(author_did)
 
-    {author_did, create_record(@follow_type, subject: subject_did)}
+    {author_did, Data.create_record(@follow_type, subject: subject_did)}
   end
 
   defp build_record(%{
@@ -50,18 +26,18 @@ defmodule FirehoseSimulator.Event do
          "author_did" => author_did,
          "subject_did" => subject_did
        }) do
-    {author_did, create_record(@follow_type, subject: subject_did)}
+    {author_did, Data.create_record(@follow_type, subject: subject_did)}
   end
 
   defp build_record(%{"type" => @post_type, "random" => true}) do
-    author_did = random_did()
+    author_did = Data.random_did()
     text = random_post_text()
 
-    {author_did, create_record(@post_type, text: text)}
+    {author_did, Data.create_record(@post_type, text: text)}
   end
 
   defp build_record(%{"type" => @post_type, "author_did" => author_did, "text" => text}) do
-    {author_did, create_record(@post_type, text: text)}
+    {author_did, Data.create_record(@post_type, text: text)}
   end
 
   defp cid_link_and_ops(record) do
@@ -188,16 +164,6 @@ defmodule FirehoseSimulator.Event do
       |> IO.iodata_to_binary()
 
     Aether.ATProto.Varint.encode(byte_size(header)) <> header <> encoded_blocks
-  end
-
-  defp random_did(excluded \\ nil) do
-    did =
-      1..24
-      |> Enum.map(fn _ -> Enum.random(@random_chars) end)
-      |> List.to_string()
-      |> then(&"did:plc:#{&1}")
-
-    if did == excluded, do: random_did(excluded), else: did
   end
 
   defp random_post_text() do
