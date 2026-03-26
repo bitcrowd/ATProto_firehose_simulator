@@ -15,6 +15,11 @@ config :firehose_simulator, PLCWeb.Endpoint,
   secret_key_base: "kfQt3Rm2C6x1tYc6VornNqEFnIq+TKVqwCRUT11iS3edJXg7dDWFUV8sozPq/Hva",
   server: false
 
+config :firehose_simulator, PDSWeb.Endpoint,
+  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}, port: 4004],
+  secret_key_base: "rqHMXWf8gZY5nKjrtxG7p3wL9HF+V3Tf+nJZ8Q0TWKkf1rB5RMo7aLduBzY4xckX",
+  server: false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

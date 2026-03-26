@@ -35,6 +35,19 @@ config :firehose_simulator, PLCWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:firehose_simulator, ~w(--watch)]}
   ]
 
+config :firehose_simulator, PDSWeb.Endpoint,
+  # Binding to loopback ipv6 address prevents access from other machines.
+  # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
+  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}],
+  check_origin: false,
+  code_reloader: true,
+  debug_errors: true,
+  secret_key_base: "N4yhNYi3cwI7AbQeoMs6c4jLlBNX13Kj4j1y+qjnCkA8jAJbcn5xjEhud9PF8rT2",
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:firehose_simulator, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:firehose_simulator, ~w(--watch)]}
+  ]
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

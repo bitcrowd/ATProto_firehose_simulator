@@ -19,6 +19,7 @@ defmodule FirehoseSimulator.Application do
       # Start to serve requests, typically the last entry
       {PLC.OpLog, %{}},
       PLCWeb.Endpoint,
+      PDSWeb.Endpoint,
       FirehoseSimulatorWeb.Endpoint
     ]
 
@@ -32,6 +33,8 @@ defmodule FirehoseSimulator.Application do
   # whenever the application is updated.
   @impl true
   def config_change(changed, _new, removed) do
+    PLCWeb.Endpoint.config_change(changed, removed)
+    PDSWeb.Endpoint.config_change(changed, removed)
     FirehoseSimulatorWeb.Endpoint.config_change(changed, removed)
     :ok
   end

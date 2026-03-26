@@ -10,6 +10,8 @@ The firehose simulator will start on [`localhost:4000`](http://localhost:4000).
 
 The PLC stub will start on [`localhost:4001`](http://localhost:4001).
 
+The PDS stub will start on [`localhost:4002`](http://localhost:4002).
+
 Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator.
 
 ## With ATProto dev-env

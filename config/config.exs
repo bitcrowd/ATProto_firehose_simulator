@@ -32,6 +32,16 @@ config :firehose_simulator, PLCWeb.Endpoint,
   pubsub_server: PLC.PubSub,
   live_view: [signing_salt: "i6CxHF/S"]
 
+config :firehose_simulator, PDSWeb.Endpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: PDS.PubSub,
+  live_view: [signing_salt: "i6CxHF/S"]
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
