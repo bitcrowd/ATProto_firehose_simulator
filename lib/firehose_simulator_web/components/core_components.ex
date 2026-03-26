@@ -328,6 +328,102 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   end
 
   @doc """
+  Renders a shared section surface for control panels and forms.
+  """
+  attr :id, :string, default: nil
+  attr :class, :any, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def panel(assigns) do
+    ~H"""
+    <section
+      id={@id}
+      class={[
+        "rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm shadow-base-300/20",
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </section>
+    """
+  end
+
+  @doc """
+  Renders a key/value metric card.
+  """
+  attr :id, :string, default: nil
+  attr :label, :string, required: true
+  attr :value_class, :any, default: nil
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def stat(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={[
+        "rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3",
+        @class
+      ]}
+    >
+      <dt class="text-sm text-base-content/60">{@label}</dt>
+      <dd class={["mt-1 text-sm text-base-content", @value_class]}>
+        {render_slot(@inner_block)}
+      </dd>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a status badge for summary rows.
+  """
+  attr :tone, :string, values: ~w(success neutral), default: "neutral"
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
+      @tone == "success" &&
+        "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      @tone == "neutral" && "border border-base-300 bg-base-300/60 text-base-content/70",
+      @class
+    ]}>
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  @doc """
+  Renders a themed result or status notice.
+  """
+  attr :id, :string, default: nil
+  attr :tone, :string, values: ~w(success info), default: "success"
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def notice(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={[
+        "rounded-2xl border p-4 text-sm shadow-sm",
+        @tone == "success" &&
+          "border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
+        @tone == "info" &&
+          "border-sky-500/20 bg-sky-500/10 text-sky-900 dark:text-sky-100",
+        @class
+      ]}
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  @doc """
   Renders a minimal tab navigation for LiveView sections.
 
   ## Examples

@@ -29,7 +29,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
           <div><strong>Last event at:</strong> {@last_event_at || "n/a"}</div>
         </div>
 
-        <section class="space-y-4 rounded-box border border-base-300 bg-base-100 p-6 shadow-sm">
+        <.panel class="space-y-4">
           <.header>
             Configure events
           </.header>
@@ -104,9 +104,9 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
               <.button type="submit" variant="primary">Save Event</.button>
             </div>
           </.form>
-        </section>
+        </.panel>
 
-        <section class="space-y-4 rounded-box border border-base-300 bg-base-100 p-6 shadow-sm">
+        <.panel class="space-y-4">
           <.header>
             Configured event rows
             <:subtitle>Each configured row emits independently on its own cadence.</:subtitle>
@@ -172,7 +172,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
               </dl>
             </.card>
           </div>
-        </section>
+        </.panel>
       </section>
     </Layouts.app>
     """

@@ -21,7 +21,7 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
     ~H"""
     <Layouts.app flash={@flash} current_path={~p"/bulk-creation"}>
       <section class="mx-auto w-full max-w-6xl space-y-8">
-        <section class="rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+        <.panel>
           <.header>
             Database Connection
           </.header>
@@ -37,57 +37,57 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
               type="text"
               label="Postgres URL"
               placeholder="postgres://..."
-              class="w-full input border-slate-300 bg-slate-50"
             />
-            <.button type="submit" variant="primary" class="btn h-12 rounded-xl px-6">
+            <.button type="submit" variant="primary">
               Connect
             </.button>
           </.form>
-          <div class="mt-6 space-y-3 border-t border-slate-200 pt-6">
+
+          <div class="mt-6 space-y-3 border-t border-base-300 pt-6">
             <div class="space-y-1">
               <h3>
                 Connection State
               </h3>
             </div>
 
-            <dl class="grid gap-4 text-sm text-slate-700 md:grid-cols-2">
-              <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <dt class="text-slate-500">Connected</dt>
-                <dd class={[
-                  "rounded-full px-3 py-1 text-xs font-semibold",
-                  @bulk_state.connected? && "bg-emerald-100 text-emerald-700",
-                  !@bulk_state.connected? && "bg-slate-200 text-slate-600"
-                ]}>
+            <dl class="grid gap-4 md:grid-cols-2">
+              <.stat label="Connected" class="flex items-center justify-between gap-4">
+                <.badge tone={if @bulk_state.connected?, do: "success", else: "neutral"}>
                   {if @bulk_state.connected?, do: "Yes", else: "No"}
-                </dd>
-              </div>
-              <div class="rounded-2xl bg-slate-50 px-4 py-3">
-                <dt class="text-slate-500">Connection string</dt>
-                <dd
-                  id="bulk-connection-string"
-                  class="mt-1 break-all font-mono text-xs text-slate-700"
-                >
+                </.badge>
+              </.stat>
+
+              <.stat label="Connection string">
+                <span id="bulk-connection-string" class="block break-all font-mono text-xs">
                   {Map.get(@bulk_state, :connection_string, "Not connected")}
-                </dd>
-              </div>
-              <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <dt class="text-slate-500">Last user id</dt>
-                <dd id="bulk-last-user-id" class="font-semibold text-slate-900">
+                </span>
+              </.stat>
+
+              <.stat
+                label="Last user id"
+                value_class="font-semibold"
+                class="flex items-center justify-between gap-4"
+              >
+                <span id="bulk-last-user-id">
                   {Map.get(@bulk_state, :last_user_id, 0)}
-                </dd>
-              </div>
-              <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <dt class="text-slate-500">Last post sequence</dt>
-                <dd id="bulk-last-post-sequence" class="font-semibold text-slate-900">
+                </span>
+              </.stat>
+
+              <.stat
+                label="Last post sequence"
+                value_class="font-semibold"
+                class="flex items-center justify-between gap-4"
+              >
+                <span id="bulk-last-post-sequence">
                   {Map.get(@bulk_state, :last_post_sequence, 0)}
-                </dd>
-              </div>
+                </span>
+              </.stat>
             </dl>
           </div>
-        </section>
+        </.panel>
 
         <div class="grid gap-6 xl:grid-cols-2">
-          <section class="rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+          <.panel>
             <.header>
               Follows
               <:subtitle>
@@ -106,18 +106,17 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
                 type="number"
                 label="Users in graph"
                 min="1"
-                class="w-full input border-slate-300 bg-slate-50"
               />
 
-              <.button type="submit" variant="primary" class="btn h-12 rounded-xl px-6">
+              <.button type="submit" variant="primary">
                 Create Follows
               </.button>
             </.form>
 
             <.result_card id="follows-result" result={@job_results[:follows]} />
-          </section>
+          </.panel>
 
-          <section class="rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+          <.panel>
             <.header>
               Posts
               <:subtitle>
@@ -131,16 +130,15 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
                 type="number"
                 label="Authors to generate"
                 min="1"
-                class="w-full input border-slate-300 bg-slate-50"
               />
 
-              <.button type="submit" variant="primary" class="btn h-12 rounded-xl px-6">
+              <.button type="submit" variant="primary">
                 Create Posts
               </.button>
             </.form>
 
             <.result_card id="posts-result" result={@job_results[:posts]} />
-          </section>
+          </.panel>
         </div>
       </section>
     </Layouts.app>
@@ -188,11 +186,7 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
 
   defp result_card(assigns) do
     ~H"""
-    <div
-      :if={@result}
-      id={@id}
-      class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900"
-    >
+    <.notice :if={@result} id={@id} class="mt-6">
       <p class="font-semibold">Last run inserted {@result.inserted_count} rows.</p>
       <p :if={Map.has_key?(@result, :last_user_id)} class="mt-1">
         Last user id: {@result.last_user_id}
@@ -200,7 +194,7 @@ defmodule FirehoseSimulatorWeb.BulkCreationLive do
       <p :if={Map.has_key?(@result, :last_post_sequence)} class="mt-1">
         Last post sequence: {@result.last_post_sequence}
       </p>
-    </div>
+    </.notice>
     """
   end
 
