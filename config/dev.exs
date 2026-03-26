@@ -1,5 +1,8 @@
 import Config
 
+config :firehose_simulator, :plc,
+  multikey: System.get_env("PLC_MULTIKEY", "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv")
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

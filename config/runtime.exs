@@ -28,6 +28,14 @@ config :firehose_simulator, PLCWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PLC_PORT", "4001"))]
 
 if config_env() == :prod do
+  config :firehose_simulator, :plc,
+    multikey:
+      System.get_env("PLC_MULTIKEY") ||
+        raise("""
+        environment variable PLC_MULTIKEY is missing.
+        You can generate one by calling: mix phx.gen.secret
+        """)
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
