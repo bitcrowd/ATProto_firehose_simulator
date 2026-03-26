@@ -40,7 +40,8 @@ defmodule FirehoseSimulator.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.0"},
+      {:ecto_sql, "~> 3.13"},
+      {:postgrex, ">= 0.0.0"},
       {:cid, "~> 0.0.1"},
       {:cbor, "~> 1.0"},
       {:aether_atproto, "~> 0.1.0"},
