@@ -17,7 +17,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert has_element?(view, "#event-config-form")
     assert has_element?(view, "#event_config_time_ms")
     assert has_element?(view, "#configured-events-empty")
-    assert has_element?(view, "nav a[href=\"/firehose\"]")
+    assert has_element?(view, "#tab-nav a[href=\"/firehose\"][aria-current=\"page\"]")
     refute has_element?(view, "#configured-events")
     refute render(view) =~ "Current DID"
   end

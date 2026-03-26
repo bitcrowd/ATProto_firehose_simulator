@@ -328,6 +328,49 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   end
 
   @doc """
+  Renders a minimal tab navigation for LiveView sections.
+
+  ## Examples
+
+      <.tab_nav current_path={~p"/firehose"}>
+        <:tab label="Firehose Control" navigate={~p"/firehose"} />
+      </.tab_nav>
+  """
+  attr :id, :string, default: "tab-nav"
+  attr :current_path, :string, required: true
+  attr :class, :any, default: nil
+
+  slot :tab, required: true do
+    attr :label, :string, required: true
+    attr :navigate, :string, required: true
+  end
+
+  def tab_nav(assigns) do
+    ~H"""
+    <nav
+      id={@id}
+      aria-label="Section navigation"
+      class={[
+        "inline-flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-base-300 bg-base-100/80 p-2 shadow-sm shadow-base-300/30 backdrop-blur",
+        @class
+      ]}
+    >
+      <.link
+        :for={tab <- @tab}
+        navigate={tab.navigate}
+        aria-current={tab.navigate == @current_path && "page"}
+        class={[
+          "rounded-xl px-4 py-2 text-sm font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/30",
+          tab.navigate == @current_path && "bg-base-200 text-base-content shadow-sm"
+        ]}
+      >
+        {tab.label}
+      </.link>
+    </nav>
+    """
+  end
+
+  @doc """
   Renders a simple card with optional actions.
   """
   attr :id, :string, default: nil
