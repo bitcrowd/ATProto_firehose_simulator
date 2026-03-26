@@ -4,6 +4,7 @@ This is a web application written using the Phoenix web framework.
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+- Whenever new simulator-created data or identifiers are introduced, add a cleanup rule for them in the central simulator cleanup module in the same change. Cleanup must only delete data that can be positively identified as simulator-owned; if ownership is uncertain, skip deletion.
 
 ### Phoenix v1.8 guidelines
 

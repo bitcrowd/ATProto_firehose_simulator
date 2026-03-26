@@ -10,6 +10,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
 
     {:ok,
      socket
+     |> assign(:page_title, "Firehose Control")
      |> assign(
        event_form: FirehoseEventForm.form(),
        event_type_options: FirehoseEventForm.type_options(),
@@ -98,6 +99,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
                   class="w-full textarea lg:col-span-2"
                 />
               </div>
+
+              <p class="text-sm text-base-content/70">
+                Cleanup only removes rows that can be positively identified as simulator-owned, such
+                as records authored by <code>did:sim:</code> identities.
+              </p>
             <% end %>
 
             <div class="flex justify-end">

@@ -9,8 +9,8 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
                "type" => "app.bsky.graph.follow",
                "random" => "false",
                "time_ms" => "1000",
-               "author_did" => "did:plc:author123",
-               "subject_did" => "did:plc:subject123"
+               "author_did" => "did:sim:author123",
+               "subject_did" => "did:sim:subject123"
              })
 
     assert event_attrs["type"] == "app.bsky.graph.follow"
@@ -25,7 +25,7 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
                "type" => "app.bsky.feed.post",
                "random" => "false",
                "time_ms" => "250",
-               "author_did" => "did:plc:author123",
+               "author_did" => "did:sim:author123",
                "text" => "hello world"
              })
 
@@ -53,6 +53,19 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
              })
 
     assert errors_on(changeset) == %{author_did: ["DID must start with did:"]}
+  end
+
+  test "accepts non-simulator dids for manual input" do
+    assert {:ok, event_attrs} =
+             FirehoseEventForm.validate(%{
+               "type" => "app.bsky.feed.post",
+               "random" => "false",
+               "time_ms" => "1000",
+               "author_did" => "did:plc:author123",
+               "text" => "hello"
+             })
+
+    assert event_attrs["author_did"] == "did:plc:author123"
   end
 
   test "defaults missing emit frequency to 1000ms" do

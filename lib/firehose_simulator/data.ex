@@ -1,11 +1,50 @@
 defmodule FirehoseSimulator.Data do
   alias Aether.ATProto.CID
 
+  @did_prefix "did:sim:"
+  @post_text_prefix "[sim] "
   @post_type "app.bsky.feed.post"
   @follow_type "app.bsky.graph.follow"
 
+  def did_prefix, do: @did_prefix
+  def post_text_prefix, do: @post_text_prefix
   def post_type, do: @post_type
   def follow_type, do: @follow_type
+
+  def simulator_did?(value) when is_binary(value), do: String.starts_with?(value, @did_prefix)
+  def simulator_did?(_value), do: false
+
+  def simulator_post_text?(value) when is_binary(value),
+    do: String.starts_with?(value, @post_text_prefix)
+
+  def simulator_post_text?(_value), do: false
+
+  def mark_post_text(text) when is_binary(text) do
+    if simulator_post_text?(text), do: text, else: @post_text_prefix <> text
+  end
+
+  def cleanup_notice do
+    "Cleanup connects to Postgres and only deletes rows that match registered simulator markers such as did:sim:. Unknown or ambiguous data is skipped."
+  end
+
+  def cleanup_rules do
+    [
+      %{
+        id: :did_owner,
+        description: "Delete rows whose owning DID is simulator-owned.",
+        priority: 20,
+        columns: ["did", "author_did"],
+        match: {:prefix, @did_prefix}
+      },
+      %{
+        id: :repo_owner,
+        description: "Delete rows whose owning repo DID is simulator-owned.",
+        priority: 10,
+        columns: ["repo"],
+        match: {:prefix, @did_prefix}
+      }
+    ]
+  end
 
   def create_record(@follow_type = type, opts) do
     subject = Keyword.fetch!(opts, :subject)

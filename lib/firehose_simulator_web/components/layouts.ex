@@ -32,16 +32,18 @@ defmodule FirehoseSimulatorWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :current_page, :atom, default: nil
+
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
     <header class="navbar px-4 sm:px-6 lg:px-8">
       <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
+        <.link navigate={~p"/firehose"} class="flex flex-1 w-fit items-center gap-2">
           <img src={~p"/images/logo.svg"} width="36" />
           <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
+        </.link>
       </div>
       <div class="flex-none">
         <ul class="flex flex-column px-1 space-x-4 items-center">
@@ -65,16 +67,43 @@ defmodule FirehoseSimulatorWeb.Layouts do
 
     <main class="px-4 py-20 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-5xl space-y-6">
-        <.tab_nav :if={@current_path} current_path={@current_path}>
-          <:tab label="Firehose Control" navigate={~p"/firehose"} />
-          <:tab label="Bulk Creation" navigate={~p"/bulk-creation"} />
-        </.tab_nav>
+        <div :if={@current_path} id="global-page-nav">
+          <.tab_nav current_path={@current_path}>
+            <:tab id="nav-firehose-control" label="Firehose Control" navigate={~p"/firehose"} />
+            <:tab id="nav-bulk-creation" label="Bulk Creation" navigate={~p"/bulk-creation"} />
+            <:tab id="nav-cleanup" label="Cleanup" navigate={~p"/cleanup"} />
+          </.tab_nav>
+        </div>
 
         {render_slot(@inner_block)}
       </div>
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :navigate, :string, required: true
+  attr :page, :atom, required: true
+  attr :current_page, :atom, default: nil
+  slot :inner_block, required: true
+
+  def page_nav_link(assigns) do
+    ~H"""
+    <.link
+      id={@id}
+      navigate={@navigate}
+      class={[
+        "inline-flex items-center rounded-xl border px-4 py-2 text-sm font-medium transition",
+        @current_page == @page &&
+          "border-base-300 bg-base-100 text-base-content shadow-sm",
+        @current_page != @page &&
+          "border-transparent bg-transparent text-base-content/70 hover:border-base-300 hover:bg-base-100/70 hover:text-base-content"
+      ]}
+    >
+      {render_slot(@inner_block)}
+    </.link>
     """
   end
 

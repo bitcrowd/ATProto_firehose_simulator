@@ -168,6 +168,6 @@ defmodule FirehoseSimulator.Event do
 
   defp random_post_text() do
     suffix = System.unique_integer([:positive])
-    "Simulated post #{suffix}"
+    Data.mark_post_text("Simulated post #{suffix}")
   end
 end

@@ -15,6 +15,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     {:ok, view, _html} = live(conn, ~p"/firehose")
 
     assert has_element?(view, "#event-config-form")
+    assert has_element?(view, "#global-page-nav")
+    assert has_element?(view, "#nav-cleanup")
     assert has_element?(view, "#event_config_time_ms")
     assert has_element?(view, "#configured-events-empty")
     assert has_element?(view, "#tab-nav a[href=\"/firehose\"][aria-current=\"page\"]")
@@ -97,8 +99,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "250",
-        "author_did" => "did:plc:author123",
-        "subject_did" => "did:plc:subject123"
+        "author_did" => "did:sim:author123",
+        "subject_did" => "did:sim:subject123"
       }
     })
     |> render_submit()
@@ -106,8 +108,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert has_element?(view, "#configured-events")
     html = render(view)
     assert html =~ "app.bsky.graph.follow"
-    assert html =~ "did:plc:author123"
-    assert html =~ "did:plc:subject123"
+    assert html =~ "did:sim:author123"
+    assert html =~ "did:sim:subject123"
     assert html =~ "250 ms"
     assert card_html(html, "app.bsky.graph.follow") =~ ~r/>\s*0\s*</
   end
@@ -131,7 +133,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.feed.post",
         "random" => "false",
         "time_ms" => "400",
-        "author_did" => "did:plc:author123",
+        "author_did" => "did:sim:author123",
         "text" => "hello from liveview"
       }
     })
@@ -179,8 +181,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "20",
-        "author_did" => "did:plc:author123",
-        "subject_did" => "did:plc:subject123"
+        "author_did" => "did:sim:author123",
+        "subject_did" => "did:sim:subject123"
       }
     })
     |> render_submit()
@@ -234,7 +236,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
           "type" => "app.bsky.graph.follow",
           "random" => "false",
           "time_ms" => "1000",
-          "author_did" => "did:plc:author123",
+          "author_did" => "did:sim:author123",
           "subject_did" => ""
         }
       })
@@ -264,7 +266,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
           "type" => "app.bsky.feed.post",
           "random" => "false",
           "time_ms" => "1000",
-          "author_did" => "did:plc:author123",
+          "author_did" => "did:sim:author123",
           "text" => ""
         }
       })

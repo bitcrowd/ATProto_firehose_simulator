@@ -437,6 +437,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   attr :class, :any, default: nil
 
   slot :tab, required: true do
+    attr :id, :string
     attr :label, :string, required: true
     attr :navigate, :string, required: true
   end
@@ -453,6 +454,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
     >
       <.link
         :for={tab <- @tab}
+        id={Map.get(tab, :id)}
         navigate={tab.navigate}
         aria-current={tab.navigate == @current_path && "page"}
         class={[

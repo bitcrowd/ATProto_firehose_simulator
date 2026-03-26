@@ -1,6 +1,7 @@
 defmodule FirehoseSimulator.EventTest do
   use ExUnit.Case, async: true
 
+  alias FirehoseSimulator.Data
   alias FirehoseSimulator.Event
 
   test "builds a manual follow event" do
@@ -8,8 +9,8 @@ defmodule FirehoseSimulator.EventTest do
       Event.from_config(%{
         "type" => "app.bsky.graph.follow",
         "random" => false,
-        "author_did" => "did:plc:author123",
-        "subject_did" => "did:plc:subject123"
+        "author_did" => "did:sim:author123",
+        "subject_did" => "did:sim:subject123"
       })
 
     assert match?([_, _], event)
@@ -20,7 +21,7 @@ defmodule FirehoseSimulator.EventTest do
       Event.from_config(%{
         "type" => "app.bsky.feed.post",
         "random" => false,
-        "author_did" => "did:plc:author123",
+        "author_did" => "did:sim:author123",
         "text" => "hello world"
       })
 
@@ -28,13 +29,23 @@ defmodule FirehoseSimulator.EventTest do
   end
 
   test "builds a random follow event" do
-    assert match?(
-             [_, _],
-             Event.from_config(%{"type" => "app.bsky.graph.follow", "random" => true})
-           )
+    event = Event.from_config(%{"type" => "app.bsky.graph.follow", "random" => true})
+
+    assert match?([_, _], event)
+    payload = decode_payload(event)
+    assert String.starts_with?(payload["repo"], Data.did_prefix())
   end
 
   test "builds a random post event" do
-    assert match?([_, _], Event.from_config(%{"type" => "app.bsky.feed.post", "random" => true}))
+    event = Event.from_config(%{"type" => "app.bsky.feed.post", "random" => true})
+
+    assert match?([_, _], event)
+    payload = decode_payload(event)
+    assert String.starts_with?(payload["repo"], Data.did_prefix())
+  end
+
+  defp decode_payload([_header, payload]) do
+    {:ok, decoded, ""} = CBOR.decode(payload)
+    decoded
   end
 end
