@@ -44,8 +44,10 @@ git clone https://github.com/blacksky-algorithms/atproto
 
 2. Patch
 
+The pnpm lockfile needs version > 9 but is locked to > 8, so we patch to remove the pnpm lock.
+
 ```bash
-git apply wintermute.patch
+(cd <blacksky-algorithms/atproto_path> && git apply <simulator_path>/atproto_blacksky.patch)
 ```
 
 3. Set up environment
@@ -62,45 +64,65 @@ export BSKY_BSYNC_URL="http://localhost:3000"
 export CLUSTER_WORKER_COUNT=1
 ```
 
-4. Set up pnpm
+For development, there is a default PLC multikey configured.
 
-- needs version > 9 but is locked to > 8
+If you want, you can generate a new keypair:
+
 ```bash
-git apply atproto_blacksky.patch
+mix run -e 'IO.inspect(PLC.Keys.generate(), pretty: true)'
+
+export PLC_MULTIKEY=<multikey>
 ```
 
-5. Follow [instructions](https://github.com/blacksky-algorithms/atproto/?tab=readme-ov-file#setup) to run dataplane and AppView
+You must set the `private_hex` for `BSKY_SERVICE_SIGNING` accordingly.
+
+
+4. Follow [instructions](https://github.com/blacksky-algorithms/atproto/?tab=readme-ov-file#setup) to run dataplane and AppView
+
+```bash
+pnpm install
+pnpm build
+```
 
 ```bash
 node services/bsky/dataplane.js
 ```
 
+Use the private_hex value you generated for `BSKY_SERVICE_SIGNING_KEY` if you set a different key for the PLC in step 3.
+
 ```bash
 BSKY_SERVICE_SIGNING_KEY=bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a node services/bsky/api.js
 ```
 
-6. Clone rsky to run wintermute
+5. Clone rsky to run wintermute
 
 ```bash
 git clone https://github.com/blacksky-algorithms/rsky/
-
-git apply wintermute.patch
 ```
 
-7. Set environment
+6. Patch wintermute
+
+This patch makes wintermute subscribe to the websocket via `ws://` instead of `wss://`.
+
 ```bash
-export RELAY_HOSTS="http://localhost:4001" # to firehose simulator 
-export DATABASE_URL="postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky" # according to step 2 
+(cd <blacksky-algorithms/rsky_path> && git apply <simulator_path>/wintermute.patch)
 ```
 
-8. We must fix the DB schema to expected format
+6. Set environment
+```bash
+export RELAY_HOSTS="http://localhost:4000" # to firehose simulator 
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky" # according to step 2 
+export RUST_LOG=debug
+```
+
+7. We must fix the DB schema to expected format
 
 ```bash
 psql $DATABASE_URL -c "CREATE TABLE IF NOT EXISTS bsky.sub_state (service varchar NOT NULL PRIMARY KEY, cursor bigint NOT NULL);"
 psql $DATABASE_URL -c "ALTER TABLE bsky.record ADD COLUMN IF NOT EXISTS rev text;"
 ```
 
-9. Follow [instructions for running wintermute](https://github.com/blacksky-algorithms/rsky/blob/main/rsky-wintermute/README.md)
+8. Follow [instructions for running wintermute](https://github.com/blacksky-algorithms/rsky/blob/main/rsky-wintermute/README.md)
 
 
 ```bash
@@ -108,11 +130,3 @@ cargo build --release --package rsky-wintermute
 
 ./target/release/wintermute
 ```
-
-## Create an account
-
-`elixir pds_create_account.exs`
-
-## Get the timeline
-
-`elixir pds_timeline.exs`
