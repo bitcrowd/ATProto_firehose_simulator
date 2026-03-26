@@ -67,6 +67,7 @@ defmodule FirehoseSimulatorWeb.Layouts do
       <div class="mx-auto max-w-5xl space-y-6">
         <.tab_nav :if={@current_path} current_path={@current_path}>
           <:tab label="Firehose Control" navigate={~p"/firehose"} />
+          <:tab label="Bulk Creation" navigate={~p"/bulk-creation"} />
         </.tab_nav>
 
         {render_slot(@inner_block)}

@@ -12,6 +12,8 @@ defmodule FirehoseSimulator.Application do
       {DNSCluster,
        query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
+      FirehoseSimulator.BulkCreation.RepoSupervisor,
+      FirehoseSimulator.BulkCreation.State,
       FirehoseSimulator.Firehose.EventSupervisor,
       FirehoseSimulator.Firehose,
       # Start a worker by calling: FirehoseSimulator.Worker.start_link(arg)
