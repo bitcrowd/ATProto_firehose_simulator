@@ -120,19 +120,58 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
             No events configured yet.
           </div>
 
-          <.table
-            :if={@events != []}
-            id="configured-events"
-            rows={@events}
-            row_id={fn row -> "configured-event-#{row["id"]}" end}
-          >
-            <:col :let={row} label="Type">{row["type"]}</:col>
-            <:col :let={row} label="Mode">{if row["random"], do: "Random", else: "Manual"}</:col>
-            <:col :let={row} label="Frequency">{"#{row["time_ms"]} ms"}</:col>
-            <:col :let={row} label="Emitted">{row["emitted_count"]}</:col>
-            <:col :let={row} label="Author DID">{row["author_did"] || "Generated at emit time"}</:col>
-            <:col :let={row} label="Details">{event_details(row)}</:col>
-          </.table>
+          <div :if={@events != []} id="configured-events" class="space-y-4">
+            <.card
+              :for={row <- @events}
+              id={"configured-event-#{row["id"]}"}
+              title={row["type"]}
+              subtitle={if row["random"], do: "Random data", else: "Manual data"}
+            >
+              <:actions>
+                <button
+                  type="button"
+                  id={"remove-event-#{row["id"]}"}
+                  phx-click="remove_event"
+                  phx-value-id={row["id"]}
+                  class="link link-error no-underline hover:underline"
+                >
+                  Remove
+                </button>
+              </:actions>
+
+              <dl class="mt-4 grid gap-4 md:grid-cols-2">
+                <div class="space-y-1">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Frequency
+                  </dt>
+                  <dd class="text-sm text-base-content">{"#{row["time_ms"]} ms"}</dd>
+                </div>
+
+                <div class="space-y-1">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Emitted
+                  </dt>
+                  <dd class="text-sm text-base-content">{row["emitted_count"]}</dd>
+                </div>
+
+                <div class="space-y-1">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Author DID
+                  </dt>
+                  <dd class="text-sm text-base-content">
+                    {row["author_did"] || "Generated at emit time"}
+                  </dd>
+                </div>
+
+                <div class="space-y-1">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Details
+                  </dt>
+                  <dd class="text-sm text-base-content">{event_details(row)}</dd>
+                </div>
+              </dl>
+            </.card>
+          </div>
         </section>
       </section>
     </Layouts.app>
@@ -158,6 +197,27 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, :event_form, FirehoseEventForm.form_from_changeset(changeset))}
+    end
+  end
+
+  def handle_event("remove_event", %{"id" => event_id}, socket) do
+    event_id = String.to_integer(event_id)
+
+    case Firehose.remove_event(event_id) do
+      :ok ->
+        filtered_events =
+          Enum.reject(socket.assigns.events, fn event ->
+            event["id"] == event_id
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:events, filtered_events)
+         |> assign_event_totals()
+         |> put_flash(:info, "Configured event removed")}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Configured event no longer exists")}
     end
   end
 

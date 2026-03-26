@@ -328,6 +328,41 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   end
 
   @doc """
+  Renders a simple card with optional actions.
+  """
+  attr :id, :string, default: nil
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+  slot :actions
+
+  def card(assigns) do
+    ~H"""
+    <article
+      id={@id}
+      class="rounded-box border border-base-300 bg-base-200/30 p-5"
+      {@rest}
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-base-content">{@title}</p>
+          <p :if={@subtitle} class="text-sm text-base-content/70">{@subtitle}</p>
+        </div>
+
+        <div :if={@actions != []} class="shrink-0">
+          {render_slot(@actions)}
+        </div>
+      </div>
+
+      <div class="mt-4">
+        {render_slot(@inner_block)}
+      </div>
+    </article>
+    """
+  end
+
+  @doc """
   Renders a table with generic styling.
 
   ## Examples

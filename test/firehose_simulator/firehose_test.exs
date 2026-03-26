@@ -61,6 +61,20 @@ defmodule FirehoseSimulator.FirehoseTest do
     assert Firehose.events() == []
   end
 
+  test "remove_event terminates the matching emitter" do
+    {:ok, event_attrs} =
+      FirehoseEventForm.validate(%{
+        "type" => "app.bsky.feed.post",
+        "random" => "true",
+        "time_ms" => "1000"
+      })
+
+    assert {:ok, event} = Firehose.add_event(event_attrs)
+    assert :ok = Firehose.remove_event(event["id"])
+    assert Firehose.events() == []
+    assert {:error, :not_found} = Firehose.remove_event(event["id"])
+  end
+
   test "emitters publish events and track their own counts" do
     {:ok, follow_event} =
       FirehoseEventForm.validate(%{

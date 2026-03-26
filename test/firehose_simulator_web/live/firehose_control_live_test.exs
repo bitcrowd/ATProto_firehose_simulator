@@ -108,7 +108,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert html =~ "did:plc:author123"
     assert html =~ "did:plc:subject123"
     assert html =~ "250 ms"
-    assert row_html(html, "app.bsky.graph.follow") =~ ~r/>\s*0\s*</
+    assert card_html(html, "app.bsky.graph.follow") =~ ~r/>\s*0\s*</
   end
 
   test "adds a manual post row", %{conn: conn} do
@@ -140,7 +140,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert html =~ "app.bsky.feed.post"
     assert html =~ "hello from liveview"
     assert html =~ "400 ms"
-    assert row_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
+    assert card_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
   end
 
   test "adds a random row", %{conn: conn} do
@@ -156,7 +156,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert html =~ "Random"
     assert html =~ "125 ms"
     assert html =~ "Post content generated at emit time"
-    assert row_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
+    assert card_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
   end
 
   test "updates emitted count after an event emission", %{conn: conn} do
@@ -185,8 +185,32 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     |> render_submit()
 
     assert_eventually(fn ->
-      row_html(render(view), "app.bsky.graph.follow") =~ ~r/>\s*1\s*</
+      card_html(render(view), "app.bsky.graph.follow") =~ ~r/>\s*1\s*</
     end)
+  end
+
+  test "removes a configured event row", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view
+    |> form("#event-config-form", %{
+      "event_config" => %{
+        "type" => "app.bsky.feed.post",
+        "random" => "true",
+        "time_ms" => "1000"
+      }
+    })
+    |> render_submit()
+
+    [event] = Firehose.events()
+
+    view
+    |> element("#remove-event-#{event["id"]}")
+    |> render_click()
+
+    refute has_element?(view, "#configured-event-#{event["id"]}")
+    assert has_element?(view, "#configured-events-empty")
+    assert Firehose.events() == []
   end
 
   test "shows validation errors for an invalid manual follow", %{conn: conn} do
@@ -267,14 +291,14 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert has_element?(view, "#configured-events-empty")
   end
 
-  defp row_html(html, type) do
-    ~r/<tr id="configured-event-\d+".*?<\/tr>/s
+  defp card_html(html, type) do
+    ~r/<article id="configured-event-\d+".*?<\/article>/s
     |> Regex.scan(html)
     |> Enum.map(&List.first/1)
     |> Enum.find(&String.contains?(&1, type))
     |> case do
-      nil -> raise "row for #{type} not found"
-      row -> row
+      nil -> raise "card for #{type} not found"
+      card -> card
     end
   end
 
