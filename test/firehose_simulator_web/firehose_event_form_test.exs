@@ -8,12 +8,14 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
              FirehoseEventForm.validate(%{
                "type" => "app.bsky.graph.follow",
                "random" => "false",
+               "time_ms" => "1000",
                "author_did" => "did:plc:author123",
                "subject_did" => "did:plc:subject123"
              })
 
     assert event_attrs["type"] == "app.bsky.graph.follow"
     assert event_attrs["text"] == nil
+    assert event_attrs["time_ms"] == 1000
     assert event_attrs["emitted_count"] == 0
   end
 
@@ -22,12 +24,14 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
              FirehoseEventForm.validate(%{
                "type" => "app.bsky.feed.post",
                "random" => "false",
+               "time_ms" => "250",
                "author_did" => "did:plc:author123",
                "text" => "hello world"
              })
 
     assert event_attrs["type"] == "app.bsky.feed.post"
     assert event_attrs["subject_did"] == nil
+    assert event_attrs["time_ms"] == 250
     assert event_attrs["emitted_count"] == 0
   end
 
@@ -43,11 +47,33 @@ defmodule FirehoseSimulatorWeb.FirehoseEventFormTest do
              FirehoseEventForm.validate(%{
                "type" => "app.bsky.feed.post",
                "random" => "false",
+               "time_ms" => "1000",
                "author_did" => "not-a-did",
                "text" => "hello"
              })
 
     assert errors_on(changeset) == %{author_did: ["DID must start with did:"]}
+  end
+
+  test "defaults missing emit frequency to 1000ms" do
+    assert {:ok, event_attrs} =
+             FirehoseEventForm.validate(%{
+               "type" => "app.bsky.feed.post",
+               "random" => "true"
+             })
+
+    assert event_attrs["time_ms"] == 1000
+  end
+
+  test "rejects non-positive emit frequency" do
+    assert {:error, changeset} =
+             FirehoseEventForm.validate(%{
+               "type" => "app.bsky.feed.post",
+               "random" => "true",
+               "time_ms" => "0"
+             })
+
+    assert errors_on(changeset) == %{time_ms: ["Emit frequency must be greater than 0 ms"]}
   end
 
   defp errors_on(changeset) do

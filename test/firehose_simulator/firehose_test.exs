@@ -2,6 +2,7 @@ defmodule FirehoseSimulator.FirehoseTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.Firehose
+  alias FirehoseSimulator.Firehose.EventEmitter
   alias FirehoseSimulatorWeb.FirehoseEventForm
 
   setup do
@@ -12,12 +13,8 @@ defmodule FirehoseSimulator.FirehoseTest do
     :ok
   end
 
-  test "status starts with no configured events" do
-    status = Firehose.status()
-
-    assert status.events == []
-    assert status.events_count == 0
-    assert status.last_event_at == nil
+  test "events starts with no configured events" do
+    assert Firehose.events() == []
   end
 
   test "adds a manual follow event" do
@@ -25,79 +22,109 @@ defmodule FirehoseSimulator.FirehoseTest do
       FirehoseEventForm.validate(%{
         "type" => "app.bsky.graph.follow",
         "random" => "false",
+        "time_ms" => "1000",
         "author_did" => "did:plc:author123",
         "subject_did" => "did:plc:subject123"
       })
 
-    assert {:ok, event} =
-             Firehose.add_event(event_attrs)
+    assert {:ok, event} = Firehose.add_event(event_attrs)
 
     assert event["type"] == "app.bsky.graph.follow"
+    assert event["time_ms"] == 1000
     assert event["emitted_count"] == 0
+    assert event["last_emitted_at"] == nil
     assert event["author_did"] == "did:plc:author123"
     assert event["subject_did"] == "did:plc:subject123"
-    assert Firehose.status().events == [event]
+    assert Firehose.events() == [event]
   end
 
   test "adds a random event" do
     {:ok, event_attrs} =
       FirehoseEventForm.validate(%{
         "type" => "app.bsky.feed.post",
-        "random" => "true"
+        "random" => "true",
+        "time_ms" => "1000"
       })
 
-    assert {:ok, event} =
-             Firehose.add_event(event_attrs)
+    assert {:ok, event} = Firehose.add_event(event_attrs)
 
     assert event["type"] == "app.bsky.feed.post"
     assert event["random"]
+    assert event["time_ms"] == 1000
     assert event["emitted_count"] == 0
-    assert Firehose.status().events == [event]
+    assert event["last_emitted_at"] == nil
+    assert Firehose.events() == [event]
   end
 
-  test "tick with no configured rows does not publish or increment counters" do
-    send(Firehose, :event)
-    _state = :sys.get_state(Firehose)
-
-    refute_receive _
-
-    status = Firehose.status()
-    assert status.events_count == 0
-    assert status.last_event_at == nil
+  test "reset clears configured events" do
+    assert :ok = Firehose.reset()
+    assert Firehose.events() == []
   end
 
-  test "tick publishes every configured row and increments counters" do
+  test "emitters publish events and track their own counts" do
     {:ok, follow_event} =
       FirehoseEventForm.validate(%{
         "type" => "app.bsky.graph.follow",
         "random" => "false",
+        "time_ms" => "20",
         "author_did" => "did:plc:author123",
         "subject_did" => "did:plc:subject123"
       })
 
-    {:ok, _} =
-      Firehose.add_event(follow_event)
+    {:ok, follow_event} = Firehose.add_event(follow_event)
+
+    Phoenix.PubSub.subscribe(
+      FirehoseSimulator.PubSub,
+      EventEmitter.topic(follow_event["id"])
+    )
 
     {:ok, post_event} =
       FirehoseEventForm.validate(%{
         "type" => "app.bsky.feed.post",
         "random" => "false",
+        "time_ms" => "35",
         "author_did" => "did:plc:author456",
         "text" => "hello world"
       })
 
-    {:ok, _} =
-      Firehose.add_event(post_event)
+    {:ok, post_event} = Firehose.add_event(post_event)
 
-    send(Firehose, :event)
-    _state = :sys.get_state(Firehose)
+    Phoenix.PubSub.subscribe(
+      FirehoseSimulator.PubSub,
+      EventEmitter.topic(post_event["id"])
+    )
 
     assert_receive [_, _]
     assert_receive [_, _]
+    assert_receive {:firehose_event_updated, %{"id" => follow_id, "emitted_count" => 1}}
+    assert_receive {:firehose_event_updated, %{"id" => post_id, "emitted_count" => 1}}
 
-    status = Firehose.status()
-    assert status.events_count == 2
-    assert is_binary(status.last_event_at)
-    assert Enum.map(status.events, & &1["emitted_count"]) == [1, 1]
+    events = Firehose.events()
+    assert Enum.map(events, & &1["id"]) == [follow_id, post_id]
+    assert Enum.map(events, & &1["emitted_count"]) == [1, 1]
+    assert Enum.all?(events, &is_binary(&1["last_emitted_at"]))
+  end
+
+  test "reset stops future emissions" do
+    {:ok, event_attrs} =
+      FirehoseEventForm.validate(%{
+        "type" => "app.bsky.feed.post",
+        "random" => "true",
+        "time_ms" => "15"
+      })
+
+    assert {:ok, event} = Firehose.add_event(event_attrs)
+
+    Phoenix.PubSub.subscribe(
+      FirehoseSimulator.PubSub,
+      EventEmitter.topic(event["id"])
+    )
+
+    assert_receive [_, _]
+    assert_receive {:firehose_event_updated, %{"id" => id, "emitted_count" => 1}}
+    assert :ok = Firehose.reset()
+    refute_receive [_, _], 50
+    refute_receive {:firehose_event_updated, %{"id" => ^id}}, 50
+    assert Firehose.events() == []
   end
 end

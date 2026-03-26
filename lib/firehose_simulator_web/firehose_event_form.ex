@@ -46,12 +46,18 @@ defmodule FirehoseSimulatorWeb.FirehoseEventForm do
 
   def type_options, do: [{@follow_type, @follow_type}, {@post_type, @post_type}]
 
-  defp form_params(%Ecto.Changeset{params: params}) when is_map(params), do: params
+  defp form_params(%Ecto.Changeset{params: params, data: data}) when is_map(params) do
+    data
+    |> Map.from_struct()
+    |> Map.take([:type, :random, :time_ms, :author_did, :subject_did, :text])
+    |> stringify_keys()
+    |> Map.merge(params)
+  end
 
   defp form_params(%Ecto.Changeset{data: data}) do
     data
     |> Map.from_struct()
-    |> Map.take([:type, :random, :author_did, :subject_did, :text])
+    |> Map.take([:type, :random, :time_ms, :author_did, :subject_did, :text])
     |> stringify_keys()
   end
 

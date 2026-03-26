@@ -2,21 +2,21 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
   use FirehoseSimulatorWeb, :live_view
 
   alias FirehoseSimulator.Firehose
+  alias FirehoseSimulator.Firehose.EventEmitter
   alias FirehoseSimulatorWeb.FirehoseEventForm
 
   def mount(_params, _session, socket) do
-    if connected?(socket), do: Process.send_after(self(), :refresh_status, 500)
-
-    status = Firehose.status()
+    events = Firehose.events()
 
     {:ok,
-     assign(socket,
+     socket
+     |> assign(
        event_form: FirehoseEventForm.form(),
        event_type_options: FirehoseEventForm.type_options(),
-       events_count: status.events_count,
-       last_event_at: status.last_event_at,
-       events: status.events
-     )}
+       events: events
+     )
+     |> assign_event_totals()
+     |> maybe_subscribe_to_events(events)}
   end
 
   def render(assigns) do
@@ -39,54 +39,68 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
             id="event-config-form"
             phx-change="change_event_form"
             phx-submit="add_event"
-            class="grid gap-4 lg:grid-cols-2"
+            class="space-y-6"
           >
             <.input
               field={@event_form[:type]}
               type="select"
               label="Event type"
               options={@event_type_options}
+              class="w-full select select-bordered select-lg"
             />
 
-            <div class="flex items-end">
-              <.input field={@event_form[:random]} type="checkbox" label="Generate random data" />
+            <div class="grid gap-4 md:grid-cols-2">
+              <.input
+                field={@event_form[:random]}
+                type="checkbox"
+                label="Generate random data"
+              />
+
+              <.input
+                field={@event_form[:time_ms]}
+                type="number"
+                label="Emit every (ms)"
+                min="1"
+              />
             </div>
 
             <%= if FirehoseEventForm.manual?(@event_form) do %>
-              <.input
-                :if={FirehoseEventForm.follow?(@event_form)}
-                field={@event_form[:author_did]}
-                type="text"
-                label="Author DID"
-                placeholder="did:plc:..."
-              />
-              <.input
-                :if={FirehoseEventForm.follow?(@event_form)}
-                field={@event_form[:subject_did]}
-                type="text"
-                label="Subject DID"
-                placeholder="did:plc:..."
-              />
+              <div class="grid gap-4 lg:grid-cols-2">
+                <.input
+                  :if={FirehoseEventForm.follow?(@event_form)}
+                  field={@event_form[:author_did]}
+                  type="text"
+                  label="Author DID"
+                  placeholder="did:plc:..."
+                />
+                <.input
+                  :if={FirehoseEventForm.follow?(@event_form)}
+                  field={@event_form[:subject_did]}
+                  type="text"
+                  label="Subject DID"
+                  placeholder="did:plc:..."
+                />
 
-              <.input
-                :if={FirehoseEventForm.post?(@event_form)}
-                field={@event_form[:author_did]}
-                type="text"
-                label="Author DID"
-                placeholder="did:plc:..."
-              />
-              <.input
-                :if={FirehoseEventForm.post?(@event_form)}
-                field={@event_form[:text]}
-                type="textarea"
-                label="Post text"
-                rows="4"
-                placeholder="Write a simulated post"
-                class="w-full textarea lg:col-span-2"
-              />
+                <.input
+                  :if={FirehoseEventForm.post?(@event_form)}
+                  field={@event_form[:author_did]}
+                  type="text"
+                  label="Author DID"
+                  placeholder="did:plc:..."
+                />
+                <.input
+                  :if={FirehoseEventForm.post?(@event_form)}
+                  field={@event_form[:text]}
+                  type="textarea"
+                  label="Post text"
+                  rows="4"
+                  placeholder="Write a simulated post"
+                  class="w-full textarea lg:col-span-2"
+                />
+              </div>
             <% end %>
 
-            <div class="lg:col-span-2 flex justify-end">
+            <div class="flex justify-end">
               <.button type="submit" variant="primary">Save Event</.button>
             </div>
           </.form>
@@ -95,7 +109,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
         <section class="space-y-4 rounded-box border border-base-300 bg-base-100 p-6 shadow-sm">
           <.header>
             Configured event rows
-            <:subtitle>Each configured row is emitted on every firehose tick.</:subtitle>
+            <:subtitle>Each configured row emits independently on its own cadence.</:subtitle>
           </.header>
 
           <div
@@ -114,6 +128,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
           >
             <:col :let={row} label="Type">{row["type"]}</:col>
             <:col :let={row} label="Mode">{if row["random"], do: "Random", else: "Manual"}</:col>
+            <:col :let={row} label="Frequency">{"#{row["time_ms"]} ms"}</:col>
             <:col :let={row} label="Emitted">{row["emitted_count"]}</:col>
             <:col :let={row} label="Author DID">{row["author_did"] || "Generated at emit time"}</:col>
             <:col :let={row} label="Details">{event_details(row)}</:col>
@@ -131,15 +146,14 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
   def handle_event("add_event", %{"event_config" => params}, socket) do
     case FirehoseEventForm.validate(params) do
       {:ok, event} ->
-        {:ok, _event} = Firehose.add_event(event)
-        status = Firehose.status()
+        {:ok, event} = Firehose.add_event(event)
 
         {:noreply,
          socket
-         |> assign(:events, status.events)
+         |> assign(:events, socket.assigns.events ++ [event])
+         |> assign_event_totals()
+         |> subscribe_to_event(event)
          |> assign(:event_form, FirehoseEventForm.form())
-         |> assign(:events_count, status.events_count)
-         |> assign(:last_event_at, status.last_event_at)
          |> put_flash(:info, "Configured event saved")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -147,16 +161,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
     end
   end
 
-  def handle_info(:refresh_status, socket) do
-    status = Firehose.status()
-    Process.send_after(self(), :refresh_status, 500)
-
+  def handle_info({:firehose_event_updated, updated_event}, socket) do
     {:noreply,
-     assign(socket,
-       events_count: status.events_count,
-       last_event_at: status.last_event_at,
-       events: status.events
-     )}
+     socket
+     |> assign(:events, replace_event(socket.assigns.events, updated_event))
+     |> assign_event_totals()}
   end
 
   defp event_details(%{"type" => "app.bsky.graph.follow", "random" => true}),
@@ -167,4 +176,37 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
 
   defp event_details(%{"type" => "app.bsky.graph.follow"} = row), do: row["subject_did"]
   defp event_details(%{"type" => "app.bsky.feed.post"} = row), do: row["text"]
+
+  defp maybe_subscribe_to_events(socket, events) do
+    if connected?(socket) do
+      Enum.reduce(events, socket, &subscribe_to_event(&2, &1))
+    else
+      socket
+    end
+  end
+
+  defp subscribe_to_event(socket, %{"id" => event_id}) do
+    Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, EventEmitter.topic(event_id))
+    socket
+  end
+
+  defp replace_event(events, updated_event) do
+    Enum.map(events, fn event ->
+      if event["id"] == updated_event["id"], do: updated_event, else: event
+    end)
+  end
+
+  defp assign_event_totals(socket) do
+    assign(socket,
+      events_count: Enum.sum(Enum.map(socket.assigns.events, & &1["emitted_count"])),
+      last_event_at: last_event_at(socket.assigns.events)
+    )
+  end
+
+  defp last_event_at(events) do
+    events
+    |> Enum.map(& &1["last_emitted_at"])
+    |> Enum.reject(&is_nil/1)
+    |> Enum.max(fn -> nil end)
+  end
 end

@@ -15,6 +15,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(view, "#event-config-form")
+    assert has_element?(view, "#event_config_time_ms")
     assert has_element?(view, "#configured-events-empty")
     refute has_element?(view, "#configured-events")
     refute render(view) =~ "Current DID"
@@ -26,7 +27,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     html =
       view
       |> form("#event-config-form", %{
-        "event_config" => %{"type" => "app.bsky.graph.follow", "random" => "false"}
+        "event_config" => %{
+          "type" => "app.bsky.graph.follow",
+          "random" => "false",
+          "time_ms" => "1000"
+        }
       })
       |> render_change()
 
@@ -41,7 +46,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     html =
       view
       |> form("#event-config-form", %{
-        "event_config" => %{"type" => "app.bsky.feed.post", "random" => "false"}
+        "event_config" => %{
+          "type" => "app.bsky.feed.post",
+          "random" => "false",
+          "time_ms" => "1000"
+        }
       })
       |> render_change()
 
@@ -50,12 +59,34 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     refute html =~ "event_config_subject_did"
   end
 
+  test "hides per-event inputs for random mode", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html =
+      view
+      |> form("#event-config-form", %{
+        "event_config" => %{
+          "type" => "app.bsky.feed.post",
+          "random" => "true",
+          "time_ms" => "1000"
+        }
+      })
+      |> render_change()
+
+    refute html =~ "event_config_author_did"
+    refute html =~ "event_config_text"
+  end
+
   test "adds a manual follow row", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.graph.follow", "random" => "false"}
+      "event_config" => %{
+        "type" => "app.bsky.graph.follow",
+        "random" => "false",
+        "time_ms" => "1000"
+      }
     })
     |> render_change()
 
@@ -64,6 +95,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
       "event_config" => %{
         "type" => "app.bsky.graph.follow",
         "random" => "false",
+        "time_ms" => "250",
         "author_did" => "did:plc:author123",
         "subject_did" => "did:plc:subject123"
       }
@@ -75,6 +107,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert html =~ "app.bsky.graph.follow"
     assert html =~ "did:plc:author123"
     assert html =~ "did:plc:subject123"
+    assert html =~ "250 ms"
     assert row_html(html, "app.bsky.graph.follow") =~ ~r/>\s*0\s*</
   end
 
@@ -83,7 +116,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.feed.post", "random" => "false"}
+      "event_config" => %{
+        "type" => "app.bsky.feed.post",
+        "random" => "false",
+        "time_ms" => "1000"
+      }
     })
     |> render_change()
 
@@ -92,6 +129,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
       "event_config" => %{
         "type" => "app.bsky.feed.post",
         "random" => "false",
+        "time_ms" => "400",
         "author_did" => "did:plc:author123",
         "text" => "hello from liveview"
       }
@@ -101,6 +139,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     html = render(view)
     assert html =~ "app.bsky.feed.post"
     assert html =~ "hello from liveview"
+    assert html =~ "400 ms"
     assert row_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
   end
 
@@ -109,22 +148,27 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.feed.post", "random" => "true"}
+      "event_config" => %{"type" => "app.bsky.feed.post", "random" => "true", "time_ms" => "125"}
     })
     |> render_submit()
 
     html = render(view)
     assert html =~ "Random"
+    assert html =~ "125 ms"
     assert html =~ "Post content generated at emit time"
     assert row_html(html, "app.bsky.feed.post") =~ ~r/>\s*0\s*</
   end
 
-  test "updates emitted count after a firehose tick", %{conn: conn} do
+  test "updates emitted count after an event emission", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.graph.follow", "random" => "false"}
+      "event_config" => %{
+        "type" => "app.bsky.graph.follow",
+        "random" => "false",
+        "time_ms" => "1000"
+      }
     })
     |> render_change()
 
@@ -133,17 +177,16 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
       "event_config" => %{
         "type" => "app.bsky.graph.follow",
         "random" => "false",
+        "time_ms" => "20",
         "author_did" => "did:plc:author123",
         "subject_did" => "did:plc:subject123"
       }
     })
     |> render_submit()
 
-    send(Firehose, :event)
-    _state = :sys.get_state(Firehose)
-    send(view.pid, :refresh_status)
-
-    assert row_html(render(view), "app.bsky.graph.follow") =~ ~r/>\s*1\s*</
+    assert_eventually(fn ->
+      row_html(render(view), "app.bsky.graph.follow") =~ ~r/>\s*1\s*</
+    end)
   end
 
   test "shows validation errors for an invalid manual follow", %{conn: conn} do
@@ -151,7 +194,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.graph.follow", "random" => "false"}
+      "event_config" => %{
+        "type" => "app.bsky.graph.follow",
+        "random" => "false",
+        "time_ms" => "1000"
+      }
     })
     |> render_change()
 
@@ -161,6 +208,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "event_config" => %{
           "type" => "app.bsky.graph.follow",
           "random" => "false",
+          "time_ms" => "1000",
           "author_did" => "did:plc:author123",
           "subject_did" => ""
         }
@@ -176,7 +224,11 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
 
     view
     |> form("#event-config-form", %{
-      "event_config" => %{"type" => "app.bsky.feed.post", "random" => "false"}
+      "event_config" => %{
+        "type" => "app.bsky.feed.post",
+        "random" => "false",
+        "time_ms" => "1000"
+      }
     })
     |> render_change()
 
@@ -186,6 +238,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "event_config" => %{
           "type" => "app.bsky.feed.post",
           "random" => "false",
+          "time_ms" => "1000",
           "author_did" => "did:plc:author123",
           "text" => ""
         }
@@ -193,6 +246,24 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
       |> render_submit()
 
     assert html =~ "Text is required"
+    assert has_element?(view, "#configured-events-empty")
+  end
+
+  test "shows validation errors for an invalid emit frequency", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html =
+      view
+      |> form("#event-config-form", %{
+        "event_config" => %{
+          "type" => "app.bsky.feed.post",
+          "random" => "true",
+          "time_ms" => "0"
+        }
+      })
+      |> render_submit()
+
+    assert html =~ "Emit frequency must be greater than 0 ms"
     assert has_element?(view, "#configured-events-empty")
   end
 
@@ -204,6 +275,23 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     |> case do
       nil -> raise "row for #{type} not found"
       row -> row
+    end
+  end
+
+  defp assert_eventually(fun, attempts \\ 20)
+
+  defp assert_eventually(fun, 1) do
+    assert fun.()
+  end
+
+  defp assert_eventually(fun, attempts) do
+    if fun.() do
+      assert true
+    else
+      receive do
+      after
+        20 -> assert_eventually(fun, attempts - 1)
+      end
     end
   end
 end

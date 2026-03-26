@@ -9,6 +9,7 @@ defmodule FirehoseSimulator.Firehose.Events.Follow do
   embedded_schema do
     field(:type, :string, default: @event_type)
     field(:random, :boolean, default: true)
+    field(:time_ms, :integer, default: 1000)
     field(:author_did, :string)
     field(:subject_did, :string)
     field(:emitted_count, :integer, default: 0)
@@ -18,9 +19,13 @@ defmodule FirehoseSimulator.Firehose.Events.Follow do
 
   def changeset(configured_event, attrs) do
     configured_event
-    |> cast(attrs, [:type, :random, :author_did, :subject_did])
-    |> validate_required([:type, :random])
+    |> cast(attrs, [:type, :random, :time_ms, :author_did, :subject_did])
+    |> validate_required([:type, :random, :time_ms])
     |> validate_inclusion(:type, [@event_type], message: "Choose a supported event type")
+    |> validate_number(:time_ms,
+      greater_than: 0,
+      message: "Emit frequency must be greater than 0 ms"
+    )
     |> normalize_string(:author_did)
     |> normalize_string(:subject_did)
     |> validate_manual_fields()
@@ -33,6 +38,7 @@ defmodule FirehoseSimulator.Firehose.Events.Follow do
          "id" => System.unique_integer([:positive, :monotonic]),
          "type" => configured_event.type,
          "random" => configured_event.random,
+         "time_ms" => configured_event.time_ms,
          "emitted_count" => configured_event.emitted_count || 0,
          "author_did" => configured_event.author_did,
          "subject_did" => configured_event.subject_did,

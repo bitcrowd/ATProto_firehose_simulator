@@ -12,10 +12,10 @@ defmodule FirehoseSimulator.Application do
       {DNSCluster,
        query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
+      FirehoseSimulator.Firehose.EventSupervisor,
       # Start a worker by calling: FirehoseSimulator.Worker.start_link(arg)
       # {FirehoseSimulator.Worker, arg},
       # Start to serve requests, typically the last entry
-      FirehoseSimulator.Firehose,
       {PLC.OpLog, %{}},
       PLCWeb.Endpoint,
       FirehoseSimulatorWeb.Endpoint
