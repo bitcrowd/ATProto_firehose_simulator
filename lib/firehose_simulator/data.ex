@@ -1,7 +1,7 @@
 defmodule FirehoseSimulator.Data do
   alias Aether.ATProto.CID
 
-  @did_prefix "did:sim:"
+  @did_prefix "did:plc:firesim"
   @post_text_prefix "[sim] "
   @post_type "app.bsky.feed.post"
   @follow_type "app.bsky.graph.follow"
@@ -24,7 +24,7 @@ defmodule FirehoseSimulator.Data do
   end
 
   def cleanup_notice do
-    "Cleanup connects to Postgres and only deletes rows that match registered simulator markers such as did:sim:. Unknown or ambiguous data is skipped."
+    "Cleanup connects to Postgres and only deletes rows that match registered simulator markers such as did:plc:firesim:. Unknown or ambiguous data is skipped."
   end
 
   def cleanup_rules do

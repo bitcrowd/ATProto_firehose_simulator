@@ -102,7 +102,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLive do
 
               <p class="text-sm text-base-content/70">
                 Cleanup only removes rows that can be positively identified as simulator-owned, such
-                as records authored by <code>did:sim:</code> identities.
+                as records authored by <code>did:plc:firesim</code> identities.
               </p>
             <% end %>
 

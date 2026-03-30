@@ -99,8 +99,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "250",
-        "author_did" => "did:sim:author123",
-        "subject_did" => "did:sim:subject123"
+        "author_did" => "did:plc:firesimauthor123",
+        "subject_did" => "did:plc:firesimsubject123"
       }
     })
     |> render_submit()
@@ -108,8 +108,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
     assert has_element?(view, "#configured-events")
     html = render(view)
     assert html =~ "app.bsky.graph.follow"
-    assert html =~ "did:sim:author123"
-    assert html =~ "did:sim:subject123"
+    assert html =~ "did:plc:firesimauthor123"
+    assert html =~ "did:plc:firesimsubject123"
     assert html =~ "250 ms"
     assert card_html(html, "app.bsky.graph.follow") =~ ~r/>\s*0\s*</
   end
@@ -133,7 +133,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.feed.post",
         "random" => "false",
         "time_ms" => "400",
-        "author_did" => "did:sim:author123",
+        "author_did" => "did:plc:firesimauthor123",
         "text" => "hello from liveview"
       }
     })
@@ -181,8 +181,8 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "20",
-        "author_did" => "did:sim:author123",
-        "subject_did" => "did:sim:subject123"
+        "author_did" => "did:plc:firesimauthor123",
+        "subject_did" => "did:plc:firesimsubject123"
       }
     })
     |> render_submit()
@@ -236,7 +236,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
           "type" => "app.bsky.graph.follow",
           "random" => "false",
           "time_ms" => "1000",
-          "author_did" => "did:sim:author123",
+          "author_did" => "did:plc:firesimauthor123",
           "subject_did" => ""
         }
       })
@@ -266,7 +266,7 @@ defmodule FirehoseSimulatorWeb.FirehoseControlLiveTest do
           "type" => "app.bsky.feed.post",
           "random" => "false",
           "time_ms" => "1000",
-          "author_did" => "did:sim:author123",
+          "author_did" => "did:plc:firesimauthor123",
           "text" => ""
         }
       })

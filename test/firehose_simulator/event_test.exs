@@ -9,8 +9,8 @@ defmodule FirehoseSimulator.EventTest do
       Event.from_config(%{
         "type" => "app.bsky.graph.follow",
         "random" => false,
-        "author_did" => "did:sim:author123",
-        "subject_did" => "did:sim:subject123"
+        "author_did" => "did:plc:firesimauthor123",
+        "subject_did" => "did:plc:firesimsubject123"
       })
 
     assert match?([_, _], event)
@@ -21,7 +21,7 @@ defmodule FirehoseSimulator.EventTest do
       Event.from_config(%{
         "type" => "app.bsky.feed.post",
         "random" => false,
-        "author_did" => "did:sim:author123",
+        "author_did" => "did:plc:firesimauthor123",
         "text" => "hello world"
       })
 

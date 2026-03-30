@@ -23,8 +23,8 @@ defmodule FirehoseSimulator.FirehoseTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "1000",
-        "author_did" => "did:sim:author123",
-        "subject_did" => "did:sim:subject123"
+        "author_did" => "did:plc:firesimauthor123",
+        "subject_did" => "did:plc:firesimsubject123"
       })
 
     assert {:ok, event} = Firehose.add_event(event_attrs)
@@ -33,8 +33,8 @@ defmodule FirehoseSimulator.FirehoseTest do
     assert event["time_ms"] == 1000
     assert event["emitted_count"] == 0
     assert event["last_emitted_at"] == nil
-    assert event["author_did"] == "did:sim:author123"
-    assert event["subject_did"] == "did:sim:subject123"
+    assert event["author_did"] == "did:plc:firesimauthor123"
+    assert event["subject_did"] == "did:plc:firesimsubject123"
     assert Firehose.events() == [event]
   end
 
@@ -81,8 +81,8 @@ defmodule FirehoseSimulator.FirehoseTest do
         "type" => "app.bsky.graph.follow",
         "random" => "false",
         "time_ms" => "20",
-        "author_did" => "did:sim:author123",
-        "subject_did" => "did:sim:subject123"
+        "author_did" => "did:plc:firesimauthor123",
+        "subject_did" => "did:plc:firesimsubject123"
       })
 
     {:ok, follow_event} = Firehose.add_event(follow_event)
@@ -97,7 +97,7 @@ defmodule FirehoseSimulator.FirehoseTest do
         "type" => "app.bsky.feed.post",
         "random" => "false",
         "time_ms" => "35",
-        "author_did" => "did:sim:author456",
+        "author_did" => "did:plc:firesimauthor456",
         "text" => "hello world"
       })
 
