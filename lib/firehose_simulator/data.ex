@@ -31,7 +31,7 @@ defmodule FirehoseSimulator.Data do
   end
 
   def did_for_user_id(user_id) when is_integer(user_id) do
-    "did:sim:#{user_id}"
+    "did:plc:firesim#{user_id}"
   end
 
   def random_did(excluded \\ nil) do

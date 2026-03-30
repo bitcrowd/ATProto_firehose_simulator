@@ -230,7 +230,7 @@ defmodule FirehoseSimulator.BulkCreation do
   defp load_last_user_id do
     result =
       DynamicRepo.query!(
-        "select coalesce(max((regexp_match(did, '^did:sim:([0-9]+)$'))[1]::bigint), 0) as last_user_id from bsky.actor where did ~ '^did:sim:[0-9]+$'",
+        "select coalesce(max((regexp_match(did, '^did:plc:firesim([0-9]+)$'))[1]::bigint), 0) as last_user_id from bsky.actor where did ~ '^did:plc:firesim[0-9]+$'",
         []
       )
 

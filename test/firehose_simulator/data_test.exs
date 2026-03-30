@@ -4,7 +4,7 @@ defmodule FirehoseSimulator.DataTest do
   alias FirehoseSimulator.Data
 
   test "builds a synthetic did from a user id" do
-    assert Data.did_for_user_id(123) == "did:sim:123"
+    assert Data.did_for_user_id(123) == "did:plc:firesim123"
   end
 
   test "builds a post record via the shared data module" do
@@ -20,6 +20,6 @@ defmodule FirehoseSimulator.DataTest do
   test "generates synthetic random dids in the sim namespace" do
     did = Data.random_did()
 
-    assert String.starts_with?(did, "did:sim:")
+    assert String.starts_with?(did, "did:plc:firesim")
   end
 end
