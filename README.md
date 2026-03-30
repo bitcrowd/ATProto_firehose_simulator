@@ -62,6 +62,9 @@ export MOD_SERVICE_DID="did:web:ozone.example.com"
 export BSKY_ADMIN_PASSWORDS="admin"
 export BSKY_BSYNC_URL="http://localhost:3000"
 export CLUSTER_WORKER_COUNT=1
+
+export BSKY_DID_PLC_URL="http://localhost:4001"
+export NODE_ENV="development"
 ```
 
 For development, there is a default PLC multikey configured.
