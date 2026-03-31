@@ -5,11 +5,11 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.BulkCreation.Post
   alias FirehoseSimulator.BulkCreation.State
   alias FirehoseSimulator.Data
+  alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.FollowerGraph
   alias FirehoseSimulator.PostAuthorList
+  alias FirehoseSimulator.Userbase
 
-  @follow_collection Data.follow_type()
-  @post_collection Data.post_type()
   @insert_batch_size 1_000
 
   def connect(connection_string), do: State.connect(connection_string)
@@ -39,6 +39,28 @@ defmodule FirehoseSimulator.BulkCreation do
     end
   end
 
+  def create_userbase(%Userbase{} = userbase, %DatabaseConnection{
+        connection_string: connection_string
+      }) do
+    with {:ok, _bulk_state} <- connect(connection_string),
+         {:ok, reserved} <- State.reserve(:follows, userbase.num_users),
+         first_user_id <- reserved.last_user_id - userbase.num_users + 1,
+         user_ids = Enum.to_list(first_user_id..reserved.last_user_id),
+         {:ok, graph, follows_count} <- FollowerGraph.generate(userbase.num_users, first_user_id),
+         {:ok, inserted_follow_count, last_user_id} <-
+           insert_userbase_graph(repo_name(connection_string), user_ids, graph),
+         {:ok, _state} <- State.sync_ids(last_user_id, 0) do
+      {:ok,
+       %{
+         inserted_actor_count: length(user_ids),
+         inserted_follow_count: inserted_follow_count,
+         first_user_id: first_user_id,
+         last_user_id: last_user_id,
+         follows_count: follows_count
+       }}
+    end
+  end
+
   def repo_name(connection_string) do
     :"bulk_repo_#{:erlang.phash2(connection_string)}"
   end
@@ -49,16 +71,6 @@ defmodule FirehoseSimulator.BulkCreation do
         {:ok, _result} -> :ok
         {:error, error} -> {:error, error}
       end
-    end)
-  end
-
-  def load_counters(repo_name) do
-    with_dynamic_repo(repo_name, fn ->
-      {:ok,
-       %{
-         last_user_id: load_last_user_id(),
-         last_post_sequence: load_last_post_sequence()
-       }}
     end)
   end
 
@@ -92,8 +104,7 @@ defmodule FirehoseSimulator.BulkCreation do
     with {:ok, reserved} <- State.reserve(:follows, count),
          first_user_id <- reserved.last_user_id - count + 1,
          {:ok, graph, _follows_count} <- FollowerGraph.generate(count, first_user_id) do
-      rows = follow_rows_from_graph(graph)
-      do_insert_follows(repo_name, rows)
+      do_insert_graph_follows(repo_name, graph)
     end
   end
 
@@ -106,40 +117,29 @@ defmodule FirehoseSimulator.BulkCreation do
     end)
   end
 
-  defp do_insert_follows(repo_name, rows) do
+  defp insert_userbase_graph(repo_name, user_ids, graph) do
+    with_dynamic_repo(repo_name, fn ->
+      insert_actor_rows(user_ids)
+
+      follow_rows = follow_rows_from_graph(graph)
+      insert_follow_rows(follow_rows)
+
+      max_user_id = Enum.max(user_ids, fn -> 0 end)
+      {:ok, length(follow_rows), max_user_id}
+    end)
+  end
+
+  defp do_insert_graph_follows(repo_name, graph) do
     with_dynamic_repo(repo_name, fn ->
       all_user_ids =
-        rows
-        |> Enum.flat_map(fn row -> [row.actor_id, row.subject_id] end)
-        |> Enum.uniq()
+        graph
+        |> Map.keys()
+        |> Enum.sort()
 
-      ensure_actors(all_user_ids)
+      insert_actor_rows(all_user_ids)
 
-      base_time = DateTime.utc_now() |> DateTime.truncate(:microsecond)
-
-      follow_rows =
-        Enum.map(rows, fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
-          did = Data.did_for_user_id(actor_id)
-          subject_did = Data.did_for_user_id(subject_id)
-          created_at = shifted_timestamp(base_time, offset_ms)
-
-          record =
-            Data.create_record(@follow_collection, subject: subject_did, created_at: created_at)
-
-          %{
-            uri: at_uri(did, @follow_collection),
-            cid: Data.cid_for_record(record),
-            creator: did,
-            subjectDid: subject_did,
-            createdAt: created_at,
-            indexedAt: indexed_timestamp(base_time, offset_ms)
-          }
-        end)
-
-      insert_all_in_batches(Follow, follow_rows,
-        on_conflict: :nothing,
-        conflict_target: [:uri]
-      )
+      follow_rows = follow_rows_from_graph(graph)
+      insert_follow_rows(follow_rows)
 
       max_user_id = Enum.max(all_user_ids, fn -> 0 end)
       {:ok, length(follow_rows), max_user_id}
@@ -164,7 +164,7 @@ defmodule FirehoseSimulator.BulkCreation do
 
   defp insert_post_rows(rows) do
     all_user_ids = rows |> Enum.map(& &1.user_id) |> Enum.uniq()
-    ensure_actors(all_user_ids)
+    insert_actor_rows(all_user_ids)
 
     base_time = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
@@ -173,10 +173,10 @@ defmodule FirehoseSimulator.BulkCreation do
         did = Data.did_for_user_id(user_id)
         created_at = shifted_timestamp(base_time, offset_ms)
         text = post_text(sequence, user_id, nil)
-        record = Data.create_record(@post_collection, text: text, created_at: created_at)
+        record = Data.create_record(Data.post_type(), text: text, created_at: created_at)
 
         %{
-          uri: at_uri(did, @post_collection),
+          uri: at_uri(did, Data.post_type()),
           cid: Data.cid_for_record(record),
           creator: did,
           text: text,
@@ -189,7 +189,7 @@ defmodule FirehoseSimulator.BulkCreation do
     insert_all_in_batches(Post, post_rows, on_conflict: :nothing, conflict_target: [:uri])
   end
 
-  defp ensure_actors(user_ids) do
+  defp insert_actor_rows(user_ids) do
     indexed_at = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
 
     actor_rows =
@@ -202,6 +202,31 @@ defmodule FirehoseSimulator.BulkCreation do
       end)
 
     insert_all_in_batches(Actor, actor_rows, on_conflict: :nothing, conflict_target: [:did])
+  end
+
+  defp insert_follow_rows(rows) do
+    base_time = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    follow_rows =
+      Enum.map(rows, fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
+        did = Data.did_for_user_id(actor_id)
+        subject_did = Data.did_for_user_id(subject_id)
+        created_at = shifted_timestamp(base_time, offset_ms)
+
+        record =
+          Data.create_record(Data.follow_type(), subject: subject_did, created_at: created_at)
+
+        %{
+          uri: at_uri(did, Data.follow_type()),
+          cid: Data.cid_for_record(record),
+          creator: did,
+          subjectDid: subject_did,
+          createdAt: created_at,
+          indexedAt: indexed_timestamp(base_time, offset_ms)
+        }
+      end)
+
+    insert_all_in_batches(Follow, follow_rows, on_conflict: :nothing, conflict_target: [:uri])
   end
 
   defp current_repo_name do
@@ -225,21 +250,6 @@ defmodule FirehoseSimulator.BulkCreation do
     |> Enum.each(fn batch ->
       DynamicRepo.insert_all(schema, batch, opts)
     end)
-  end
-
-  defp load_last_user_id do
-    result =
-      DynamicRepo.query!(
-        "select coalesce(max((regexp_match(did, '^did:plc:firesim([0-9]+)$'))[1]::bigint), 0) as last_user_id from bsky.actor where did ~ '^did:plc:firesim[0-9]+$'",
-        []
-      )
-
-    result.rows |> List.first() |> List.first()
-  end
-
-  defp load_last_post_sequence do
-    result = DynamicRepo.query!("select coalesce(max(sequence), 0) from bsky.post", [])
-    result.rows |> List.first() |> List.first()
   end
 
   defp at_uri(did, collection) do

@@ -72,13 +72,9 @@ defmodule FirehoseSimulator.BulkCreation.State do
     connection_string = String.trim(connection_string)
 
     with :ok <- validate_connection_string(connection_string),
-         {:ok, state} <- ensure_repo_started(state, connection_string),
-         {:ok, counters} <- BulkCreation.load_counters(state.current_repo_name) do
-      state =
-        put_in(
-          state.counters[connection_string],
-          %{last_user_id: counters.last_user_id, last_post_sequence: counters.last_post_sequence}
-        )
+         {:ok, state} <- ensure_repo_started(state, connection_string) do
+      counters = Map.get(state.counters, connection_string, default_counters())
+      state = put_in(state.counters[connection_string], counters)
 
       {:reply,
        {:ok,
@@ -154,6 +150,10 @@ defmodule FirehoseSimulator.BulkCreation.State do
   defp validate_connection_string("postgres://" <> _rest), do: :ok
   defp validate_connection_string("ecto://" <> _rest), do: :ok
   defp validate_connection_string(_), do: {:error, "Connection string must be a postgres URL"}
+
+  defp default_counters do
+    %{last_post_sequence: 0, last_user_id: 0}
+  end
 
   defp ensure_repo_started(
          %{current_connection_string: connection_string} = state,
