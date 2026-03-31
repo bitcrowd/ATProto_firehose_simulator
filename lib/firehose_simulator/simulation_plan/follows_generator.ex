@@ -136,72 +136,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGenerator do
     end)
   end
 
-  @doc """
-  Write a generated follows plan to CSV.
-  """
-  def write_to_csv(%__MODULE__{} = plan, path) when is_binary(path) do
-    {:ok, file} = File.open(path, [:write, :utf8])
-    IO.write(file, "offset_ms,actor_id,subject_id\n")
-
-    Enum.each(plan.follows, fn follow ->
-      IO.write(file, "#{follow.offset_ms},#{follow.actor_id},#{follow.subject_id}\n")
-    end)
-
-    File.close(file)
-    :ok
-  end
-
-  @doc """
-  Load a follows plan from CSV.
-  """
-  def load_from_csv(path) when is_binary(path) do
-    with {:ok, csv} <- File.read(path),
-         {:ok, follows} <- parse_csv(csv) do
-      {:ok, %__MODULE__{follows: follows}}
-    else
-      {:error, :enoent} -> {:error, "cannot read follows csv at #{path}"}
-      {:error, _reason} = error -> error
-    end
-  end
-
-  @doc """
-  Load a follows plan from CSV, raising on failure.
-  """
-  def load_from_csv!(path) when is_binary(path) do
-    case load_from_csv(path) do
-      {:ok, plan} -> plan
-      {:error, message} -> raise RuntimeError, message
-    end
-  end
-
   defp follow_from_tuple({offset_ms, _seq, actor_id, subject_id}) do
     %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id}
-  end
-
-  defp parse_csv(csv) do
-    case String.split(csv, "\n", trim: true) do
-      ["offset_ms,actor_id,subject_id" | rows] ->
-        rows
-        |> Enum.map(&String.split(&1, ",", parts: 3))
-        |> Enum.reduce_while({:ok, []}, fn
-          [offset_ms, actor_id, subject_id], {:ok, acc} ->
-            with {offset_ms, ""} <- Integer.parse(offset_ms),
-                 {actor_id, ""} <- Integer.parse(actor_id),
-                 {subject_id, ""} <- Integer.parse(subject_id) do
-              {:cont,
-               {:ok,
-                acc ++
-                  [%{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id}]}}
-            else
-              _ -> {:halt, {:error, "invalid follows csv"}}
-            end
-
-          _row, _acc ->
-            {:halt, {:error, "invalid follows csv"}}
-        end)
-
-      _ ->
-        {:error, "invalid follows csv"}
-    end
   end
 end

@@ -1,6 +1,7 @@
 defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
   use ExUnit.Case, async: false
 
+  alias FirehoseSimulator.SimulationPlan.CSV
   alias FirehoseSimulator.SimulationPlan.SessionGenerator
   alias FirehoseSimulator.SimulationPlan.Sessions
 
@@ -26,11 +27,11 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 and load_from_csv/1 round-trip the generated sessions", %{tmp_dir: tmp_dir} do
+  test "CSV.write/2 and CSV.load/2 round-trip the generated sessions", %{tmp_dir: tmp_dir} do
     plan = SessionGenerator.generate(@config)
     path = Path.join(tmp_dir, "sessions.csv")
 
-    assert :ok = SessionGenerator.write_to_csv(plan, path)
+    assert :ok = CSV.write(plan, path)
 
     assert File.read!(path) ==
              "offset_ms,user_id,duration_ms\n" <>
@@ -38,16 +39,15 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
                  "#{session.offset_ms},#{session.user_id},#{session.duration_ms}\n"
                end)
 
-    assert {:ok, %SessionGenerator{sessions: loaded_sessions}} =
-             SessionGenerator.load_from_csv(path)
+    assert {:ok, loaded_sessions} = CSV.load(:sessions, path)
 
     assert loaded_sessions == plan.sessions
   end
 
-  test "load_from_csv/1 returns an error for malformed csv" do
+  test "CSV.load/2 returns an error for missing csv" do
     path = "does-not-exist-sessions.csv"
     error_msg = "cannot read sessions csv at #{path}"
 
-    assert {:error, ^error_msg} = SessionGenerator.load_from_csv(path)
+    assert {:error, ^error_msg} = CSV.load(:sessions, path)
   end
 end

@@ -1,6 +1,7 @@
 defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
   use ExUnit.Case, async: false
 
+  alias FirehoseSimulator.SimulationPlan.CSV
   alias FirehoseSimulator.SimulationPlan.Follows
   alias FirehoseSimulator.SimulationPlan.FollowsGenerator
 
@@ -26,11 +27,11 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 and load_from_csv/1 round-trip the generated follows", %{tmp_dir: tmp_dir} do
+  test "CSV.write/2 and CSV.load/2 round-trip the generated follows", %{tmp_dir: tmp_dir} do
     plan = FollowsGenerator.generate(@config)
     path = Path.join(tmp_dir, "follows.csv")
 
-    assert :ok = FollowsGenerator.write_to_csv(plan, path)
+    assert :ok = CSV.write(plan, path)
 
     assert File.read!(path) ==
              "offset_ms,actor_id,subject_id\n" <>
@@ -38,16 +39,15 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
                  "#{follow.offset_ms},#{follow.actor_id},#{follow.subject_id}\n"
                end)
 
-    assert {:ok, %FollowsGenerator{follows: loaded_follows}} =
-             FollowsGenerator.load_from_csv(path)
+    assert {:ok, loaded_follows} = CSV.load(:follows, path)
 
     assert loaded_follows == plan.follows
   end
 
-  test "load_from_csv/1 returns an error for missing csv" do
+  test "CSV.load/2 returns an error for missing csv" do
     path = "does-not-exist-follows.csv"
     error_msg = "cannot read follows csv at #{path}"
 
-    assert {:error, ^error_msg} = FollowsGenerator.load_from_csv(path)
+    assert {:error, ^error_msg} = CSV.load(:follows, path)
   end
 end

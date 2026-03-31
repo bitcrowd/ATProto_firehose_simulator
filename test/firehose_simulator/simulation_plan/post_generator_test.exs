@@ -1,6 +1,7 @@
 defmodule FirehoseSimulator.SimulationPlan.PostGeneratorTest do
   use ExUnit.Case, async: false
 
+  alias FirehoseSimulator.SimulationPlan.CSV
   alias FirehoseSimulator.SimulationPlan.PostGenerator
   alias FirehoseSimulator.SimulationPlan.Posts
 
@@ -23,11 +24,11 @@ defmodule FirehoseSimulator.SimulationPlan.PostGeneratorTest do
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 and load_from_csv/1 round-trip the generated posts", %{tmp_dir: tmp_dir} do
+  test "CSV.write/2 and CSV.load/2 round-trip the generated posts", %{tmp_dir: tmp_dir} do
     plan = PostGenerator.generate(@config)
     path = Path.join(tmp_dir, "posts.csv")
 
-    assert :ok = PostGenerator.write_to_csv(plan, path)
+    assert :ok = CSV.write(plan, path)
 
     assert File.read!(path) ==
              "offset_ms,user_id\n" <>
@@ -35,14 +36,14 @@ defmodule FirehoseSimulator.SimulationPlan.PostGeneratorTest do
                  "#{post.offset_ms},#{post.user_id}\n"
                end)
 
-    assert {:ok, %PostGenerator{posts: loaded_posts}} = PostGenerator.load_from_csv(path)
+    assert {:ok, loaded_posts} = CSV.load(:posts, path)
     assert loaded_posts == plan.posts
   end
 
-  test "load_from_csv/1 returns an error for missing csv" do
+  test "CSV.load/2 returns an error for missing csv" do
     path = "does-not-exist-posts.csv"
     error_msg = "cannot read posts csv at #{path}"
 
-    assert {:error, ^error_msg} = PostGenerator.load_from_csv(path)
+    assert {:error, ^error_msg} = CSV.load(:posts, path)
   end
 end
