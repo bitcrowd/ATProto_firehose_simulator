@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.PostsTest do
+defmodule FirehoseSimulator.SimulationPlan.PostsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.Posts
+  alias FirehoseSimulator.SimulationPlan.Posts
 
   describe "load/1" do
     test "returns a posts struct for valid json" do

@@ -1,12 +1,12 @@
-defmodule FirehoseSimulator.Follows do
+defmodule FirehoseSimulator.SimulationPlan.Posts do
   @moduledoc false
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.FollowTier
-  alias FirehoseSimulator.JsonEmbeddedLoader
+  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
+  alias FirehoseSimulator.SimulationPlan.PostTier
 
   @type t :: %__MODULE__{
           n: pos_integer(),
@@ -14,7 +14,7 @@ defmodule FirehoseSimulator.Follows do
           seed: integer(),
           time_units: pos_integer(),
           path: String.t(),
-          tiers: [FollowTier.t()]
+          tiers: [PostTier.t()]
         }
 
   @primary_key false
@@ -24,37 +24,37 @@ defmodule FirehoseSimulator.Follows do
     field(:seed, :integer)
     field(:time_units, :integer)
     field(:path, :string)
-    embeds_many(:tiers, FollowTier, on_replace: :delete)
+    embeds_many(:tiers, PostTier, on_replace: :delete)
   end
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load(json) when is_binary(json) do
-    JsonEmbeddedLoader.load(json, "follows", %__MODULE__{}, &changeset/2)
+    JsonEmbeddedLoader.load(json, "posts", %__MODULE__{}, &changeset/2)
   end
 
   @spec load!(String.t()) :: t()
   def load!(json) when is_binary(json) do
-    JsonEmbeddedLoader.load!(json, "follows", %__MODULE__{}, &changeset/2)
+    JsonEmbeddedLoader.load!(json, "posts", %__MODULE__{}, &changeset/2)
   end
 
   @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load_file(path) when is_binary(path) do
     case File.read(path) do
       {:ok, json} -> load(json)
-      {:error, _reason} -> {:error, "cannot read follows file at #{path}"}
+      {:error, _reason} -> {:error, "cannot read posts file at #{path}"}
     end
   end
 
   @spec load_file!(String.t()) :: t()
   def load_file!(path) when is_binary(path) do
     case load_file(path) do
-      {:ok, follows} -> follows
+      {:ok, posts} -> posts
       {:error, message} -> raise RuntimeError, message
     end
   end
 
-  def changeset(follows, attrs) do
-    follows
+  def changeset(posts, attrs) do
+    posts
     |> cast(attrs, [:n, :max_active_user_id, :seed, :time_units, :path])
     |> update_change(:path, &String.trim/1)
     |> validate_required([:n, :max_active_user_id, :seed, :time_units, :path])
@@ -62,7 +62,7 @@ defmodule FirehoseSimulator.Follows do
     |> validate_number(:max_active_user_id, greater_than: 0)
     |> validate_number(:time_units, greater_than: 0)
     |> validate_length(:path, min: 1)
-    |> cast_embed(:tiers, required: true, with: &FollowTier.changeset/2)
+    |> cast_embed(:tiers, required: true, with: &PostTier.changeset/2)
     |> validate_length(:tiers, min: 1)
   end
 end

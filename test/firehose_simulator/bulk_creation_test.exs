@@ -3,7 +3,7 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
-  alias FirehoseSimulator.Userbase
+  alias FirehoseSimulator.SimulationPlan.Userbase
 
   setup do
     :ok = BulkCreation.reset()

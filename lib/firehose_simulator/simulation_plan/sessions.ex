@@ -1,12 +1,12 @@
-defmodule FirehoseSimulator.Sessions do
+defmodule FirehoseSimulator.SimulationPlan.Sessions do
   @moduledoc false
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.JsonEmbeddedLoader
-  alias FirehoseSimulator.SessionTier
+  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
+  alias FirehoseSimulator.SimulationPlan.SessionTier
 
   @type t :: %__MODULE__{
           n: pos_integer(),

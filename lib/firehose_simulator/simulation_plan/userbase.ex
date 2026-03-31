@@ -1,11 +1,11 @@
-defmodule FirehoseSimulator.Userbase do
+defmodule FirehoseSimulator.SimulationPlan.Userbase do
   @moduledoc false
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.JsonEmbeddedLoader
+  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
 
   @type t :: %__MODULE__{
           name: String.t(),

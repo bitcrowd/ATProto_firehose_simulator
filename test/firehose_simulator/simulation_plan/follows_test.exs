@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.FollowsTest do
+defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.Follows
+  alias FirehoseSimulator.SimulationPlan.Follows
 
   describe "load/1" do
     test "returns a follows struct for valid json" do

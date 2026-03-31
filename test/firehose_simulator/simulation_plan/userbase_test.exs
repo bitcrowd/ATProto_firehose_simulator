@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.UserbaseTest do
+defmodule FirehoseSimulator.SimulationPlan.UserbaseTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.Userbase
+  alias FirehoseSimulator.SimulationPlan.Userbase
 
   describe "load/1" do
     test "returns a userbase struct for valid json" do

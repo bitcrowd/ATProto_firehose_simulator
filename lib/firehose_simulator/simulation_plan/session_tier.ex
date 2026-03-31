@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.FollowTier do
+defmodule FirehoseSimulator.SimulationPlan.SessionTier do
   @moduledoc false
 
   use Ecto.Schema
@@ -7,20 +7,20 @@ defmodule FirehoseSimulator.FollowTier do
 
   @type t :: %__MODULE__{
           max_followers: pos_integer(),
-          follows_per_day: float()
+          session_minutes: pos_integer()
         }
 
   @primary_key false
   embedded_schema do
     field(:max_followers, :integer)
-    field(:follows_per_day, :float)
+    field(:session_minutes, :integer)
   end
 
   def changeset(tier, attrs) do
     tier
-    |> cast(attrs, [:max_followers, :follows_per_day])
-    |> validate_required([:max_followers, :follows_per_day])
+    |> cast(attrs, [:max_followers, :session_minutes])
+    |> validate_required([:max_followers, :session_minutes])
     |> validate_number(:max_followers, greater_than: 0)
-    |> validate_number(:follows_per_day, greater_than_or_equal_to: 0)
+    |> validate_number(:session_minutes, greater_than: 0)
   end
 end

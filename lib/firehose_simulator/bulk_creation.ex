@@ -8,7 +8,7 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.FollowerGraph
   alias FirehoseSimulator.PostAuthorList
-  alias FirehoseSimulator.Userbase
+  alias FirehoseSimulator.SimulationPlan.Userbase
 
   @insert_batch_size 1_000
 
