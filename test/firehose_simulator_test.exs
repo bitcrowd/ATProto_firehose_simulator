@@ -4,6 +4,40 @@ defmodule FirehoseSimulatorTest do
   import ExUnit.CaptureLog
 
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.SimulationPlan
+
+  describe "load_simulation_plan_from_json/1" do
+    @tag :tmp_dir
+    test "loads simulation plan json files through the top-level api", %{tmp_dir: tmp_dir} do
+      posts_path =
+        write_file!(
+          tmp_dir,
+          "posts",
+          """
+          {
+            "n": 10,
+            "max_active_user_id": 5,
+            "seed": 1,
+            "time_units": 1,
+            "path": "posts.csv",
+            "tiers": [
+              {"max_followers": 1000, "posts_per_day": 0.25}
+            ]
+          }
+          """
+        )
+
+      capture_log(fn ->
+        send(
+          self(),
+          {:result, FirehoseSimulator.load_simulation_plan_from_json(posts: posts_path)}
+        )
+      end)
+
+      assert_receive {:result, {:ok, %SimulationPlan{posts: posts}}}
+      assert posts.path == "posts.csv"
+    end
+  end
 
   describe "create_userbase/2" do
     test "returns file load errors before attempting database work" do
@@ -14,5 +48,11 @@ defmodule FirehoseSimulatorTest do
                  FirehoseSimulator.create_userbase("missing-userbase.json", connection)
       end)
     end
+  end
+
+  defp write_file!(tmp_dir, prefix, content) do
+    path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
+    File.write!(path, content)
+    path
   end
 end

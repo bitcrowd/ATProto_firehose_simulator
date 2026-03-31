@@ -11,6 +11,7 @@ defmodule FirehoseSimulator do
 
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Userbase
 
   @default_userbase_filename "userbase.json"
@@ -26,6 +27,22 @@ defmodule FirehoseSimulator do
     with {:ok, userbase} <- load_userbase(path),
          {:ok, result} <- do_create_userbase(userbase, connection) do
       {:ok, result}
+    end
+  end
+
+  @spec load_simulation_plan_from_json(keyword(String.t())) ::
+          {:ok, SimulationPlan.t()} | {:error, String.t()}
+  def load_simulation_plan_from_json(paths) do
+    Logger.info("loading simulation plan from json files: #{inspect(paths)}")
+
+    case SimulationPlan.load_from_json(paths) do
+      {:ok, plan} ->
+        Logger.info("loaded simulation plan sections")
+        {:ok, plan}
+
+      {:error, reason} ->
+        Logger.error("failed to load simulation plan from json: #{reason}")
+        {:error, reason}
     end
   end
 
