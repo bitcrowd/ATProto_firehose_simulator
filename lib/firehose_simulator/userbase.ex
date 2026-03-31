@@ -5,6 +5,8 @@ defmodule FirehoseSimulator.Userbase do
 
   import Ecto.Changeset
 
+  alias FirehoseSimulator.JsonEmbeddedLoader
+
   @type t :: %__MODULE__{
           name: String.t(),
           num_users: pos_integer(),
@@ -21,64 +23,32 @@ defmodule FirehoseSimulator.Userbase do
   end
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load(path) when is_binary(path) do
-    with {:ok, json} <- read_json_file(path),
-         {:ok, attrs} <- decode_json(path, json),
-         {:ok, userbase} <- validate(path, attrs) do
-      {:ok, userbase}
-    end
+  def load(json) when is_binary(json) do
+    JsonEmbeddedLoader.load(json, "userbase", %__MODULE__{}, &changeset/2)
   end
 
   @spec load!(String.t()) :: t()
-  def load!(path) when is_binary(path) do
-    case load(path) do
+  def load!(json) when is_binary(json) do
+    JsonEmbeddedLoader.load!(json, "userbase", %__MODULE__{}, &changeset/2)
+  end
+
+  @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def load_file(path) when is_binary(path) do
+    case File.read(path) do
+      {:ok, json} -> load(json)
+      {:error, _reason} -> {:error, "cannot read userbase file at #{path}"}
+    end
+  end
+
+  @spec load_file!(String.t()) :: t()
+  def load_file!(path) when is_binary(path) do
+    case load_file(path) do
       {:ok, userbase} -> userbase
       {:error, message} -> raise RuntimeError, message
     end
   end
 
-  defp read_json_file(path) do
-    case File.read(path) do
-      {:ok, json} -> {:ok, json}
-      {:error, _reason} -> {:error, "cannot read userbase file at #{path}"}
-    end
-  end
-
-  defp decode_json(path, json) do
-    case Jason.decode(json) do
-      {:ok, %{} = attrs} -> {:ok, attrs}
-      {:ok, _not_an_object} -> {:error, "invalid userbase json at #{path}: expected json object"}
-      {:error, _reason} -> {:error, "invalid userbase json at #{path}"}
-    end
-  end
-
-  defp validate(path, attrs) do
-    %__MODULE__{}
-    |> changeset(attrs)
-    |> apply_action(:validate)
-    |> case do
-      {:ok, validated} ->
-        {:ok, validated}
-
-      {:error, changeset} ->
-        {:error, "invalid userbase config at #{path}: #{format_changeset_errors(changeset)}"}
-    end
-  end
-
-  defp format_changeset_errors(changeset) do
-    changeset
-    |> traverse_errors(fn {message, opts} ->
-      Enum.reduce(opts, message, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Enum.map(fn {field, messages} ->
-      "#{field}: #{Enum.join(messages, ", ")}"
-    end)
-    |> Enum.join("; ")
-  end
-
-  defp changeset(userbase, attrs) do
+  def changeset(userbase, attrs) do
     userbase
     |> cast(attrs, [:name, :num_users, :max_active_user_id, :follower_density])
     |> update_change(:name, &String.trim/1)
