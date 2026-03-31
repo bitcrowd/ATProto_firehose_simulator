@@ -22,11 +22,10 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
         }
 
   @type t :: %__MODULE__{
-          config: Posts.t(),
           posts: [post()]
         }
 
-  defstruct [:config, posts: []]
+  defstruct posts: []
 
   @doc """
   Generate an in-memory posts plan from a `%Posts{}` config.
@@ -46,7 +45,7 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
     posts = Enum.sort_by(posts, &elem(&1, 0))
     posts = Enum.map(posts, &post_from_tuple/1)
 
-    %__MODULE__{config: config, posts: posts}
+    %__MODULE__{posts: posts}
   end
 
   defp build_posts(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
@@ -98,8 +97,7 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
   @doc """
   Write a generated posts plan to CSV.
   """
-  def write_to_csv(%__MODULE__{} = plan, path \\ nil) do
-    path = path || plan.config.path
+  def write_to_csv(%__MODULE__{} = plan, path) when is_binary(path) do
     {:ok, file} = File.open(path, [:write, :utf8])
     IO.write(file, "offset_ms,user_id\n")
 
@@ -111,7 +109,53 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
     :ok
   end
 
+  @doc """
+  Load a posts plan from CSV.
+  """
+  def load_from_csv(path) when is_binary(path) do
+    with {:ok, csv} <- File.read(path),
+         {:ok, posts} <- parse_csv(csv) do
+      {:ok, %__MODULE__{posts: posts}}
+    else
+      {:error, :enoent} -> {:error, "cannot read posts csv at #{path}"}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  @doc """
+  Load a posts plan from CSV, raising on failure.
+  """
+  def load_from_csv!(path) when is_binary(path) do
+    case load_from_csv(path) do
+      {:ok, plan} -> plan
+      {:error, message} -> raise RuntimeError, message
+    end
+  end
+
   defp post_from_tuple({offset_ms, user_id}) do
     %{offset_ms: offset_ms, user_id: user_id}
+  end
+
+  defp parse_csv(csv) do
+    case String.split(csv, "\n", trim: true) do
+      ["offset_ms,user_id" | rows] ->
+        rows
+        |> Enum.map(&String.split(&1, ",", parts: 2))
+        |> Enum.reduce_while({:ok, []}, fn
+          [offset_ms, user_id], {:ok, acc} ->
+            with {offset_ms, ""} <- Integer.parse(offset_ms),
+                 {user_id, ""} <- Integer.parse(user_id) do
+              {:cont, {:ok, acc ++ [%{offset_ms: offset_ms, user_id: user_id}]}}
+            else
+              _ -> {:halt, {:error, "invalid posts csv"}}
+            end
+
+          _row, _acc ->
+            {:halt, {:error, "invalid posts csv"}}
+        end)
+
+      _ ->
+        {:error, "invalid posts csv"}
+    end
   end
 end

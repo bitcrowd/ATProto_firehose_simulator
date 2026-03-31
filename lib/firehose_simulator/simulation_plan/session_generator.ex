@@ -24,11 +24,10 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
         }
 
   @type t :: %__MODULE__{
-          config: Sessions.t(),
           sessions: [session()]
         }
 
-  defstruct [:config, sessions: []]
+  defstruct sessions: []
 
   @doc """
   Generate an in-memory session plan from a `%Sessions{}` config.
@@ -48,7 +47,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
     sessions = Enum.sort_by(sessions, &elem(&1, 0))
     sessions = Enum.map(sessions, &session_from_tuple/1)
 
-    %__MODULE__{config: config, sessions: sessions}
+    %__MODULE__{sessions: sessions}
   end
 
   defp build_sessions(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
@@ -80,8 +79,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
   @doc """
   Write a generated session plan to CSV.
   """
-  def write_to_csv(%__MODULE__{} = plan, path \\ nil) do
-    path = path || plan.config.path
+  def write_to_csv(%__MODULE__{} = plan, path) when is_binary(path) do
     {:ok, file} = File.open(path, [:write, :utf8])
     IO.write(file, "offset_ms,user_id,duration_ms\n")
 
@@ -93,7 +91,55 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
     :ok
   end
 
+  @doc """
+  Load a session plan from CSV.
+  """
+  def load_from_csv(path) when is_binary(path) do
+    with {:ok, csv} <- File.read(path),
+         {:ok, sessions} <- parse_csv(csv) do
+      {:ok, %__MODULE__{sessions: sessions}}
+    else
+      {:error, :enoent} -> {:error, "cannot read sessions csv at #{path}"}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  @doc """
+  Load a session plan from CSV, raising on failure.
+  """
+  def load_from_csv!(path) when is_binary(path) do
+    case load_from_csv(path) do
+      {:ok, plan} -> plan
+      {:error, message} -> raise RuntimeError, message
+    end
+  end
+
   defp session_from_tuple({offset_ms, user_id, duration_ms}) do
     %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}
+  end
+
+  defp parse_csv(csv) do
+    case String.split(csv, "\n", trim: true) do
+      ["offset_ms,user_id,duration_ms" | rows] ->
+        rows
+        |> Enum.map(&String.split(&1, ",", parts: 3))
+        |> Enum.reduce_while({:ok, []}, fn
+          [offset_ms, user_id, duration_ms], {:ok, acc} ->
+            with {offset_ms, ""} <- Integer.parse(offset_ms),
+                 {user_id, ""} <- Integer.parse(user_id),
+                 {duration_ms, ""} <- Integer.parse(duration_ms) do
+              {:cont,
+               {:ok, acc ++ [%{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}]}}
+            else
+              _ -> {:halt, {:error, "invalid sessions csv"}}
+            end
+
+          _row, _acc ->
+            {:halt, {:error, "invalid sessions csv"}}
+        end)
+
+      _ ->
+        {:error, "invalid sessions csv"}
+    end
   end
 end

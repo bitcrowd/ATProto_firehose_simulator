@@ -18,7 +18,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
   test "generate/1 returns an in-memory plan struct" do
     plan = FollowsGenerator.generate(@config)
 
-    assert %FollowsGenerator{config: @config, follows: follows} = plan
+    assert %FollowsGenerator{follows: follows} = plan
     assert length(follows) == 2
     assert Enum.all?(follows, &is_integer(&1.offset_ms))
     assert follows |> Enum.map(& &1.actor_id) |> Enum.sort() == [1, 2]
@@ -26,7 +26,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 writes the generated follows", %{tmp_dir: tmp_dir} do
+  test "write_to_csv/2 and load_from_csv/1 round-trip the generated follows", %{tmp_dir: tmp_dir} do
     plan = FollowsGenerator.generate(@config)
     path = Path.join(tmp_dir, "follows.csv")
 
@@ -37,5 +37,17 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGeneratorTest do
                Enum.map_join(plan.follows, "", fn follow ->
                  "#{follow.offset_ms},#{follow.actor_id},#{follow.subject_id}\n"
                end)
+
+    assert {:ok, %FollowsGenerator{follows: loaded_follows}} =
+             FollowsGenerator.load_from_csv(path)
+
+    assert loaded_follows == plan.follows
+  end
+
+  test "load_from_csv/1 returns an error for missing csv" do
+    path = "does-not-exist-follows.csv"
+    error_msg = "cannot read follows csv at #{path}"
+
+    assert {:error, ^error_msg} = FollowsGenerator.load_from_csv(path)
   end
 end

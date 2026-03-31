@@ -18,7 +18,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
   test "generate/1 returns an in-memory plan struct" do
     plan = SessionGenerator.generate(@config)
 
-    assert %SessionGenerator{config: @config, sessions: sessions} = plan
+    assert %SessionGenerator{sessions: sessions} = plan
     assert length(sessions) == 2
     assert Enum.all?(sessions, &is_integer(&1.offset_ms))
     assert sessions |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
@@ -26,7 +26,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 writes the generated sessions", %{tmp_dir: tmp_dir} do
+  test "write_to_csv/2 and load_from_csv/1 round-trip the generated sessions", %{tmp_dir: tmp_dir} do
     plan = SessionGenerator.generate(@config)
     path = Path.join(tmp_dir, "sessions.csv")
 
@@ -37,5 +37,17 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGeneratorTest do
                Enum.map_join(plan.sessions, "", fn session ->
                  "#{session.offset_ms},#{session.user_id},#{session.duration_ms}\n"
                end)
+
+    assert {:ok, %SessionGenerator{sessions: loaded_sessions}} =
+             SessionGenerator.load_from_csv(path)
+
+    assert loaded_sessions == plan.sessions
+  end
+
+  test "load_from_csv/1 returns an error for malformed csv" do
+    path = "does-not-exist-sessions.csv"
+    error_msg = "cannot read sessions csv at #{path}"
+
+    assert {:error, ^error_msg} = SessionGenerator.load_from_csv(path)
   end
 end

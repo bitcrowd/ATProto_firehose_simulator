@@ -16,14 +16,14 @@ defmodule FirehoseSimulator.SimulationPlan.PostGeneratorTest do
   test "generate/1 returns an in-memory plan struct" do
     plan = PostGenerator.generate(@config)
 
-    assert %PostGenerator{config: @config, posts: posts} = plan
+    assert %PostGenerator{posts: posts} = plan
     assert length(posts) == 2
     assert Enum.all?(posts, &is_integer(&1.offset_ms))
     assert posts |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
   end
 
   @tag :tmp_dir
-  test "write_to_csv/2 writes the generated posts", %{tmp_dir: tmp_dir} do
+  test "write_to_csv/2 and load_from_csv/1 round-trip the generated posts", %{tmp_dir: tmp_dir} do
     plan = PostGenerator.generate(@config)
     path = Path.join(tmp_dir, "posts.csv")
 
@@ -34,5 +34,15 @@ defmodule FirehoseSimulator.SimulationPlan.PostGeneratorTest do
                Enum.map_join(plan.posts, "", fn post ->
                  "#{post.offset_ms},#{post.user_id}\n"
                end)
+
+    assert {:ok, %PostGenerator{posts: loaded_posts}} = PostGenerator.load_from_csv(path)
+    assert loaded_posts == plan.posts
+  end
+
+  test "load_from_csv/1 returns an error for missing csv" do
+    path = "does-not-exist-posts.csv"
+    error_msg = "cannot read posts csv at #{path}"
+
+    assert {:error, ^error_msg} = PostGenerator.load_from_csv(path)
   end
 end
