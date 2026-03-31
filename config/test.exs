@@ -1,7 +1,15 @@
 import Config
 
 config :firehose_simulator, :plc,
-  multikey: System.get_env("PLC_MULTIKEY", "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv")
+  multikey: System.get_env("PLC_MULTIKEY", "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv"),
+  private_hex:
+    System.get_env(
+      "PLC_PRIVATE_HEX",
+      "bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a"
+    )
+
+config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
+config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

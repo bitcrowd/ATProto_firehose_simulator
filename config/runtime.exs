@@ -37,8 +37,26 @@ if config_env() == :prod do
       System.get_env("PLC_MULTIKEY") ||
         raise("""
         environment variable PLC_MULTIKEY is missing.
-        You can generate one by calling: mix phx.gen.secret
+        """),
+    private_hex:
+      System.get_env("PLC_PRIVATE_HEX") ||
+        raise("""
+        environment variable PLC_PRIVATE_HEX is missing.
         """)
+
+  config :firehose_simulator,
+         :bsky_api_url,
+         System.get_env("BSKY_API_URL") ||
+           raise("""
+           environment variable BSKY_API_URL is missing.
+           """)
+
+  config :firehose_simulator,
+         :bsky_did,
+         System.get_env("BSKY_DID") ||
+           raise("""
+           environment variable BSKY_DID is missing.
+           """)
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

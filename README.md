@@ -66,7 +66,7 @@ export BSKY_BSYNC_URL="http://localhost:3000"
 export CLUSTER_WORKER_COUNT=1
 ```
 
-For development, there is a default PLC multikey configured.
+For development, there is a default PLC multikey configured (same key will be used for everything).
 
 If you want, you can generate a new keypair:
 
