@@ -1,6 +1,6 @@
 defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
   @moduledoc """
-  Generates a deterministic posts CSV from a follower graph configuration.
+  Generates a deterministic in-memory posts plan from a follower graph configuration.
 
   Posts are distributed at random offsets throughout each simulated time unit,
   independent of session schedules. Uses its own RNG seed so changing
@@ -16,10 +16,20 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
 
   @default_unit_duration_ms 86_400_000
 
-  @doc """
-  Generate a posts CSV file from a `%Posts{}` config.
+  @type post :: %{
+          offset_ms: non_neg_integer(),
+          user_id: pos_integer()
+        }
 
-  Returns `{:ok, %{posts: count}}`.
+  @type t :: %__MODULE__{
+          config: Posts.t(),
+          posts: [post()]
+        }
+
+  defstruct [:config, posts: []]
+
+  @doc """
+  Generate an in-memory posts plan from a `%Posts{}` config.
   """
   def generate(%Posts{} = config) do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
@@ -34,10 +44,9 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
       )
 
     posts = Enum.sort_by(posts, &elem(&1, 0))
+    posts = Enum.map(posts, &post_from_tuple/1)
 
-    write_csv(posts, config.path)
-
-    {:ok, %{posts: length(posts)}}
+    %__MODULE__{config: config, posts: posts}
   end
 
   defp build_posts(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
@@ -86,14 +95,23 @@ defmodule FirehoseSimulator.SimulationPlan.PostGenerator do
     end)
   end
 
-  defp write_csv(posts, path) do
+  @doc """
+  Write a generated posts plan to CSV.
+  """
+  def write_to_csv(%__MODULE__{} = plan, path \\ nil) do
+    path = path || plan.config.path
     {:ok, file} = File.open(path, [:write, :utf8])
     IO.write(file, "offset_ms,user_id\n")
 
-    Enum.each(posts, fn {offset, user_id} ->
-      IO.write(file, "#{offset},#{user_id}\n")
+    Enum.each(plan.posts, fn post ->
+      IO.write(file, "#{post.offset_ms},#{post.user_id}\n")
     end)
 
     File.close(file)
+    :ok
+  end
+
+  defp post_from_tuple({offset_ms, user_id}) do
+    %{offset_ms: offset_ms, user_id: user_id}
   end
 end

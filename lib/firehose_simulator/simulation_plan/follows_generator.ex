@@ -1,6 +1,6 @@
 defmodule FirehoseSimulator.SimulationPlan.FollowsGenerator do
   @moduledoc """
-  Generates a deterministic follows CSV from a follower graph configuration.
+  Generates a deterministic in-memory follows plan from a follower graph configuration.
 
   Follow events are distributed at random offsets throughout each simulated time unit,
   independent of session schedules. Uses its own RNG seed so changing
@@ -16,10 +16,21 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGenerator do
 
   @default_unit_duration_ms 86_400_000
 
-  @doc """
-  Generate a follows CSV file from a `%Follows{}` config.
+  @type follow :: %{
+          offset_ms: non_neg_integer(),
+          actor_id: pos_integer(),
+          subject_id: pos_integer()
+        }
 
-  Returns `{:ok, %{follows: count}}`.
+  @type t :: %__MODULE__{
+          config: Follows.t(),
+          follows: [follow()]
+        }
+
+  defstruct [:config, follows: []]
+
+  @doc """
+  Generate an in-memory follows plan from a `%Follows{}` config.
   """
   def generate(%Follows{} = config) do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
@@ -34,10 +45,9 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGenerator do
       )
 
     follows = Enum.sort_by(follows, fn {offset, seq, _actor, _subject} -> {offset, seq} end)
+    follows = Enum.map(follows, &follow_from_tuple/1)
 
-    write_csv(follows, config.path)
-
-    {:ok, %{follows: length(follows)}}
+    %__MODULE__{config: config, follows: follows}
   end
 
   defp build_follows(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
@@ -127,14 +137,23 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsGenerator do
     end)
   end
 
-  defp write_csv(follows, path) do
+  @doc """
+  Write a generated follows plan to CSV.
+  """
+  def write_to_csv(%__MODULE__{} = plan, path \\ nil) do
+    path = path || plan.config.path
     {:ok, file} = File.open(path, [:write, :utf8])
     IO.write(file, "offset_ms,actor_id,subject_id\n")
 
-    Enum.each(follows, fn {offset, _seq, actor_id, subject_id} ->
-      IO.write(file, "#{offset},#{actor_id},#{subject_id}\n")
+    Enum.each(plan.follows, fn follow ->
+      IO.write(file, "#{follow.offset_ms},#{follow.actor_id},#{follow.subject_id}\n")
     end)
 
     File.close(file)
+    :ok
+  end
+
+  defp follow_from_tuple({offset_ms, _seq, actor_id, subject_id}) do
+    %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id}
   end
 end

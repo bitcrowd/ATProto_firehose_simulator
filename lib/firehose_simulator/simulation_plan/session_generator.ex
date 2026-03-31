@@ -1,6 +1,6 @@
 defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
   @moduledoc """
-  Generates a deterministic sessions CSV from a follower graph configuration.
+  Generates a deterministic in-memory session plan from a follower graph configuration.
 
   Each user gets one session per simulated time unit, starting at a random offset
   that guarantees the session fits within the unit.
@@ -17,10 +17,21 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
 
   @default_unit_duration_ms 86_400_000
 
-  @doc """
-  Generate a sessions CSV file from a `%Sessions{}` config.
+  @type session :: %{
+          offset_ms: non_neg_integer(),
+          user_id: pos_integer(),
+          duration_ms: pos_integer()
+        }
 
-  Returns `{:ok, %{sessions: count}}`.
+  @type t :: %__MODULE__{
+          config: Sessions.t(),
+          sessions: [session()]
+        }
+
+  defstruct [:config, sessions: []]
+
+  @doc """
+  Generate an in-memory session plan from a `%Sessions{}` config.
   """
   def generate(%Sessions{} = config) do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
@@ -35,10 +46,9 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
       )
 
     sessions = Enum.sort_by(sessions, &elem(&1, 0))
+    sessions = Enum.map(sessions, &session_from_tuple/1)
 
-    write_csv(sessions, config.path)
-
-    {:ok, %{sessions: length(sessions)}}
+    %__MODULE__{config: config, sessions: sessions}
   end
 
   defp build_sessions(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
@@ -67,14 +77,23 @@ defmodule FirehoseSimulator.SimulationPlan.SessionGenerator do
     end)
   end
 
-  defp write_csv(sessions, path) do
+  @doc """
+  Write a generated session plan to CSV.
+  """
+  def write_to_csv(%__MODULE__{} = plan, path \\ nil) do
+    path = path || plan.config.path
     {:ok, file} = File.open(path, [:write, :utf8])
     IO.write(file, "offset_ms,user_id,duration_ms\n")
 
-    Enum.each(sessions, fn {offset, user_id, duration} ->
-      IO.write(file, "#{offset},#{user_id},#{duration}\n")
+    Enum.each(plan.sessions, fn session ->
+      IO.write(file, "#{session.offset_ms},#{session.user_id},#{session.duration_ms}\n")
     end)
 
     File.close(file)
+    :ok
+  end
+
+  defp session_from_tuple({offset_ms, user_id, duration_ms}) do
+    %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}
   end
 end
