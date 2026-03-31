@@ -1,6 +1,8 @@
 defmodule FirehoseSimulator.BulkCreationTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan.Userbase
@@ -40,9 +42,11 @@ defmodule FirehoseSimulator.BulkCreationTest do
         connection_string: "postgres://postgres:postgres@127.0.0.1:1/firehose_simulator_test"
       }
 
-    assert {:error, message} = BulkCreation.create_userbase(userbase, connection)
-    assert is_binary(message)
-    refute message == ""
+    capture_log(fn ->
+      assert {:error, message} = BulkCreation.create_userbase(userbase, connection)
+      assert is_binary(message)
+      refute message == ""
+    end)
 
     assert %{connected?: false} = BulkCreation.current_state()
   end

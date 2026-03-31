@@ -8,7 +8,8 @@
 import Config
 
 config :firehose_simulator,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  create_startup_userbase?: true
 
 # Configure the endpoint
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
