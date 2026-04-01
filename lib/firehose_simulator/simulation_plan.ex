@@ -67,4 +67,56 @@ defmodule FirehoseSimulator.SimulationPlan do
   end
 
   defp load_follows_plan(_path), do: {:error, "follows path must be a string"}
+
+  defp apply_shift(%__MODULE__{} = plan, 0), do: plan
+
+  defp apply_shift(%__MODULE__{} = plan, shift) do
+    %__MODULE__{
+      sessions_plan: shift_sessions(plan.sessions_plan, shift),
+      posts_plan: shift_posts(plan.posts_plan, shift),
+      follows_plan: shift_follows(plan.follows_plan, shift)
+    }
+  end
+
+  defp shift_sessions(nil, _shift), do: nil
+
+  defp shift_sessions(%Sessions{sessions: sessions} = sessions_plan, shift) do
+    shifted =
+      Enum.map(sessions, fn session ->
+        %{session | offset_ms: session.offset_ms + shift}
+      end)
+
+    %{sessions_plan | sessions: shifted}
+  end
+
+  defp shift_posts(nil, _shift), do: nil
+
+  defp shift_posts(%Posts{posts: posts} = posts_plan, shift) do
+    shifted =
+      Enum.map(posts, fn post ->
+        %{post | offset_ms: post.offset_ms + shift}
+      end)
+
+    %{posts_plan | posts: shifted}
+  end
+
+  defp shift_follows(nil, _shift), do: nil
+
+  defp shift_follows(%Follows{follows: follows} = follows_plan, shift) do
+    shifted =
+      Enum.map(follows, fn follow ->
+        %{follow | offset_ms: follow.offset_ms + shift}
+      end)
+
+    %{follows_plan | follows: shifted}
+  end
+
+  defp sessions_offsets(nil), do: []
+  defp sessions_offsets(%Sessions{sessions: sessions}), do: Enum.map(sessions, & &1.offset_ms)
+
+  defp posts_offsets(nil), do: []
+  defp posts_offsets(%Posts{posts: posts}), do: Enum.map(posts, & &1.offset_ms)
+
+  defp follows_offsets(nil), do: []
+  defp follows_offsets(%Follows{follows: follows}), do: Enum.map(follows, & &1.offset_ms)
 end
