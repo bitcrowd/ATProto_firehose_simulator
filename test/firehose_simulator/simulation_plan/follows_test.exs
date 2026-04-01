@@ -2,106 +2,52 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan.Follows
+  alias FirehoseSimulator.SimulationPlan.FollowsParams
+  alias FirehoseSimulator.SimulationPlan.CSV
 
-  describe "load/1" do
-    test "returns a follows struct for valid json" do
-      assert {:ok, %Follows{} = follows} =
-               Follows.load("""
-               {
-                 "n": 1000000,
-                 "max_active_user_id": 5000,
-                 "seed": 42,
-                 "time_units": 1,
-                 "path": "follows.csv",
-                 "tiers": [
-                   {"max_followers": 1000, "follows_per_day": 0.25},
-                   {"max_followers": 10000, "follows_per_day": 10},
-                   {"max_followers": 1000000, "follows_per_day": 3}
-                 ]
-               }
-               """)
+  @config %FollowsParams{
+    n: 100,
+    max_active_user_id: 2,
+    seed: 42,
+    time_units: 1,
+    path: "follows.csv",
+    tiers: [
+      %FirehoseSimulator.SimulationPlan.FollowTier{max_followers: 1_000, follows_per_day: 1.0}
+    ]
+  }
 
-      assert follows.path == "follows.csv"
-      assert Enum.map(follows.tiers, & &1.follows_per_day) == [0.25, 10.0, 3.0]
-    end
+  test "generate/1 returns an in-memory plan struct" do
+    plan = Follows.generate(@config)
 
-    test "returns an error for malformed json" do
-      error_msg = "invalid follows json"
-
-      assert {:error, ^error_msg} = Follows.load("{bad json")
-    end
-
-    test "requires at least one tier" do
-      assert {:error, message} =
-               Follows.load("""
-               {
-                 "n": 1000000,
-                 "max_active_user_id": 5000,
-                 "seed": 42,
-                 "time_units": 1,
-                 "path": "follows.csv",
-                 "tiers": []
-               }
-               """)
-
-      assert String.contains?(message, "invalid follows config:")
-      assert String.contains?(message, "tiers")
-    end
+    assert %Follows{follows: follows} = plan
+    assert length(follows) == 2
+    assert Enum.all?(follows, &is_integer(&1.offset_ms))
+    assert follows |> Enum.map(& &1.actor_id) |> Enum.sort() == [1, 2]
+    assert Enum.all?(follows, &is_integer(&1.subject_id))
   end
 
-  describe "load!/1" do
-    test "returns the follows config on success" do
-      assert %Follows{path: "follows.csv"} =
-               Follows.load!("""
-               {
-                 "n": 10,
-                 "max_active_user_id": 5,
-                 "seed": 1,
-                 "time_units": 1,
-                 "path": "follows.csv",
-                 "tiers": [
-                   {"max_followers": 1000, "follows_per_day": 0.25}
-                 ]
-               }
-               """)
-    end
+  @tag :tmp_dir
+  test "CSV.write/2 and CSV.load/2 round-trip the generated follows", %{tmp_dir: tmp_dir} do
+    plan = Follows.generate(@config)
+    path = Path.join(tmp_dir, "follows.csv")
+
+    assert :ok = CSV.write(plan, path)
+
+    assert File.read!(path) ==
+             "offset_ms,actor_id,subject_id\n" <>
+               Enum.map_join(plan.follows, "", fn follow ->
+                 "#{follow.offset_ms},#{follow.actor_id},#{follow.subject_id}\n"
+               end)
+
+    assert {:ok, loaded_follows} = CSV.load(:follows, path)
+
+    assert loaded_follows == plan.follows
   end
 
-  describe "load_file/1" do
-    @tag :tmp_dir
-    test "reads follows json from disk", %{tmp_dir: tmp_dir} do
-      path =
-        write_file!(
-          tmp_dir,
-          "follows",
-          """
-          {
-            "n": 10,
-            "max_active_user_id": 5,
-            "seed": 1,
-            "time_units": 1,
-            "path": "follows.csv",
-            "tiers": [
-              {"max_followers": 1000, "follows_per_day": 0.25}
-            ]
-          }
-          """
-        )
+  test "CSV.load/2 returns an error for missing csv" do
+    path = "does-not-exist-follows.csv"
+    error_msg = "cannot read follows csv at #{path}"
 
-      assert {:ok, %Follows{path: "follows.csv"}} = Follows.load_file(path)
-    end
-
-    test "returns an error with file path when file does not exist" do
-      path = "missing-follows.json"
-      error_msg = "cannot read follows file at #{path}"
-
-      assert {:error, ^error_msg} = Follows.load_file(path)
-    end
-  end
-
-  defp write_file!(tmp_dir, prefix, content) do
-    path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
-    File.write!(path, content)
-    path
+    assert {:error, ^error_msg} = CSV.load(:follows, path)
   end
 end

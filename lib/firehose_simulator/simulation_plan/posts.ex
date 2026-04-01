@@ -1,68 +1,100 @@
 defmodule FirehoseSimulator.SimulationPlan.Posts do
-  @moduledoc false
+  @moduledoc """
+  Generates a deterministic in-memory posts plan from a follower graph configuration.
 
-  use Ecto.Schema
+  Posts are distributed at random offsets throughout each simulated time unit,
+  independent of session schedules. Uses its own RNG seed so changing
+  post config does not affect session generation.
 
-  import Ecto.Changeset
+  ## Example
 
-  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
-  alias FirehoseSimulator.SimulationPlan.PostTier
+      FirehoseSimulator.SimulationPlan.Posts.generate(%PostsParams{...})
+  """
 
-  @type t :: %__MODULE__{
-          n: pos_integer(),
-          max_active_user_id: pos_integer(),
-          seed: integer(),
-          time_units: pos_integer(),
-          path: String.t(),
-          tiers: [PostTier.t()]
+  alias FirehoseSimulator.FollowerGraph
+  alias FirehoseSimulator.SimulationPlan.PostsParams
+
+  @default_unit_duration_ms 86_400_000
+
+  @type post :: %{
+          offset_ms: non_neg_integer(),
+          user_id: pos_integer()
         }
 
-  @primary_key false
-  embedded_schema do
-    field(:n, :integer)
-    field(:max_active_user_id, :integer)
-    field(:seed, :integer)
-    field(:time_units, :integer)
-    field(:path, :string)
-    embeds_many(:tiers, PostTier, on_replace: :delete)
+  @type t :: %__MODULE__{
+          posts: [post()]
+        }
+
+  defstruct posts: []
+
+  @doc """
+  Generate an in-memory posts plan from a `%PostsParams{}` config.
+  """
+  def generate(%PostsParams{} = config) do
+    :rand.seed(:exsss, {config.seed, config.seed, config.seed})
+
+    posts =
+      build_posts(
+        config.max_active_user_id,
+        config.n,
+        config.time_units,
+        config.tiers,
+        @default_unit_duration_ms
+      )
+
+    posts = Enum.sort_by(posts, &elem(&1, 0))
+    posts = Enum.map(posts, &post_from_tuple/1)
+
+    %__MODULE__{posts: posts}
   end
 
-  @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load(json) when is_binary(json) do
-    JsonEmbeddedLoader.load(json, "posts", %__MODULE__{}, &changeset/2)
-  end
-
-  @spec load!(String.t()) :: t()
-  def load!(json) when is_binary(json) do
-    JsonEmbeddedLoader.load!(json, "posts", %__MODULE__{}, &changeset/2)
-  end
-
-  @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load_file(path) when is_binary(path) do
-    case File.read(path) do
-      {:ok, json} -> load(json)
-      {:error, _reason} -> {:error, "cannot read posts file at #{path}"}
+  defp build_posts(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
+    for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id, reduce: [] do
+      acc ->
+        unit_offset = unit * unit_duration_ms
+        tier = lookup_tier(user_id, n, tiers)
+        new_posts = generate_posts(tier.posts_per_day, user_id, unit_offset, unit_duration_ms)
+        new_posts ++ acc
     end
   end
 
-  @spec load_file!(String.t()) :: t()
-  def load_file!(path) when is_binary(path) do
-    case load_file(path) do
-      {:ok, posts} -> posts
-      {:error, message} -> raise RuntimeError, message
+  defp generate_posts(posts_per_day, user_id, unit_offset, unit_duration_ms)
+       when posts_per_day < 1.0 do
+    if :rand.uniform() < posts_per_day do
+      [{unit_offset + :rand.uniform(unit_duration_ms) - 1, user_id}]
+    else
+      []
     end
   end
 
-  def changeset(posts, attrs) do
-    posts
-    |> cast(attrs, [:n, :max_active_user_id, :seed, :time_units, :path])
-    |> update_change(:path, &String.trim/1)
-    |> validate_required([:n, :max_active_user_id, :seed, :time_units, :path])
-    |> validate_number(:n, greater_than: 0)
-    |> validate_number(:max_active_user_id, greater_than: 0)
-    |> validate_number(:time_units, greater_than: 0)
-    |> validate_length(:path, min: 1)
-    |> cast_embed(:tiers, required: true, with: &PostTier.changeset/2)
-    |> validate_length(:tiers, min: 1)
+  defp generate_posts(posts_per_day, user_id, unit_offset, unit_duration_ms) do
+    count = trunc(posts_per_day)
+    fractional = posts_per_day - count
+
+    base_posts =
+      for _ <- 1..count do
+        {unit_offset + :rand.uniform(unit_duration_ms) - 1, user_id}
+      end
+
+    extra =
+      if fractional > 0 and :rand.uniform() < fractional do
+        [{unit_offset + :rand.uniform(unit_duration_ms) - 1, user_id}]
+      else
+        []
+      end
+
+    base_posts ++ extra
+  end
+
+  defp lookup_tier(user_id, n, tiers) do
+    follower_count = FollowerGraph.follower_count(user_id, n)
+
+    Enum.find(tiers, List.last(tiers), fn tier ->
+      follower_count <= tier.max_followers
+    end)
+  end
+
+  defp post_from_tuple({offset_ms, user_id}) do
+    %{offset_ms: offset_ms, user_id: user_id}
   end
 end

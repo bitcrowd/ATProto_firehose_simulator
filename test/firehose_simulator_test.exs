@@ -34,8 +34,8 @@ defmodule FirehoseSimulatorTest do
         )
       end)
 
-      assert_receive {:result, {:ok, %SimulationPlan{posts: posts}}}
-      assert posts.path == "posts.csv"
+      assert_receive {:result, {:ok, %SimulationPlan{posts_plan: posts_plan}}}
+      assert is_list(posts_plan.posts)
     end
   end
 

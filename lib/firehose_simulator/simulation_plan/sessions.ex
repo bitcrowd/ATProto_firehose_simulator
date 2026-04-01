@@ -1,68 +1,82 @@
 defmodule FirehoseSimulator.SimulationPlan.Sessions do
-  @moduledoc false
+  @moduledoc """
+  Generates a deterministic in-memory session plan from a follower graph configuration.
 
-  use Ecto.Schema
+  Each user gets one session per simulated time unit, starting at a random offset
+  that guarantees the session fits within the unit.
 
-  import Ecto.Changeset
+  The same inputs + seed always produce byte-identical output.
 
-  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
-  alias FirehoseSimulator.SimulationPlan.SessionTier
+  ## Example
 
-  @type t :: %__MODULE__{
-          n: pos_integer(),
-          max_active_user_id: pos_integer(),
-          seed: integer(),
-          time_units: pos_integer(),
-          path: String.t(),
-          tiers: [SessionTier.t()]
+      FirehoseSimulator.SimulationPlan.Sessions.generate(%SessionsParams{...})
+  """
+
+  alias FirehoseSimulator.FollowerGraph
+  alias FirehoseSimulator.SimulationPlan.SessionsParams
+
+  @default_unit_duration_ms 86_400_000
+
+  @type session :: %{
+          offset_ms: non_neg_integer(),
+          user_id: pos_integer(),
+          duration_ms: pos_integer()
         }
 
-  @primary_key false
-  embedded_schema do
-    field(:n, :integer)
-    field(:max_active_user_id, :integer)
-    field(:seed, :integer)
-    field(:time_units, :integer)
-    field(:path, :string)
-    embeds_many(:tiers, SessionTier, on_replace: :delete)
+  @type t :: %__MODULE__{
+          sessions: [session()]
+        }
+
+  defstruct sessions: []
+
+  @doc """
+  Generate an in-memory session plan from a `%SessionsParams{}` config.
+  """
+  def generate(%SessionsParams{} = config) do
+    :rand.seed(:exsss, {config.seed, config.seed, config.seed})
+
+    sessions =
+      build_sessions(
+        config.max_active_user_id,
+        config.n,
+        config.time_units,
+        config.tiers,
+        @default_unit_duration_ms
+      )
+
+    sessions = Enum.sort_by(sessions, &elem(&1, 0))
+    sessions = Enum.map(sessions, &session_from_tuple/1)
+
+    %__MODULE__{sessions: sessions}
   end
 
-  @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load(json) when is_binary(json) do
-    JsonEmbeddedLoader.load(json, "sessions", %__MODULE__{}, &changeset/2)
-  end
+  defp build_sessions(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
+    for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id do
+      unit_offset = unit * unit_duration_ms
+      tier = lookup_tier(user_id, n, tiers)
 
-  @spec load!(String.t()) :: t()
-  def load!(json) when is_binary(json) do
-    JsonEmbeddedLoader.load!(json, "sessions", %__MODULE__{}, &changeset/2)
-  end
+      session_ms = tier.session_minutes * 60_000
+      max_start = max(unit_duration_ms - session_ms, 1)
+      start_offset = unit_offset + :rand.uniform(max_start) - 1
 
-  @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load_file(path) when is_binary(path) do
-    case File.read(path) do
-      {:ok, json} -> load(json)
-      {:error, _reason} -> {:error, "cannot read sessions file at #{path}"}
+      {start_offset, user_id, session_ms}
     end
   end
 
-  @spec load_file!(String.t()) :: t()
-  def load_file!(path) when is_binary(path) do
-    case load_file(path) do
-      {:ok, sessions} -> sessions
-      {:error, message} -> raise RuntimeError, message
-    end
+  @doc """
+  Look up the tier for a user based on their follower count.
+
+  Tiers must be sorted ascending by `:max_followers`. First match wins.
+  """
+  def lookup_tier(user_id, n, tiers) do
+    follower_count = FollowerGraph.follower_count(user_id, n)
+
+    Enum.find(tiers, List.last(tiers), fn tier ->
+      follower_count <= tier.max_followers
+    end)
   end
 
-  def changeset(sessions, attrs) do
-    sessions
-    |> cast(attrs, [:n, :max_active_user_id, :seed, :time_units, :path])
-    |> update_change(:path, &String.trim/1)
-    |> validate_required([:n, :max_active_user_id, :seed, :time_units, :path])
-    |> validate_number(:n, greater_than: 0)
-    |> validate_number(:max_active_user_id, greater_than: 0)
-    |> validate_number(:time_units, greater_than: 0)
-    |> validate_length(:path, min: 1)
-    |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
-    |> validate_length(:tiers, min: 1)
+  defp session_from_tuple({offset_ms, user_id, duration_ms}) do
+    %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}
   end
 end

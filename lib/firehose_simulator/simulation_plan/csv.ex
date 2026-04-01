@@ -3,13 +3,13 @@ defmodule FirehoseSimulator.SimulationPlan.CSV do
   Shared CSV helpers for simulation plan modules.
   """
 
-  alias FirehoseSimulator.SimulationPlan.FollowsGenerator
-  alias FirehoseSimulator.SimulationPlan.PostGenerator
-  alias FirehoseSimulator.SimulationPlan.SessionGenerator
+  alias FirehoseSimulator.SimulationPlan.Follows
+  alias FirehoseSimulator.SimulationPlan.Posts
+  alias FirehoseSimulator.SimulationPlan.Sessions
 
-  @spec write(PostGenerator.t() | SessionGenerator.t() | FollowsGenerator.t(), String.t()) ::
+  @spec write(Posts.t() | Sessions.t() | Follows.t(), String.t()) ::
           :ok | {:error, term()}
-  def write(%PostGenerator{posts: posts}, path) when is_binary(path) do
+  def write(%Posts{posts: posts}, path) when is_binary(path) do
     write_rows(
       posts,
       "offset_ms,user_id",
@@ -18,7 +18,7 @@ defmodule FirehoseSimulator.SimulationPlan.CSV do
     )
   end
 
-  def write(%SessionGenerator{sessions: sessions}, path) when is_binary(path) do
+  def write(%Sessions{sessions: sessions}, path) when is_binary(path) do
     write_rows(
       sessions,
       "offset_ms,user_id,duration_ms",
@@ -27,7 +27,7 @@ defmodule FirehoseSimulator.SimulationPlan.CSV do
     )
   end
 
-  def write(%FollowsGenerator{follows: follows}, path) when is_binary(path) do
+  def write(%Follows{follows: follows}, path) when is_binary(path) do
     write_rows(
       follows,
       "offset_ms,actor_id,subject_id",

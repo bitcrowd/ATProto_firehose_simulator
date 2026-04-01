@@ -8,7 +8,8 @@ defmodule FirehoseSimulator.SimulationPlanTest do
 
   describe "load_from_json/1" do
     @tag :tmp_dir
-    test "loads posts, sessions, and follows from json files", %{tmp_dir: tmp_dir} do
+    test "loads params from json files and generates posts, sessions, and follows plans",
+         %{tmp_dir: tmp_dir} do
       posts_path =
         write_file!(
           tmp_dir,
@@ -65,19 +66,23 @@ defmodule FirehoseSimulator.SimulationPlanTest do
 
       assert {:ok,
               %SimulationPlan{
-                posts: %Posts{path: "posts.csv"},
-                sessions: %Sessions{path: "sessions.csv"},
-                follows: %Follows{path: "follows.csv"}
+                posts_plan: %Posts{posts: posts},
+                sessions_plan: %Sessions{sessions: sessions},
+                follows_plan: %Follows{follows: follows}
               }} =
                SimulationPlan.load_from_json(
                  posts: posts_path,
                  sessions: sessions_path,
                  follows: follows_path
                )
+
+      assert length(sessions) == 5
+      assert is_list(posts)
+      assert is_list(follows)
     end
 
     test "returns nil for sections without a path" do
-      assert {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}} =
+      assert {:ok, %SimulationPlan{posts_plan: nil, sessions_plan: nil, follows_plan: nil}} =
                SimulationPlan.load_from_json([])
     end
   end

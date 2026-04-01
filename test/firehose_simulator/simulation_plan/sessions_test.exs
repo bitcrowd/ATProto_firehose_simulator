@@ -2,112 +2,52 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan.Sessions
+  alias FirehoseSimulator.SimulationPlan.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.CSV
 
-  describe "load/1" do
-    test "returns a sessions struct for valid json" do
-      assert {:ok, %Sessions{} = sessions} =
-               Sessions.load("""
-               {
-                 "n": 1000000,
-                 "max_active_user_id": 5000,
-                 "seed": 42,
-                 "time_units": 1,
-                 "path": "sessions.csv",
-                 "tiers": [
-                   {"max_followers": 1000, "session_minutes": 240},
-                   {"max_followers": 10000, "session_minutes": 480},
-                   {"max_followers": 1000000, "session_minutes": 1000}
-                 ]
-               }
-               """)
+  @config %SessionsParams{
+    n: 100,
+    max_active_user_id: 2,
+    seed: 42,
+    time_units: 1,
+    path: "sessions.csv",
+    tiers: [
+      %FirehoseSimulator.SimulationPlan.SessionTier{max_followers: 1_000, session_minutes: 10}
+    ]
+  }
 
-      assert sessions.n == 1_000_000
-      assert sessions.max_active_user_id == 5_000
-      assert sessions.seed == 42
-      assert sessions.time_units == 1
-      assert sessions.path == "sessions.csv"
-      assert Enum.map(sessions.tiers, & &1.session_minutes) == [240, 480, 1000]
-    end
+  test "generate/1 returns an in-memory plan struct" do
+    plan = Sessions.generate(@config)
 
-    test "returns an error for malformed json" do
-      error_msg = "invalid sessions json"
-
-      assert {:error, ^error_msg} = Sessions.load("{bad json")
-    end
-
-    test "returns embedded validation details for tiers" do
-      assert {:error, message} =
-               Sessions.load("""
-               {
-                 "n": 1000000,
-                 "max_active_user_id": 5000,
-                 "seed": 42,
-                 "time_units": 1,
-                 "path": "sessions.csv",
-                 "tiers": [
-                   {"max_followers": 1000}
-                 ]
-               }
-               """)
-
-      assert String.contains?(message, "invalid sessions config:")
-      assert String.contains?(message, "tiers")
-    end
+    assert %Sessions{sessions: sessions} = plan
+    assert length(sessions) == 2
+    assert Enum.all?(sessions, &is_integer(&1.offset_ms))
+    assert sessions |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
+    assert Enum.all?(sessions, &(&1.duration_ms == 600_000))
   end
 
-  describe "load!/1" do
-    test "returns the sessions config on success" do
-      assert %Sessions{path: "sessions.csv"} =
-               Sessions.load!("""
-               {
-                 "n": 10,
-                 "max_active_user_id": 5,
-                 "seed": 1,
-                 "time_units": 1,
-                 "path": "sessions.csv",
-                 "tiers": [
-                   {"max_followers": 1000, "session_minutes": 240}
-                 ]
-               }
-               """)
-    end
+  @tag :tmp_dir
+  test "CSV.write/2 and CSV.load/2 round-trip the generated sessions", %{tmp_dir: tmp_dir} do
+    plan = Sessions.generate(@config)
+    path = Path.join(tmp_dir, "sessions.csv")
+
+    assert :ok = CSV.write(plan, path)
+
+    assert File.read!(path) ==
+             "offset_ms,user_id,duration_ms\n" <>
+               Enum.map_join(plan.sessions, "", fn session ->
+                 "#{session.offset_ms},#{session.user_id},#{session.duration_ms}\n"
+               end)
+
+    assert {:ok, loaded_sessions} = CSV.load(:sessions, path)
+
+    assert loaded_sessions == plan.sessions
   end
 
-  describe "load_file/1" do
-    @tag :tmp_dir
-    test "reads sessions json from disk", %{tmp_dir: tmp_dir} do
-      path =
-        write_file!(
-          tmp_dir,
-          "sessions",
-          """
-          {
-            "n": 10,
-            "max_active_user_id": 5,
-            "seed": 1,
-            "time_units": 1,
-            "path": "sessions.csv",
-            "tiers": [
-              {"max_followers": 1000, "session_minutes": 240}
-            ]
-          }
-          """
-        )
+  test "CSV.load/2 returns an error for missing csv" do
+    path = "does-not-exist-sessions.csv"
+    error_msg = "cannot read sessions csv at #{path}"
 
-      assert {:ok, %Sessions{path: "sessions.csv"}} = Sessions.load_file(path)
-    end
-
-    test "returns an error with file path when file does not exist" do
-      path = "missing-sessions.json"
-      error_msg = "cannot read sessions file at #{path}"
-
-      assert {:error, ^error_msg} = Sessions.load_file(path)
-    end
-  end
-
-  defp write_file!(tmp_dir, prefix, content) do
-    path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
-    File.write!(path, content)
-    path
+    assert {:error, ^error_msg} = CSV.load(:sessions, path)
   end
 end
