@@ -54,15 +54,26 @@
           <.icon name="hero-play-circle" class="size-5 text-primary" /> Control playback
         </div>
 
-        <div class="flex flex-wrap gap-3">
-          <.button
-            id="play-button"
-            type="button"
-            phx-click="play"
-            disabled={!@selected_plan_id}
-          >
+        <.form
+          for={@play_form}
+          id="simulation-play-form"
+          phx-change="validate_play"
+          phx-submit="play"
+          class="space-y-3"
+        >
+          <.input
+            field={@play_form[:offset_ms]}
+            id="simulation-offset-ms"
+            type="number"
+            label="Play offset (ms)"
+          />
+
+          <.button id="play-button" type="submit" disabled={!@selected_plan_id}>
             Play
           </.button>
+        </.form>
+
+        <div class="flex flex-wrap gap-3">
           <.button id="stop-button" type="button" phx-click="stop" variant="primary">
             Stop
           </.button>

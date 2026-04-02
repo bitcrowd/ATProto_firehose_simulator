@@ -121,7 +121,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     refute has_element?(view, "#play-button[disabled]")
 
-    view |> element("#play-button") |> render_click()
+    view
+    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
+    |> render_submit()
+
     assert render(view) =~ "Simulation started."
 
     view |> element("#stop-button") |> render_click()
@@ -169,6 +172,13 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     end
 
     def play(%SimulationPlan{} = simulation_plan), do: play(simulation_plan, [])
+
+    def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms)
+        when is_integer(offset_ms) do
+      simulation_plan
+      |> FirehoseSimulator.shift_simulation_plan(offset_ms)
+      |> play()
+    end
 
     def play(%SimulationPlan{posts: [%{offset_ms: 260, user_id: 1}]}, _opts),
       do: {:ok, %{started?: true}}

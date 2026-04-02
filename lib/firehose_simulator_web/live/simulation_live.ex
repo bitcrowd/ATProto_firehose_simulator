@@ -13,6 +13,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:current_scope, nil)
       |> assign(:plans, [])
       |> assign(:selected_plan_id, nil)
+      |> assign(:play_form, to_form(%{"offset_ms" => "0"}, as: :play))
       |> assign(:player_ids, player_ids)
       |> assign(:last_action, nil)
       |> assign_plans()
@@ -27,28 +28,40 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   @impl true
-  def handle_event("play", _params, socket) do
-    case State.get_selected_simulation_plan() do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Select a simulation plan before playing.")}
+  def handle_event("validate_play", %{"play" => params}, socket) do
+    {:noreply, assign(socket, :play_form, to_form(params, as: :play))}
+  end
 
-      simulation_plan ->
-        case simulator_module().play(simulation_plan) do
-          {:ok, result} ->
-            player_ids = player_ids_from_play_result(result)
-            :ok = State.put_player_ids(player_ids)
+  def handle_event("validate_play", _params, socket), do: {:noreply, socket}
 
-            {:noreply,
-             socket
-             |> assign(:player_ids, player_ids)
-             |> assign(:last_action, "Simulation playback started.")
-             |> put_flash(:info, "Simulation started.")}
+  @impl true
+  def handle_event("play", %{"play" => params}, socket) do
+    socket = assign(socket, :play_form, to_form(params, as: :play))
 
-          {:error, reason} ->
-            {:noreply,
-             put_flash(socket, :error, "Failed to start simulation: #{inspect(reason)}")}
-        end
+    with {:ok, offset_ms} <- parse_offset_ms(params),
+         {:ok, simulation_plan} <- fetch_selected_plan() do
+      case simulator_module().play_with_offset(simulation_plan, offset_ms) do
+        {:ok, result} ->
+          player_ids = player_ids_from_play_result(result)
+          :ok = State.put_player_ids(player_ids)
+
+          {:noreply,
+           socket
+           |> assign(:player_ids, player_ids)
+           |> assign(:last_action, "Simulation playback started with #{offset_ms} ms offset.")
+           |> put_flash(:info, "Simulation started.")}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Failed to start simulation: #{inspect(reason)}")}
+      end
+    else
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, reason)}
     end
+  end
+
+  def handle_event("play", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Invalid play form payload.")}
   end
 
   @impl true
@@ -95,6 +108,25 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   defp simulator_module do
     Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
+  end
+
+  defp parse_offset_ms(params) when is_map(params) do
+    value = params["offset_ms"] |> to_string() |> String.trim()
+
+    case Integer.parse(value) do
+      {offset_ms, ""} ->
+        {:ok, offset_ms}
+
+      _other ->
+        {:error, "Offset must be an integer number of milliseconds."}
+    end
+  end
+
+  defp fetch_selected_plan do
+    case State.get_selected_simulation_plan() do
+      nil -> {:error, "Select a simulation plan before playing."}
+      simulation_plan -> {:ok, simulation_plan}
+    end
   end
 
   defp player_ids_from_play_result(result) when is_map(result) do

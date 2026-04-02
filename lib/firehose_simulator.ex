@@ -124,6 +124,21 @@ defmodule FirehoseSimulator do
     end
   end
 
+  @spec play_with_offset(SimulationPlan.t(), integer()) :: {:ok, map()} | {:error, term()}
+  def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms)
+      when is_integer(offset_ms) do
+    play_with_offset(simulation_plan, offset_ms, [])
+  end
+
+  @spec play_with_offset(SimulationPlan.t(), integer(), keyword()) ::
+          {:ok, map()} | {:error, term()}
+  def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms, opts)
+      when is_integer(offset_ms) and is_list(opts) do
+    simulation_plan
+    |> shift_simulation_plan(offset_ms)
+    |> play(opts)
+  end
+
   def stop, do: Player.stop()
 
   def reset, do: Player.reset()

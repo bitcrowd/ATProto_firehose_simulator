@@ -100,6 +100,36 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
+  describe "play_with_offset/3" do
+    setup do
+      on_exit(fn ->
+        _ = Player.stop()
+      end)
+
+      :ok
+    end
+
+    test "shifts the plan before starting playback" do
+      simulation_plan = %SimulationPlan{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: nil,
+        follows: nil
+      }
+
+      capture_log(fn ->
+        assert {:ok, %{started?: true}} =
+                 FirehoseSimulator.play_with_offset(simulation_plan, 250, scheduler_count: 1)
+      end)
+
+      _ = :sys.get_state(FirehoseSimulator.SimulationPlan.EventFeeder)
+
+      status = Player.status()
+      assert status.running?
+      assert status.loaded?
+      assert status.feeder.started?
+    end
+  end
+
   describe "create_userbase/2" do
     test "returns file load errors before attempting database work" do
       connection = %DatabaseConnection{connection_string: "postgres://example"}
