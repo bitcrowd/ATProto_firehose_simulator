@@ -136,12 +136,12 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec play(SimulationPlan.t(), keyword()) :: {:ok, map()} | {:error, term()}
+  @spec play(SimulationPlan.t(), keyword()) :: {:ok, String.t(), map()} | {:error, term()}
   def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
     Logger.info("starting simulation playback")
 
     case Player.play(simulation_plan, opts) do
-      {:ok, _result} = ok ->
+      {:ok, _player_id, _result} = ok ->
         Logger.info("simulation playback started")
         ok
 
@@ -151,14 +151,15 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec play_with_offset(SimulationPlan.t(), integer()) :: {:ok, map()} | {:error, term()}
+  @spec play_with_offset(SimulationPlan.t(), integer()) ::
+          {:ok, String.t(), map()} | {:error, term()}
   def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms)
       when is_integer(offset_ms) do
     play_with_offset(simulation_plan, offset_ms, [])
   end
 
   @spec play_with_offset(SimulationPlan.t(), integer(), keyword()) ::
-          {:ok, map()} | {:error, term()}
+          {:ok, String.t(), map()} | {:error, term()}
   def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms, opts)
       when is_integer(offset_ms) and is_list(opts) do
     simulation_plan
@@ -166,33 +167,60 @@ defmodule FirehoseSimulator do
     |> play(opts)
   end
 
-  def stop do
+  @spec stop(String.t()) :: :ok | {:error, term()}
+  def stop(player_id) when is_binary(player_id) do
     Logger.info("stopping simulation playback")
 
-    case Player.stop() do
+    case Player.stop(player_id) do
       :ok = ok ->
-        Logger.info("simulation playback stopped")
+        Logger.info("simulation playback stopped for #{player_id}")
         ok
 
       {:error, reason} = error ->
-        Logger.error("failed to stop simulation playback: #{inspect(reason)}")
+        Logger.error("failed to stop simulation playback for #{player_id}: #{inspect(reason)}")
         error
     end
   end
 
-  def reset do
+  @spec stop() :: :ok
+  def stop do
+    Logger.info("stopping all simulation playback")
+    :ok = Player.stop_all()
+    Logger.info("all simulation playback stopped")
+    :ok
+  end
+
+  @spec reset(String.t()) :: :ok | {:error, term()}
+  def reset(player_id) when is_binary(player_id) do
     Logger.info("resetting simulation playback")
 
-    case Player.reset() do
+    case Player.reset(player_id) do
       :ok = ok ->
-        Logger.info("simulation playback reset")
+        Logger.info("simulation playback reset for #{player_id}")
         ok
 
       {:error, reason} = error ->
-        Logger.error("failed to reset simulation playback: #{inspect(reason)}")
+        Logger.error("failed to reset simulation playback for #{player_id}: #{inspect(reason)}")
         error
     end
   end
+
+  @spec reset() :: :ok
+  def reset do
+    Logger.info("resetting all simulation playback")
+    :ok = Player.reset_all()
+    Logger.info("all simulation playback reset")
+    :ok
+  end
+
+  @spec stop_all() :: :ok
+  def stop_all, do: stop()
+
+  @spec reset_all() :: :ok
+  def reset_all, do: reset()
+
+  @spec status(String.t()) :: map() | {:error, term()}
+  def status(player_id) when is_binary(player_id), do: Player.status(player_id)
 
   @spec shift_simulation_plan(SimulationPlan.t(), integer()) :: SimulationPlan.t()
   def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms)

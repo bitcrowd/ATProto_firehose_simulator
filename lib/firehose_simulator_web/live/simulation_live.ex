@@ -5,8 +5,6 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    player_ids = State.get_player_ids()
-
     socket =
       socket
       |> assign(:current_path, ~p"/simulation")
@@ -14,9 +12,10 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:plans, [])
       |> assign(:selected_plan_id, nil)
       |> assign(:play_form, to_form(%{"offset_ms" => "0"}, as: :play))
-      |> assign(:player_ids, player_ids)
+      |> assign(:running_players, [])
       |> assign(:last_action, nil)
       |> assign_plans()
+      |> assign_running_players()
 
     {:ok, socket}
   end
@@ -41,15 +40,15 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     with {:ok, offset_ms} <- parse_offset_ms(params),
          {:ok, simulation_plan} <- fetch_selected_plan() do
       case simulator_module().play_with_offset(simulation_plan, offset_ms) do
-        {:ok, result} ->
-          player_ids = player_ids_from_play_result(result)
-          :ok = State.put_player_ids(player_ids)
-
+        {:ok, player_id, _metadata} ->
           {:noreply,
            socket
-           |> assign(:player_ids, player_ids)
-           |> assign(:last_action, "Simulation playback started with #{offset_ms} ms offset.")
-           |> put_flash(:info, "Simulation started.")}
+           |> assign_running_players()
+           |> assign(
+             :last_action,
+             "Simulation playback started for #{player_id} with #{offset_ms} ms offset."
+           )
+           |> put_flash(:info, "Simulation started for #{player_id}.")}
 
         {:error, reason} ->
           {:noreply, put_flash(socket, :error, "Failed to start simulation: #{inspect(reason)}")}
@@ -65,33 +64,70 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   @impl true
-  def handle_event("stop", _params, socket) do
-    case simulator_module().stop() do
+  def handle_event("stop", %{"player_id" => player_id}, socket) do
+    case simulator_module().stop(player_id) do
       :ok ->
         {:noreply,
          socket
-         |> assign(:last_action, "Simulation stopped.")
-         |> put_flash(:info, "Simulation stopped.")}
+         |> assign_running_players()
+         |> assign(:last_action, "Simulation stopped for #{player_id}.")
+         |> put_flash(:info, "Simulation stopped for #{player_id}.")}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to stop simulation: #{inspect(reason)}")}
     end
   end
 
-  @impl true
-  def handle_event("reset", _params, socket) do
-    case simulator_module().reset() do
-      :ok ->
-        :ok = State.clear_player_ids()
+  def handle_event("stop", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Missing player id to stop.")}
+  end
 
+  @impl true
+  def handle_event("stop_all", _params, socket) do
+    case simulator_module().stop_all() do
+      :ok ->
         {:noreply,
          socket
-         |> assign(:player_ids, %{})
-         |> assign(:last_action, "Simulation player reset.")
-         |> put_flash(:info, "Simulation reset.")}
+         |> assign_running_players()
+         |> assign(:last_action, "All simulation players stopped.")
+         |> put_flash(:info, "All simulation players stopped.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to stop all players: #{inspect(reason)}")}
+    end
+  end
+
+  @impl true
+  def handle_event("reset", %{"player_id" => player_id}, socket) do
+    case simulator_module().reset(player_id) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign_running_players()
+         |> assign(:last_action, "Simulation reset for #{player_id}.")
+         |> put_flash(:info, "Simulation reset for #{player_id}.")}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to reset simulation: #{inspect(reason)}")}
+    end
+  end
+
+  def handle_event("reset", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Missing player id to reset.")}
+  end
+
+  @impl true
+  def handle_event("reset_all", _params, socket) do
+    case simulator_module().reset_all() do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign_running_players()
+         |> assign(:last_action, "All simulation players reset.")
+         |> put_flash(:info, "All simulation players reset.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to reset all players: #{inspect(reason)}")}
     end
   end
 
@@ -135,11 +171,12 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     end
   end
 
-  defp player_ids_from_play_result(result) when is_map(result) do
-    result
-    |> Enum.filter(fn {_key, value} -> is_pid(value) end)
-    |> Map.new()
-  end
+  defp assign_running_players(socket) do
+    running_players =
+      State.list_running_players()
+      |> Enum.map(fn {player_id, metadata} -> %{player_id: player_id, metadata: metadata} end)
+      |> Enum.sort_by(fn %{metadata: metadata} -> Map.get(metadata, :started_at_ms, 0) end, :desc)
 
-  defp player_ids_from_play_result(_result), do: %{}
+    assign(socket, :running_players, running_players)
+  end
 end

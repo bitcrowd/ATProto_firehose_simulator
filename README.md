@@ -188,14 +188,21 @@ Export and re-import full simulation plan structs as JSON:
 Play the plan:
 
 ```elixir
-{:ok, _result} = FirehoseSimulator.play(imported_plan)
+{:ok, player_id, _result} = FirehoseSimulator.play(imported_plan)
 ```
 
-Stop and reset the player:
+Stop and reset a specific player:
 
 ```elixir
-:ok = FirehoseSimulator.stop()
-:ok = FirehoseSimulator.reset()
+:ok = FirehoseSimulator.stop(player_id)
+:ok = FirehoseSimulator.reset(player_id)
+```
+
+Stop/reset all running players:
+
+```elixir
+:ok = FirehoseSimulator.stop_all()
+:ok = FirehoseSimulator.reset_all()
 ```
 
 Shift an in-memory simulation plan by a millisecond offset:
@@ -207,5 +214,5 @@ Shift an in-memory simulation plan by a millisecond offset:
   )
 
 shifted_simulation_plan = FirehoseSimulator.shift_simulation_plan(simulation_plan, 5_000)
-{:ok, _result} = FirehoseSimulator.play(shifted_simulation_plan)
+{:ok, _player_id, _result} = FirehoseSimulator.play(shifted_simulation_plan)
 ```

@@ -11,7 +11,7 @@ defmodule FirehoseSimulator.State do
           db_connection_string: String.t(),
           simulation_plans: %{optional(String.t()) => SimulationPlan.t()},
           selected_simulation_plan_id: String.t() | nil,
-          player_ids: map(),
+          running_players: %{optional(String.t()) => map()},
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -73,19 +73,45 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, :clear_simulation_plans)
   end
 
+  @spec list_running_players() :: %{optional(String.t()) => map()}
+  def list_running_players do
+    GenServer.call(__MODULE__, :list_running_players)
+  end
+
+  @spec put_running_player(String.t(), map()) :: :ok
+  def put_running_player(player_id, metadata) when is_binary(player_id) and is_map(metadata) do
+    GenServer.call(__MODULE__, {:put_running_player, player_id, metadata})
+  end
+
+  @spec delete_running_player(String.t()) :: :ok
+  def delete_running_player(player_id) when is_binary(player_id) do
+    GenServer.call(__MODULE__, {:delete_running_player, player_id})
+  end
+
+  @spec clear_running_players() :: :ok
+  def clear_running_players do
+    GenServer.call(__MODULE__, :clear_running_players)
+  end
+
   @spec get_player_ids() :: map()
   def get_player_ids do
-    GenServer.call(__MODULE__, :get_player_ids)
+    list_running_players()
   end
 
   @spec put_player_ids(map()) :: :ok
   def put_player_ids(player_ids) when is_map(player_ids) do
-    GenServer.call(__MODULE__, {:put_player_ids, player_ids})
+    :ok = clear_running_players()
+
+    Enum.each(player_ids, fn {player_id, metadata} ->
+      put_running_player(to_string(player_id), normalize_running_player_metadata(metadata))
+    end)
+
+    :ok
   end
 
   @spec clear_player_ids() :: :ok
   def clear_player_ids do
-    put_player_ids(%{})
+    clear_running_players()
   end
 
   @spec put_userbase_result(boolean(), map() | nil) :: :ok
@@ -173,12 +199,22 @@ defmodule FirehoseSimulator.State do
     {:reply, :ok, %{state | simulation_plans: %{}, selected_simulation_plan_id: nil}}
   end
 
-  def handle_call(:get_player_ids, _from, state) do
-    {:reply, state.player_ids, state}
+  def handle_call(:list_running_players, _from, state) do
+    {:reply, state.running_players, state}
   end
 
-  def handle_call({:put_player_ids, player_ids}, _from, state) do
-    {:reply, :ok, %{state | player_ids: player_ids}}
+  def handle_call({:put_running_player, player_id, metadata}, _from, state) do
+    running_players = Map.put(state.running_players, player_id, metadata)
+    {:reply, :ok, %{state | running_players: running_players}}
+  end
+
+  def handle_call({:delete_running_player, player_id}, _from, state) do
+    running_players = Map.delete(state.running_players, player_id)
+    {:reply, :ok, %{state | running_players: running_players}}
+  end
+
+  def handle_call(:clear_running_players, _from, state) do
+    {:reply, :ok, %{state | running_players: %{}}}
   end
 
   def handle_call({:put_userbase_result, userbase_uploaded?, userbase_result}, _from, state) do
@@ -195,9 +231,12 @@ defmodule FirehoseSimulator.State do
       db_connection_string: System.get_env("DATABASE_URL") || @default_connection_string,
       simulation_plans: %{},
       selected_simulation_plan_id: nil,
-      player_ids: %{},
+      running_players: %{},
       userbase_uploaded?: false,
       userbase_result: nil
     }
   end
+
+  defp normalize_running_player_metadata(metadata) when is_map(metadata), do: metadata
+  defp normalize_running_player_metadata(metadata), do: %{value: metadata}
 end

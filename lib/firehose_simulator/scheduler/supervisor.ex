@@ -10,36 +10,54 @@ defmodule FirehoseSimulator.Scheduler.Supervisor do
   use Supervisor
 
   def start_link(opts) do
-    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+    name = Keyword.get(opts, :name)
+
+    if name do
+      Supervisor.start_link(__MODULE__, opts, name: name)
+    else
+      Supervisor.start_link(__MODULE__, opts)
+    end
   end
 
   @impl true
   def init(opts) do
+    player_id = Keyword.fetch!(opts, :player_id)
+    store_name = Keyword.fetch!(opts, :store_name)
+    event_feeder_name = Keyword.fetch!(opts, :event_feeder_name)
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
     event_feeder_opts = Keyword.get(opts, :event_feeder_opts)
+
+    store = {FirehoseSimulator.Store, [name: store_name]}
 
     workers =
       for partition <- 0..(scheduler_count - 1) do
         Supervisor.child_spec(
           {FirehoseSimulator.Scheduler.Worker,
            [
+             player_id: player_id,
              partition: partition,
              num_partitions: scheduler_count,
+             store: store_name,
              max_concurrency: worker_max_concurrency
            ]},
-          id: {FirehoseSimulator.Scheduler.Worker, partition}
+          id: {FirehoseSimulator.Scheduler.Worker, player_id, partition}
         )
       end
 
     event_feeder =
       if event_feeder_opts do
-        [{FirehoseSimulator.SimulationPlan.EventFeeder, event_feeder_opts}]
+        [
+          {FirehoseSimulator.SimulationPlan.EventFeeder,
+           event_feeder_opts
+           |> Keyword.put(:name, event_feeder_name)
+           |> Keyword.put(:store, store_name)}
+        ]
       else
         []
       end
 
-    children = workers ++ event_feeder
+    children = [store] ++ workers ++ event_feeder
 
     Supervisor.init(children, strategy: :one_for_all)
   end

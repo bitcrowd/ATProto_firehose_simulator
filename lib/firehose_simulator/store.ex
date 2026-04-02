@@ -1,144 +1,119 @@
 defmodule FirehoseSimulator.Store do
   @moduledoc """
-  ETS-backed session store.
-
-  Sessions are stored across N partition tables (`sessions_0`, `sessions_1`, …)
-  so each worker reads only its own table — no full-table scans.
-
-  Partition tables are created lazily by `bulk_insert/2`.
+  ETS-backed per-player session store.
   """
   use GenServer
 
-  @completed_table :completed_sessions
+  @type partition_tables :: %{optional(non_neg_integer()) => :ets.tid()}
 
-  # --- Client API ---
-
-  def start_link(_opts) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts) when is_list(opts) do
+    name = Keyword.fetch!(opts, :name)
+    GenServer.start_link(__MODULE__, :ok, name: name)
   end
 
-  @doc """
-  Insert a batch of sessions, partitioned across N tables.
-  Creates the partition tables if they don't exist.
-  """
-  def bulk_insert(sessions, num_partitions) do
-    ensure_partition_tables(num_partitions)
-
-    Enum.each(sessions, fn session ->
-      partition = rem(:erlang.phash2(session.id), num_partitions)
-      :ets.insert(table_name(partition), {session.id, session})
-    end)
-
-    :ok
+  @spec ensure_partition_tables(GenServer.server(), pos_integer()) :: :ok
+  def ensure_partition_tables(store, num_partitions)
+      when is_integer(num_partitions) and num_partitions > 0 do
+    GenServer.call(store, {:ensure_partition_tables, num_partitions})
   end
 
-  @doc """
-  Get all sessions for a given partition.
-  Returns a list of {id, session_map} tuples.
-  """
-  def get_partition(partition, _num_partitions) do
-    :ets.tab2list(table_name(partition))
+  @spec partition_tables(GenServer.server()) :: partition_tables()
+  def partition_tables(store) do
+    GenServer.call(store, :partition_tables)
   end
 
-  @doc """
-  Update a session in place.
-  """
-  def update(id, session, num_partitions) do
-    partition = rem(:erlang.phash2(id), num_partitions)
-    :ets.insert(table_name(partition), {id, session})
+  @spec completed_table(GenServer.server()) :: :ets.tid()
+  def completed_table(store) do
+    GenServer.call(store, :completed_table)
   end
 
-  @doc """
-  Remove a completed session and track it.
-  """
-  def complete(id, num_partitions) do
-    partition = rem(:erlang.phash2(id), num_partitions)
-    :ets.delete(table_name(partition), id)
-    :ets.update_counter(@completed_table, :count, {2, 1}, {:count, 0})
+  @spec clear(GenServer.server()) :: :ok
+  def clear(store) do
+    GenServer.call(store, :clear)
   end
 
-  @doc """
-  Clear all sessions (for resetting between runs).
-  """
-  def clear do
-    for table <- :ets.all(),
-        is_atom(table),
-        table |> Atom.to_string() |> String.starts_with?("sessions_") do
-      try do
-        :ets.delete_all_objects(table)
-      catch
-        :error, :badarg -> :ok
-      end
-    end
-
-    :ets.insert(@completed_table, {:count, 0})
-    :ok
+  @spec count_active(GenServer.server()) :: non_neg_integer()
+  def count_active(store) do
+    GenServer.call(store, :count_active)
   end
 
-  @doc "Count of active (in-progress) sessions."
-  def count_active do
-    for table <- :ets.all(),
-        is_atom(table),
-        table |> Atom.to_string() |> String.starts_with?("sessions_"),
-        reduce: 0 do
-      acc -> acc + :ets.info(table, :size)
-    end
+  @spec count_total(GenServer.server()) :: non_neg_integer()
+  def count_total(store) do
+    count_active(store) + count_completed(store)
   end
 
-  @doc "Count of total sessions (active + completed)."
-  def count_total do
-    count_active() + count_completed()
+  @spec count_completed(GenServer.server()) :: non_neg_integer()
+  def count_completed(store) do
+    GenServer.call(store, :count_completed)
   end
-
-  @doc "Count of completed sessions."
-  def count_completed do
-    case :ets.lookup(@completed_table, :count) do
-      [{:count, n}] -> n
-      [] -> 0
-    end
-  end
-
-  # --- Internal ---
-
-  def table_name(partition), do: :"sessions_#{partition}"
-
-  @doc false
-  def ensure_partition_tables(num_partitions) do
-    GenServer.call(__MODULE__, {:ensure_partition_tables, num_partitions})
-  end
-
-  # --- Server ---
 
   @impl true
-  def init(_) do
-    :ets.new(@completed_table, [
-      :set,
-      :public,
-      :named_table,
-      write_concurrency: true
-    ])
+  def init(:ok) do
+    completed_table =
+      :ets.new(:completed_sessions, [
+        :set,
+        :public,
+        write_concurrency: true
+      ])
 
-    :ets.insert(@completed_table, {:count, 0})
+    :ets.insert(completed_table, {:count, 0})
 
-    {:ok, %{}}
+    {:ok, %{completed_table: completed_table, partition_tables: %{}}}
   end
 
   @impl true
   def handle_call({:ensure_partition_tables, num_partitions}, _from, state) do
-    for partition <- 0..(num_partitions - 1) do
-      name = table_name(partition)
+    partition_tables =
+      Enum.reduce(0..(num_partitions - 1), state.partition_tables, fn partition, acc ->
+        Map.put_new_lazy(acc, partition, fn ->
+          :ets.new(:sessions, [
+            :set,
+            :public,
+            read_concurrency: true,
+            write_concurrency: true
+          ])
+        end)
+      end)
 
-      if :ets.whereis(name) == :undefined do
-        :ets.new(name, [
-          :set,
-          :public,
-          :named_table,
-          read_concurrency: true,
-          write_concurrency: true
-        ])
-      end
-    end
+    {:reply, :ok, %{state | partition_tables: partition_tables}}
+  end
+
+  def handle_call(:partition_tables, _from, state) do
+    {:reply, state.partition_tables, state}
+  end
+
+  def handle_call(:completed_table, _from, state) do
+    {:reply, state.completed_table, state}
+  end
+
+  def handle_call(:clear, _from, state) do
+    Enum.each(state.partition_tables, fn {_partition, table} ->
+      :ets.delete_all_objects(table)
+    end)
+
+    :ets.delete_all_objects(state.completed_table)
+    :ets.insert(state.completed_table, {:count, 0})
 
     {:reply, :ok, state}
+  end
+
+  def handle_call(:count_active, _from, state) do
+    total =
+      Enum.reduce(state.partition_tables, 0, fn {_partition, table}, acc ->
+        acc + :ets.info(table, :size)
+      end)
+
+    {:reply, total, state}
+  end
+
+  def handle_call(:count_completed, _from, state) do
+    count =
+      case :ets.lookup(state.completed_table, :count) do
+        [{:count, n}] -> n
+        [] -> 0
+      end
+
+    {:reply, count, state}
   end
 end

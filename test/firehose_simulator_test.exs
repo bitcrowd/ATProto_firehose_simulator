@@ -7,6 +7,18 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
 
+  setup do
+    :ok = FirehoseSimulator.stop_all()
+    :ok = FirehoseSimulator.State.clear_running_players()
+
+    on_exit(fn ->
+      :ok = FirehoseSimulator.stop_all()
+      :ok = FirehoseSimulator.State.clear_running_players()
+    end)
+
+    :ok
+  end
+
   describe "generate_simulation_plan_from_json/1" do
     @tag :tmp_dir
     test "loads simulation plan params json through the top-level api", %{tmp_dir: tmp_dir} do
@@ -77,33 +89,54 @@ defmodule FirehoseSimulatorTest do
   describe "play/2" do
     setup do
       on_exit(fn ->
-        _ = Player.stop()
+        _ = FirehoseSimulator.stop_all()
       end)
 
       :ok
     end
 
-    test "starts playing immediately with an in-memory simulation plan" do
+    test "starts playing and returns a player id" do
       simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
 
       capture_log(fn ->
-        assert {:ok, %{started?: true}} =
+        assert {:ok, player_id, %{started?: true}} =
                  FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+
+        assert is_binary(player_id)
       end)
 
-      _ = :sys.get_state(FirehoseSimulator.SimulationPlan.EventFeeder)
-
-      status = Player.status()
+      running_players = FirehoseSimulator.State.list_running_players()
+      [player_id] = Map.keys(running_players)
+      status = Player.status(player_id)
       assert status.running?
       assert status.loaded?
       assert status.feeder.started?
+    end
+
+    test "allows concurrent players for the same plan and stops them independently" do
+      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
+
+      capture_log(fn ->
+        assert {:ok, player_1, _meta_1} =
+                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+
+        assert {:ok, player_2, _meta_2} =
+                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+
+        refute player_1 == player_2
+
+        assert :ok = FirehoseSimulator.stop(player_1)
+
+        status_2 = Player.status(player_2)
+        assert status_2.running?
+      end)
     end
   end
 
   describe "play_with_offset/3" do
     setup do
       on_exit(fn ->
-        _ = Player.stop()
+        _ = FirehoseSimulator.stop_all()
       end)
 
       :ok
@@ -117,13 +150,15 @@ defmodule FirehoseSimulatorTest do
       }
 
       capture_log(fn ->
-        assert {:ok, %{started?: true}} =
+        assert {:ok, player_id, %{started?: true}} =
                  FirehoseSimulator.play_with_offset(simulation_plan, 250, scheduler_count: 1)
+
+        assert is_binary(player_id)
       end)
 
-      _ = :sys.get_state(FirehoseSimulator.SimulationPlan.EventFeeder)
-
-      status = Player.status()
+      running_players = FirehoseSimulator.State.list_running_players()
+      [player_id] = Map.keys(running_players)
+      status = Player.status(player_id)
       assert status.running?
       assert status.loaded?
       assert status.feeder.started?
@@ -181,8 +216,24 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "reset/0" do
-    test "exposes player reset from the top-level api" do
+  describe "reset/1 and reset/0" do
+    test "resets an individual player and keeps others running" do
+      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
+
+      assert {:ok, player_1, _meta_1} =
+               FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+
+      assert {:ok, player_2, _meta_2} =
+               FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+
+      assert :ok = FirehoseSimulator.reset(player_1)
+
+      assert Player.status(player_2).running?
+      refute Map.has_key?(FirehoseSimulator.State.list_running_players(), player_1)
+    end
+
+    test "exposes global reset from the top-level api" do
+      assert :ok = FirehoseSimulator.reset_all()
       assert :ok = FirehoseSimulator.reset()
     end
   end

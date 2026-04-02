@@ -18,29 +18,37 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
   @follow_batch_concurrency 10
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    name = Keyword.get(opts, :name)
+
+    if name do
+      GenServer.start_link(__MODULE__, opts, name: name)
+    else
+      GenServer.start_link(__MODULE__, opts)
+    end
   end
 
-  def start_feeding do
-    GenServer.cast(__MODULE__, :start)
+  def start_feeding(event_feeder) do
+    GenServer.cast(event_feeder, :start)
   end
 
-  def load_plan(%SimulationPlan{} = simulation_plan, opts \\ []) do
-    GenServer.call(__MODULE__, {:load_plan, simulation_plan, opts}, :infinity)
+  def load_plan(event_feeder, %SimulationPlan{} = simulation_plan, opts \\ []) do
+    GenServer.call(event_feeder, {:load_plan, simulation_plan, opts}, :infinity)
   end
 
-  def status do
-    GenServer.call(__MODULE__, :status, :infinity)
+  def status(event_feeder) do
+    GenServer.call(event_feeder, :status, :infinity)
   end
 
   @impl true
   def init(opts) do
     simulation_plan = Keyword.fetch!(opts, :simulation_plan)
+    store = Keyword.fetch!(opts, :store)
     request_interval_ms = Keyword.fetch!(opts, :request_interval_ms)
     scheduler_count = Keyword.fetch!(opts, :scheduler_count)
     time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
 
-    Store.ensure_partition_tables(scheduler_count)
+    :ok = Store.ensure_partition_tables(store, scheduler_count)
+    partition_tables = Store.partition_tables(store)
 
     {sessions, posts, follows} = plan_events(simulation_plan, time_offset_ms)
 
@@ -53,6 +61,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
        sessions: sessions,
        posts: posts,
        follows: follows,
+       partition_tables: partition_tables,
        request_interval_ms: request_interval_ms,
        scheduler_count: scheduler_count,
        next_session_id: 1,
@@ -228,7 +237,8 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
           )
 
         partition = rem(:erlang.phash2(sid), sc)
-        :ets.insert(Store.table_name(partition), {sid, session})
+        table = Map.fetch!(state.partition_tables, partition)
+        :ets.insert(table, {sid, session})
 
         {sid + 1, sc}
       end)

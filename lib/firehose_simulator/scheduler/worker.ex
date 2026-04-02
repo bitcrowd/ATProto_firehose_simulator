@@ -20,16 +20,14 @@ defmodule FirehoseSimulator.Scheduler.Worker do
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Store
 
-  @doc "Get the registered name for a partition."
-  def via(partition), do: :"feed_sim_worker_#{partition}"
-
   def start_link(opts) do
-    partition = Keyword.fetch!(opts, :partition)
-    GenServer.start_link(__MODULE__, opts, name: via(partition))
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @impl true
   def init(opts) do
+    player_id = Keyword.fetch!(opts, :player_id)
+    store = Keyword.fetch!(opts, :store)
     partition = Keyword.fetch!(opts, :partition)
     num_partitions = Keyword.fetch!(opts, :num_partitions)
     configured_max_concurrency = Keyword.get(opts, :max_concurrency)
@@ -42,12 +40,17 @@ defmodule FirehoseSimulator.Scheduler.Worker do
         max(div(pool_size, num_partitions), 1)
       end
 
-    table = Store.table_name(partition)
+    :ok = Store.ensure_partition_tables(store, num_partitions)
+    table = store |> Store.partition_tables() |> Map.fetch!(partition)
+    completed_table = Store.completed_table(store)
 
     state = %{
+      player_id: player_id,
       partition: partition,
       num_partitions: num_partitions,
+      store: store,
       table: table,
+      completed_table: completed_table,
       max_concurrency: max_concurrency
     }
 
@@ -88,12 +91,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
 
     table = state.table
 
-    sessions =
-      if :ets.whereis(table) == :undefined do
-        []
-      else
-        :ets.tab2list(table)
-      end
+    sessions = safe_tab2list(table)
 
     session_count = length(sessions)
     done_counter = :counters.new(1, [:atomics])
@@ -103,7 +101,8 @@ defmodule FirehoseSimulator.Scheduler.Worker do
       |> Stream.flat_map(fn {id, session} ->
         cond do
           now >= session.expires_at ->
-            Store.complete(id, state.num_partitions)
+            :ets.delete(table, id)
+            :ets.update_counter(state.completed_table, :count, {2, 1}, {:count, 0})
             :counters.add(done_counter, 1, 1)
             []
 
@@ -236,5 +235,13 @@ defmodule FirehoseSimulator.Scheduler.Worker do
 
     had_work = queries_dispatched > 0 or done_count > 0
     {had_work, query_results}
+  end
+
+  defp safe_tab2list(table) do
+    try do
+      :ets.tab2list(table)
+    catch
+      :error, :badarg -> []
+    end
   end
 end

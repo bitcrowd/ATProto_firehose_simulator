@@ -133,9 +133,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     {:ok, view, _html} = live(conn, ~p"/simulation")
 
     refute has_element?(view, "#play-button[disabled]")
-    assert has_element?(view, "#plan-status", "Selected plan: plan-1")
     assert has_element?(view, "#simulation-plan-summary-plan-1")
-    assert has_element?(view, "#selected-plan-summary")
 
     view
     |> element("#simulation-select-plan-1")
@@ -147,13 +145,32 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
     |> render_submit()
 
-    assert render(view) =~ "Simulation started."
+    assert render(view) =~ "Simulation started for player-1."
+    assert has_element?(view, "#running-player-player-1")
 
-    view |> element("#stop-button") |> render_click()
-    assert render(view) =~ "Simulation stopped."
+    view
+    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
+    |> render_submit()
 
-    view |> element("#reset-button") |> render_click()
-    assert render(view) =~ "Simulation reset."
+    assert has_element?(view, "#running-player-player-2")
+
+    view |> element("#stop-player-player-1") |> render_click()
+    assert render(view) =~ "Simulation stopped for player-1."
+
+    view |> element("#reset-player-player-2") |> render_click()
+    assert render(view) =~ "Simulation reset for player-2."
+
+    view
+    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
+    |> render_submit()
+
+    assert has_element?(view, "#running-player-player-1")
+
+    view |> element("#stop-all-button") |> render_click()
+    assert render(view) =~ "All simulation players stopped."
+
+    view |> element("#reset-all-button") |> render_click()
+    assert render(view) =~ "All simulation players reset."
   end
 
   test "metrics liveview renders metrics tab and counters", %{conn: conn} do
@@ -217,15 +234,37 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       |> play()
     end
 
-    def play(%SimulationPlan{posts: [%{offset_ms: 260, user_id: 1}]}, _opts),
-      do: {:ok, %{started?: true}}
+    def play(%SimulationPlan{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
+      player_id = next_fake_player_id()
+      metadata = %{player_id: player_id, started?: true}
+      :ok = State.put_running_player(player_id, metadata)
+      {:ok, player_id, metadata}
+    end
 
-    def play(%SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}]}, _opts),
-      do: {:ok, %{started?: true}}
+    def play(%SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}]}, _opts) do
+      player_id = next_fake_player_id()
+      metadata = %{player_id: player_id, started?: true}
+      :ok = State.put_running_player(player_id, metadata)
+      {:ok, player_id, metadata}
+    end
 
     def play(%SimulationPlan{}, _opts), do: {:error, :invalid_shift}
-    def stop, do: :ok
-    def reset, do: :ok
+
+    def stop(player_id) do
+      State.delete_running_player(player_id)
+    end
+
+    def reset(player_id) do
+      State.delete_running_player(player_id)
+    end
+
+    def reset_all do
+      State.clear_running_players()
+    end
+
+    def stop_all do
+      State.clear_running_players()
+    end
 
     def vacuum(connection_string, opts) when is_binary(connection_string) do
       delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
@@ -243,6 +282,11 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       else
         {:error, "invalid vacuum inputs"}
       end
+    end
+
+    defp next_fake_player_id do
+      count = map_size(State.list_running_players()) + 1
+      "player-#{count}"
     end
   end
 
