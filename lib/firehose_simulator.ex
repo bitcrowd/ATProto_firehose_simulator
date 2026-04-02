@@ -11,6 +11,7 @@ defmodule FirehoseSimulator do
 
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Userbase
 
@@ -43,6 +44,21 @@ defmodule FirehoseSimulator do
       {:error, reason} ->
         Logger.error("failed to load simulation plan from json: #{reason}")
         {:error, reason}
+    end
+  end
+
+  @spec play(SimulationPlan.t(), keyword()) :: {:ok, map()} | {:error, term()}
+  def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
+    Logger.info("starting simulation playback")
+
+    case Player.play(simulation_plan, opts) do
+      {:ok, _result} = ok ->
+        Logger.info("simulation playback started")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to start simulation playback: #{inspect(reason)}")
+        error
     end
   end
 

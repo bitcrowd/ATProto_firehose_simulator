@@ -4,6 +4,7 @@ defmodule FirehoseSimulatorTest do
   import ExUnit.CaptureLog
 
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
 
   describe "load_simulation_plan_from_json/1" do
@@ -36,6 +37,33 @@ defmodule FirehoseSimulatorTest do
 
       assert_receive {:result, {:ok, %SimulationPlan{posts_plan: posts_plan}}}
       assert is_list(posts_plan.posts)
+    end
+  end
+
+  describe "play/2" do
+    setup do
+      on_exit(fn ->
+        _ = Player.stop()
+      end)
+
+      :ok
+    end
+
+    test "starts playing immediately with an in-memory simulation plan" do
+      simulation_plan = %SimulationPlan{sessions_plan: nil, posts_plan: nil, follows_plan: nil}
+
+      capture_log(fn ->
+        assert {:ok, %{started?: true}} =
+                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+      end)
+
+      # Ensure EventFeeder has processed the start cast.
+      _ = :sys.get_state(FirehoseSimulator.SimulationPlan.EventFeeder)
+
+      status = Player.status()
+      assert status.running?
+      assert status.loaded?
+      assert status.feeder.started?
     end
   end
 

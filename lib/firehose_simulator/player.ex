@@ -2,7 +2,8 @@ defmodule FirehoseSimulator.Player do
   @moduledoc """
   Process orchestration API for simulation-plan runs.
 
-  The entrypoint is an in-memory `%FirehoseSimulator.SimulationPlan{}`.
+  A run starts immediately when you pass an in-memory
+  `%FirehoseSimulator.SimulationPlan{}` to `play/2`.
   """
 
   alias FirehoseSimulator.Scheduler
@@ -10,8 +11,8 @@ defmodule FirehoseSimulator.Player do
   alias FirehoseSimulator.SimulationPlan.EventFeeder
   alias FirehoseSimulator.Store
 
-  @spec load(SimulationPlan.t(), keyword()) :: {:ok, map()} | {:error, term()}
-  def load(%SimulationPlan{} = simulation_plan, opts \\ []) do
+  @spec play(SimulationPlan.t(), keyword()) :: {:ok, map()} | {:error, term()}
+  def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
     time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
     request_interval_ms = Keyword.get(opts, :request_interval_ms, 30_000)
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
@@ -43,28 +44,20 @@ defmodule FirehoseSimulator.Player do
 
       case Scheduler.Supervisor.start_link(scheduler_opts) do
         {:ok, pid} ->
+          Process.unlink(pid)
+          :ok = EventFeeder.start_feeding()
+
           {:ok,
            %{
              request_interval_ms: request_interval_ms,
              schedulers: scheduler_count,
-             supervisor: pid
+             supervisor: pid,
+             started?: true
            }}
 
         error ->
           error
       end
-    end
-  end
-
-  @doc "Start event injection."
-  def start do
-    case Process.whereis(EventFeeder) do
-      nil ->
-        {:error, :not_loaded}
-
-      _pid ->
-        EventFeeder.start_feeding()
-        :ok
     end
   end
 
