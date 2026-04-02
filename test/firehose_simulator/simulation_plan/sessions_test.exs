@@ -10,7 +10,6 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
     max_active_user_id: 2,
     seed: 42,
     time_units: 1,
-    path: "sessions.csv",
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.SessionTier{
         max_followers: 1_000,

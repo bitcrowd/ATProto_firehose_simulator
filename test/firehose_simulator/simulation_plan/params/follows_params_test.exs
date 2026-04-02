@@ -12,7 +12,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
-                 "path": "follows.csv",
                  "tiers": [
                    {"max_followers": 1000, "follows_per_day": 0.25},
                    {"max_followers": 10000, "follows_per_day": 10},
@@ -21,7 +20,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                }
                """)
 
-      assert follows.path == "follows.csv"
       assert Enum.map(follows.tiers, & &1.follows_per_day) == [0.25, 10.0, 3.0]
     end
 
@@ -39,7 +37,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
-                 "path": "follows.csv",
                  "tiers": []
                }
                """)
@@ -51,14 +48,13 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
 
   describe "load!/1" do
     test "returns the follows config on success" do
-      assert %FollowsParams{path: "follows.csv"} =
+      assert %FollowsParams{} =
                FollowsParams.load!("""
                {
                  "n": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
-                 "path": "follows.csv",
                  "tiers": [
                    {"max_followers": 1000, "follows_per_day": 0.25}
                  ]
@@ -80,7 +76,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "follows.csv",
             "tiers": [
               {"max_followers": 1000, "follows_per_day": 0.25}
             ]
@@ -88,7 +83,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
           """
         )
 
-      assert {:ok, %FollowsParams{path: "follows.csv"}} = FollowsParams.load_file(path)
+      assert {:ok, %FollowsParams{}} = FollowsParams.load_file(path)
     end
 
     test "returns an error with file path when file does not exist" do

@@ -20,7 +20,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "posts.csv",
             "tiers": [
               {"max_followers": 1000, "posts_per_day": 0.25}
             ]
@@ -38,7 +37,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "sessions.csv",
             "tiers": [
               {"max_followers": 1000, "session_minutes": 240}
             ]
@@ -56,7 +54,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "follows.csv",
             "tiers": [
               {"max_followers": 1000, "follows_per_day": 0.25}
             ]

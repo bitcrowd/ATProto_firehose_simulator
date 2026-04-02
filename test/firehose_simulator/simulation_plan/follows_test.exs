@@ -10,7 +10,6 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     max_active_user_id: 2,
     seed: 42,
     time_units: 1,
-    path: "follows.csv",
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.FollowTier{
         max_followers: 1_000,

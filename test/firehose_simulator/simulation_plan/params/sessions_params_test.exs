@@ -12,7 +12,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
-                 "path": "sessions.csv",
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240},
                    {"max_followers": 10000, "session_minutes": 480},
@@ -25,7 +24,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
       assert sessions.max_active_user_id == 5_000
       assert sessions.seed == 42
       assert sessions.time_units == 1
-      assert sessions.path == "sessions.csv"
       assert Enum.map(sessions.tiers, & &1.session_minutes) == [240, 480, 1000]
     end
 
@@ -43,7 +41,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
-                 "path": "sessions.csv",
                  "tiers": [
                    {"max_followers": 1000}
                  ]
@@ -57,14 +54,13 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
 
   describe "load!/1" do
     test "returns the sessions config on success" do
-      assert %SessionsParams{path: "sessions.csv"} =
+      assert %SessionsParams{} =
                SessionsParams.load!("""
                {
                  "n": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
-                 "path": "sessions.csv",
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240}
                  ]
@@ -86,7 +82,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "sessions.csv",
             "tiers": [
               {"max_followers": 1000, "session_minutes": 240}
             ]
@@ -94,7 +89,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
           """
         )
 
-      assert {:ok, %SessionsParams{path: "sessions.csv"}} = SessionsParams.load_file(path)
+      assert {:ok, %SessionsParams{}} = SessionsParams.load_file(path)
     end
 
     test "returns an error with file path when file does not exist" do

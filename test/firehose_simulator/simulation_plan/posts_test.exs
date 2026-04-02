@@ -10,7 +10,6 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     max_active_user_id: 2,
     seed: 42,
     time_units: 1,
-    path: "posts.csv",
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 1_000, posts_per_day: 1.0}
     ]

@@ -13,7 +13,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
           max_active_user_id: pos_integer(),
           seed: integer(),
           time_units: pos_integer(),
-          path: String.t(),
           tiers: [SessionTier.t()]
         }
 
@@ -23,7 +22,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
     field(:max_active_user_id, :integer)
     field(:seed, :integer)
     field(:time_units, :integer)
-    field(:path, :string)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
 
@@ -55,13 +53,11 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
 
   def changeset(sessions, attrs) do
     sessions
-    |> cast(attrs, [:n, :max_active_user_id, :seed, :time_units, :path])
-    |> update_change(:path, &String.trim/1)
-    |> validate_required([:n, :max_active_user_id, :seed, :time_units, :path])
+    |> cast(attrs, [:n, :max_active_user_id, :seed, :time_units])
+    |> validate_required([:n, :max_active_user_id, :seed, :time_units])
     |> validate_number(:n, greater_than: 0)
     |> validate_number(:max_active_user_id, greater_than: 0)
     |> validate_number(:time_units, greater_than: 0)
-    |> validate_length(:path, min: 1)
     |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
     |> validate_length(:tiers, min: 1)
   end

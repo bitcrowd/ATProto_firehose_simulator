@@ -12,7 +12,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
-                 "path": "posts.csv",
                  "tiers": [
                    {"max_followers": 1000, "posts_per_day": 0.25},
                    {"max_followers": 10000, "posts_per_day": 10},
@@ -21,7 +20,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
                }
                """)
 
-      assert posts.path == "posts.csv"
       assert Enum.map(posts.tiers, & &1.posts_per_day) == [0.25, 10.0, 3.0]
     end
 
@@ -40,14 +38,13 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
 
   describe "load!/1" do
     test "returns the posts config on success" do
-      assert %PostsParams{path: "posts.csv"} =
+      assert %PostsParams{} =
                PostsParams.load!("""
                {
                  "n": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
-                 "path": "posts.csv",
                  "tiers": [
                    {"max_followers": 1000, "posts_per_day": 0.25}
                  ]
@@ -69,7 +66,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,
-            "path": "posts.csv",
             "tiers": [
               {"max_followers": 1000, "posts_per_day": 0.25}
             ]
@@ -77,7 +73,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
           """
         )
 
-      assert {:ok, %PostsParams{path: "posts.csv"}} = PostsParams.load_file(path)
+      assert {:ok, %PostsParams{}} = PostsParams.load_file(path)
     end
 
     test "returns an error with file path when file does not exist" do
