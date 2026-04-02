@@ -20,7 +20,7 @@ defmodule FirehoseSimulatorWeb.Layouts do
 
   ## Examples
 
-      <Layouts.app flash={@flash} current_path={~p"/firehose"}>
+      <Layouts.app flash={@flash} current_path={~p"/"}>
         <h1>Content</h1>
       </Layouts.app>
 
@@ -66,8 +66,7 @@ defmodule FirehoseSimulatorWeb.Layouts do
     <main class="px-4 py-20 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-5xl space-y-6">
         <.tab_nav :if={@current_path} current_path={@current_path}>
-          <:tab label="Firehose Control" navigate={~p"/firehose"} />
-          <:tab label="Bulk Creation" navigate={~p"/bulk-creation"} />
+          <:tab label="Home" navigate={~p"/"} />
         </.tab_nav>
 
         {render_slot(@inner_block)}

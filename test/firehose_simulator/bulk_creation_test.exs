@@ -7,12 +7,6 @@ defmodule FirehoseSimulator.BulkCreationTest do
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan.Userbase
 
-  setup do
-    :ok = BulkCreation.reset()
-    on_exit(fn -> BulkCreation.reset() end)
-    :ok
-  end
-
   test "create_userbase/2 returns the existing connection validation error" do
     userbase = %Userbase{
       name: "not yet twitter",
@@ -25,8 +19,6 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
     assert {:error, "Connection string must be a postgres URL"} =
              BulkCreation.create_userbase(userbase, connection)
-
-    assert %{connected?: false} = BulkCreation.current_state()
   end
 
   test "create_userbase/2 surfaces connection failures for unreachable databases" do
@@ -47,7 +39,5 @@ defmodule FirehoseSimulator.BulkCreationTest do
       assert is_binary(message)
       refute message == ""
     end)
-
-    assert %{connected?: false} = BulkCreation.current_state()
   end
 end

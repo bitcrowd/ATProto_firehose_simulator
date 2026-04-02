@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.FollowerGraphTest do
+defmodule FirehoseSimulator.SimulationPlan.FollowerGraphTest do
   use ExUnit.Case, async: true
 
-  alias FirehoseSimulator.FollowerGraph
+  alias FirehoseSimulator.SimulationPlan.FollowerGraph
 
   test "generates the expected graph for a small user set" do
     assert {:ok, graph, 7} = FollowerGraph.generate(5)

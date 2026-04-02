@@ -11,7 +11,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
       FirehoseSimulator.SimulationPlan.Follows.generate(%FollowsParams{...})
   """
 
-  alias FirehoseSimulator.FollowerGraph
+  alias FirehoseSimulator.SimulationPlan.FollowerGraph
   alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
 
   @default_unit_duration_ms 86_400_000
