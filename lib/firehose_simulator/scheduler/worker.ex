@@ -153,7 +153,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
             latency = System.monotonic_time(:millisecond) - t0
 
             :telemetry.execute(
-              [:feed_simulator, :worker, :query],
+              [:firehose_simulator, :worker, :query],
               %{latency_ms: latency, rows: length(results)},
               %{status: :ok}
             )
@@ -166,7 +166,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
               latency = System.monotonic_time(:millisecond) - t0
 
               :telemetry.execute(
-                [:feed_simulator, :worker, :query],
+                [:firehose_simulator, :worker, :query],
                 %{latency_ms: latency, rows: 0},
                 %{status: :exit, reason: inspect(reason)}
               )
@@ -177,7 +177,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
               latency = System.monotonic_time(:millisecond) - t0
 
               :telemetry.execute(
-                [:feed_simulator, :worker, :query],
+                [:firehose_simulator, :worker, :query],
                 %{latency_ms: latency, rows: 0},
                 %{status: :error, reason: inspect(reason)}
               )
@@ -198,7 +198,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
 
         {:exit, :timeout}, acc ->
           :telemetry.execute(
-            [:feed_simulator, :worker, :query],
+            [:firehose_simulator, :worker, :query],
             %{latency_ms: 30_000, rows: 0},
             %{status: :timeout}
           )
@@ -228,7 +228,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
           else: measurements
 
       :telemetry.execute(
-        [:feed_simulator, :worker, :cycle],
+        [:firehose_simulator, :worker, :cycle],
         measurements,
         %{partition: state.partition}
       )

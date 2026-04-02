@@ -125,7 +125,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
 
     if sessions_started > 0 do
       :telemetry.execute(
-        [:feed_simulator, :event_feeder, :inject],
+        [:firehose_simulator, :event_feeder, :inject],
         %{
           sessions_started: sessions_started,
           posts_ok: 0,
@@ -145,7 +145,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
     Process.demonitor(ref, [:flush])
 
     :telemetry.execute(
-      [:feed_simulator, :event_feeder, :inject],
+      [:firehose_simulator, :event_feeder, :inject],
       %{
         sessions_started: 0,
         posts_ok: post_results.ok,
@@ -163,7 +163,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
     Process.demonitor(ref, [:flush])
 
     :telemetry.execute(
-      [:feed_simulator, :event_feeder, :inject],
+      [:firehose_simulator, :event_feeder, :inject],
       %{
         sessions_started: 0,
         posts_ok: 0,
