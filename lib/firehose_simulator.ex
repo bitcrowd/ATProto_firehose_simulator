@@ -31,6 +31,12 @@ defmodule FirehoseSimulator do
     end
   end
 
+  @spec create_userbase(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
+  def create_userbase(path, connection_string)
+      when is_binary(path) and is_binary(connection_string) do
+    create_userbase(path, %DatabaseConnection{connection_string: connection_string})
+  end
+
   @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
   def bulk_create_simulation_plan(%SimulationPlan{} = simulation_plan) do
     bulk_create_simulation_plan(simulation_plan, database_connection())
@@ -87,6 +93,8 @@ defmodule FirehoseSimulator do
   end
 
   def stop, do: Player.stop()
+
+  def reset, do: Player.reset()
 
   defp userbase_filename do
     System.get_env("USERBASE_JSON", @default_userbase_filename)

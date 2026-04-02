@@ -76,9 +76,16 @@ defmodule FirehoseSimulatorTest do
                  FirehoseSimulator.create_userbase("missing-userbase.json", connection)
       end)
     end
+
+    test "accepts a connection string through the top-level api" do
+      capture_log(fn ->
+        assert {:error, "cannot read userbase file at missing-userbase.json"} =
+                 FirehoseSimulator.create_userbase("missing-userbase.json", "postgres://example")
+      end)
+    end
   end
 
-  describe "create_simulation_plan/2" do
+  describe "bulk_create_simulation_plan/2" do
     test "returns connection validation errors before attempting database work" do
       connection = %DatabaseConnection{connection_string: "not-a-url"}
 
@@ -90,8 +97,14 @@ defmodule FirehoseSimulatorTest do
 
       capture_log(fn ->
         assert {:error, "Connection string must be a postgres URL"} =
-                 FirehoseSimulator.create_simulation_plan(simulation_plan, connection)
+                 FirehoseSimulator.bulk_create_simulation_plan(simulation_plan, connection)
       end)
+    end
+  end
+
+  describe "reset/0" do
+    test "exposes player reset from the top-level api" do
+      assert :ok = FirehoseSimulator.reset()
     end
   end
 

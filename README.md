@@ -132,3 +132,44 @@ cargo build --release --package rsky-wintermute
 
 ./target/release/wintermute
 ```
+
+## Run simulation from IEx
+
+Start the server in IEx:
+
+```bash
+iex -S mix phx.server
+```
+
+In IEx, create your userbase with a DB connection string and userbase JSON file:
+
+```elixir
+db_url = "postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky"
+userbase_path = "priv/simulation/userbase.json"
+{:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
+```
+
+Load a simulation plan from JSON files:
+
+```elixir
+{:ok, simulation_plan} =
+  FirehoseSimulator.load_simulation_plan_from_json(
+    posts: "priv/simulation/posts.json",
+    sessions: "priv/simulation/sessions.json",
+    follows: "priv/simulation/follows.json"
+  )
+```
+
+Play the plan:
+
+```elixir
+{:ok, _result} = FirehoseSimulator.play(simulation_plan)
+```
+
+Stop and reset the player:
+
+```elixir
+:ok = FirehoseSimulator.stop()
+:ok = FirehoseSimulator.reset()
+```
+
