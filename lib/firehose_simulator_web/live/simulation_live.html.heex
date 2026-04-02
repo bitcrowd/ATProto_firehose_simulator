@@ -14,28 +14,12 @@
 
         <.form for={@form} id="simulation-plan-form" phx-submit="create_plan" class="space-y-4">
           <div class="space-y-2">
-            <label for={@uploads.posts_json.ref} class="label">Posts JSON</label>
+            <label for={@uploads.simulation_plan_params_json.ref} class="label">
+              Simulation Plan Params JSON
+            </label>
             <.live_file_input
-              upload={@uploads.posts_json}
-              id="posts-upload"
-              class="file-input w-full"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label for={@uploads.sessions_json.ref} class="label">Sessions JSON</label>
-            <.live_file_input
-              upload={@uploads.sessions_json}
-              id="sessions-upload"
-              class="file-input w-full"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label for={@uploads.follows_json.ref} class="label">Follows JSON</label>
-            <.live_file_input
-              upload={@uploads.follows_json}
-              id="follows-upload"
+              upload={@uploads.simulation_plan_params_json}
+              id="simulation-plan-params-upload"
               class="file-input w-full"
             />
           </div>

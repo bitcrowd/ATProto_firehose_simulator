@@ -149,14 +149,12 @@ userbase_path = "priv/simulation/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
 ```
 
-Load a simulation plan from JSON files:
+Load a simulation plan from JSON:
 
 ```elixir
 {:ok, simulation_plan} =
   FirehoseSimulator.load_simulation_plan_from_json(
-    posts: "priv/simulation/posts.json",
-    sessions: "priv/simulation/sessions.json",
-    follows: "priv/simulation/follows.json"
+    simulation_plan_params: "priv/simulation/simulation_plan_params.json"
   )
 ```
 
@@ -172,4 +170,3 @@ Stop and reset the player:
 :ok = FirehoseSimulator.stop()
 :ok = FirehoseSimulator.reset()
 ```
-

@@ -48,24 +48,16 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     assert has_element?(view, "#play-button[disabled]")
 
-    posts_upload =
-      file_input(view, "#simulation-plan-form", :posts_json, [
-        %{name: "posts.json", content: posts_json(), type: "application/json"}
+    simulation_plan_params_upload =
+      file_input(view, "#simulation-plan-form", :simulation_plan_params_json, [
+        %{
+          name: "simulation_plan_params.json",
+          content: simulation_plan_params_json(),
+          type: "application/json"
+        }
       ])
 
-    sessions_upload =
-      file_input(view, "#simulation-plan-form", :sessions_json, [
-        %{name: "sessions.json", content: sessions_json(), type: "application/json"}
-      ])
-
-    follows_upload =
-      file_input(view, "#simulation-plan-form", :follows_json, [
-        %{name: "follows.json", content: follows_json(), type: "application/json"}
-      ])
-
-    render_upload(posts_upload, "posts.json")
-    render_upload(sessions_upload, "sessions.json")
-    render_upload(follows_upload, "follows.json")
+    render_upload(simulation_plan_params_upload, "simulation_plan_params.json")
 
     view
     |> form("#simulation-plan-form", %{"simulation" => %{}})
@@ -96,8 +88,9 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     end
 
     def load_simulation_plan_from_json(paths) do
-      if Enum.all?(paths, fn {_key, path} -> is_binary(path) and File.exists?(path) end) do
-        {:ok, %SimulationPlan{posts_plan: nil, sessions_plan: nil, follows_plan: nil}}
+      if is_binary(Keyword.get(paths, :simulation_plan_params)) and
+           File.exists?(Keyword.fetch!(paths, :simulation_plan_params)) do
+        {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}}
       else
         {:error, "invalid simulation plan paths"}
       end
@@ -119,44 +112,36 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     """
   end
 
-  defp posts_json do
+  defp simulation_plan_params_json do
     """
     {
-      "n": 10,
-      "max_active_user_id": 5,
-      "seed": 1,
-      "time_units": 1,
-      "tiers": [
-        {"max_followers": 1000, "posts_per_day": 0.25}
-      ]
-    }
-    """
-  end
-
-  defp sessions_json do
-    """
-    {
-      "n": 10,
-      "max_active_user_id": 5,
-      "seed": 1,
-      "time_units": 1,
-      "tiers": [
-        {"max_followers": 1000, "session_minutes": 240}
-      ]
-    }
-    """
-  end
-
-  defp follows_json do
-    """
-    {
-      "n": 10,
-      "max_active_user_id": 5,
-      "seed": 1,
-      "time_units": 1,
-      "tiers": [
-        {"max_followers": 1000, "follows_per_day": 0.25}
-      ]
+      "posts_params": {
+        "n": 10,
+        "max_active_user_id": 5,
+        "seed": 1,
+        "time_units": 1,
+        "tiers": [
+          {"max_followers": 1000, "posts_per_day": 0.25}
+        ]
+      },
+      "sessions_params": {
+        "n": 10,
+        "max_active_user_id": 5,
+        "seed": 1,
+        "time_units": 1,
+        "tiers": [
+          {"max_followers": 1000, "session_minutes": 240}
+        ]
+      },
+      "follows_params": {
+        "n": 10,
+        "max_active_user_id": 5,
+        "seed": 1,
+        "time_units": 1,
+        "tiers": [
+          {"max_followers": 1000, "follows_per_day": 0.25}
+        ]
+      }
     }
     """
   end

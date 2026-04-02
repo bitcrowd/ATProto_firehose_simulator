@@ -1,0 +1,35 @@
+{
+  "posts_params": {
+    "n": 100000,
+    "max_active_user_id": 5500,
+    "seed": 43,
+    "time_units": 1,
+    "tiers": [
+      { "max_followers": 10, "posts_per_day": 0.2 },
+      { "max_followers": 100, "posts_per_day": 1.0 },
+      { "max_followers": 1000, "posts_per_day": 3.0 }
+    ]
+  },
+  "sessions_params": {
+    "n": 100000,
+    "max_active_user_id": 5500,
+    "seed": 42,
+    "time_units": 1,
+    "tiers": [
+      { "max_followers": 10, "session_minutes": 10 },
+      { "max_followers": 100, "session_minutes": 30 },
+      { "max_followers": 1000, "session_minutes": 60 }
+    ]
+  },
+  "follows_params": {
+    "n": 100000,
+    "max_active_user_id": 5500,
+    "seed": 44,
+    "time_units": 1,
+    "tiers": [
+      { "max_followers": 10, "follows_per_day": 0.1 },
+      { "max_followers": 100, "follows_per_day": 0.5 },
+      { "max_followers": 1000, "follows_per_day": 2.0 }
+    ]
+  }
+}

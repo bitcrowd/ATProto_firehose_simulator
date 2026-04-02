@@ -6,10 +6,7 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Follows
   alias FirehoseSimulator.SimulationPlan.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Userbase
 
   @insert_batch_size 1_000
@@ -68,9 +65,9 @@ defmodule FirehoseSimulator.BulkCreation do
 
   defp insert_simulation_plan(repo_name, %SimulationPlan{} = simulation_plan) do
     with_dynamic_repo(repo_name, fn ->
-      posts = posts_from_plan(simulation_plan.posts_plan)
-      follows = follows_from_plan(simulation_plan.follows_plan)
-      sessions = sessions_from_plan(simulation_plan.sessions_plan)
+      posts = events_from_plan(simulation_plan.posts)
+      follows = events_from_plan(simulation_plan.follows)
+      sessions = events_from_plan(simulation_plan.sessions)
 
       actor_ids =
         actor_ids_from_posts(posts) ++
@@ -172,14 +169,8 @@ defmodule FirehoseSimulator.BulkCreation do
     insert_all_in_batches(Post, post_rows, on_conflict: :nothing, conflict_target: [:uri])
   end
 
-  defp posts_from_plan(nil), do: []
-  defp posts_from_plan(%Posts{posts: posts}), do: posts
-
-  defp follows_from_plan(nil), do: []
-  defp follows_from_plan(%Follows{follows: follows}), do: follows
-
-  defp sessions_from_plan(nil), do: []
-  defp sessions_from_plan(%Sessions{sessions: sessions}), do: sessions
+  defp events_from_plan(nil), do: []
+  defp events_from_plan(events) when is_list(events), do: events
 
   defp actor_ids_from_posts(posts) do
     Enum.map(posts, fn %{user_id: user_id} -> user_id end)

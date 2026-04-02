@@ -21,11 +21,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
           user_id: pos_integer()
         }
 
-  @type t :: %__MODULE__{
-          posts: [post()]
-        }
-
-  defstruct posts: []
+  @type t :: [post()]
 
   @doc """
   Generate an in-memory posts plan from a `%PostsParams{}` config.
@@ -43,9 +39,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
       )
 
     posts = Enum.sort_by(posts, &elem(&1, 0))
-    posts = Enum.map(posts, &post_from_tuple/1)
-
-    %__MODULE__{posts: posts}
+    Enum.map(posts, &post_from_tuple/1)
   end
 
   defp build_posts(max_active_user_id, n, time_units, tiers, unit_duration_ms) do

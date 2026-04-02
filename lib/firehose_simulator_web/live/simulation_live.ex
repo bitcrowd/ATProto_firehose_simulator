@@ -16,27 +16,26 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:player_ids, player_ids)
       |> assign(:last_action, nil)
       |> assign(:form, to_form(%{}, as: :simulation))
-      |> allow_upload(:posts_json, accept: ~w(.json), max_entries: 1, auto_upload: true)
-      |> allow_upload(:sessions_json, accept: ~w(.json), max_entries: 1, auto_upload: true)
-      |> allow_upload(:follows_json, accept: ~w(.json), max_entries: 1, auto_upload: true)
+      |> allow_upload(:simulation_plan_params_json,
+        accept: ~w(.json),
+        max_entries: 1,
+        auto_upload: true
+      )
 
     {:ok, socket}
   end
 
   @impl true
   def handle_event("create_plan", _params, socket) do
-    with :ok <- ensure_upload_completed(socket, :posts_json, "posts"),
-         :ok <- ensure_upload_completed(socket, :sessions_json, "sessions"),
-         :ok <- ensure_upload_completed(socket, :follows_json, "follows"),
-         {:ok, posts_path} <- consume_json_upload(socket, :posts_json),
-         {:ok, sessions_path} <- consume_json_upload(socket, :sessions_json),
-         {:ok, follows_path} <- consume_json_upload(socket, :follows_json),
+    with :ok <-
+           ensure_upload_completed(
+             socket,
+             :simulation_plan_params_json,
+             "simulation plan params"
+           ),
+         {:ok, params_path} <- consume_json_upload(socket, :simulation_plan_params_json),
          {:ok, simulation_plan} <-
-           simulator_module().load_simulation_plan_from_json(
-             posts: posts_path,
-             sessions: sessions_path,
-             follows: follows_path
-           ) do
+           simulator_module().load_simulation_plan_from_json(simulation_plan_params: params_path) do
       :ok = State.put_simulation_plan(simulation_plan)
 
       {:noreply,
@@ -129,7 +128,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:ok, copied_path}
 
       [] ->
-        {:error, "Please upload all required simulation JSON files"}
+        {:error, "Please upload simulation plan params JSON first"}
     end
   end
 

@@ -6,24 +6,25 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Posts
 
   describe "load_simulation_plan_from_json/1" do
     @tag :tmp_dir
-    test "loads simulation plan json files through the top-level api", %{tmp_dir: tmp_dir} do
-      posts_path =
+    test "loads simulation plan params json through the top-level api", %{tmp_dir: tmp_dir} do
+      params_path =
         write_file!(
           tmp_dir,
-          "posts",
+          "simulation-plan-params",
           """
           {
-            "n": 10,
-            "max_active_user_id": 5,
-            "seed": 1,
-            "time_units": 1,
-            "tiers": [
-              {"max_followers": 1000, "posts_per_day": 0.25}
-            ]
+            "posts_params": {
+              "n": 10,
+              "max_active_user_id": 5,
+              "seed": 1,
+              "time_units": 1,
+              "tiers": [
+                {"max_followers": 1000, "posts_per_day": 0.25}
+              ]
+            }
           }
           """
         )
@@ -31,12 +32,13 @@ defmodule FirehoseSimulatorTest do
       capture_log(fn ->
         send(
           self(),
-          {:result, FirehoseSimulator.load_simulation_plan_from_json(posts: posts_path)}
+          {:result,
+           FirehoseSimulator.load_simulation_plan_from_json(simulation_plan_params: params_path)}
         )
       end)
 
-      assert_receive {:result, {:ok, %SimulationPlan{posts_plan: posts_plan}}}
-      assert is_list(posts_plan.posts)
+      assert_receive {:result, {:ok, %SimulationPlan{posts: posts}}}
+      assert is_list(posts)
     end
   end
 
@@ -50,7 +52,7 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "starts playing immediately with an in-memory simulation plan" do
-      simulation_plan = %SimulationPlan{sessions_plan: nil, posts_plan: nil, follows_plan: nil}
+      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
 
       capture_log(fn ->
         assert {:ok, %{started?: true}} =
@@ -90,9 +92,9 @@ defmodule FirehoseSimulatorTest do
       connection = %DatabaseConnection{connection_string: "not-a-url"}
 
       simulation_plan = %SimulationPlan{
-        posts_plan: %Posts{posts: [%{offset_ms: 25, user_id: 1}]},
-        sessions_plan: nil,
-        follows_plan: nil
+        posts: [%{offset_ms: 25, user_id: 1}],
+        sessions: nil,
+        follows: nil
       }
 
       capture_log(fn ->

@@ -2,69 +2,69 @@ defmodule FirehoseSimulator.SimulationPlan do
   @moduledoc false
 
   alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
   alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
   alias FirehoseSimulator.SimulationPlan.Sessions
-  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams
 
-  @enforce_keys [:posts_plan, :sessions_plan, :follows_plan]
-  defstruct [:posts_plan, :sessions_plan, :follows_plan]
+  @enforce_keys [:posts, :sessions, :follows]
+  defstruct [:posts, :sessions, :follows]
 
   @type t :: %__MODULE__{
-          posts_plan: Posts.t() | nil,
-          sessions_plan: Sessions.t() | nil,
-          follows_plan: Follows.t() | nil
+          posts: Posts.t() | nil,
+          sessions: Sessions.t() | nil,
+          follows: Follows.t() | nil
         }
+
+  @spec load_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def load_from_json(path) when is_binary(path) do
+    load_from_json(simulation_plan_params: path)
+  end
 
   @spec load_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
   def load_from_json(opts) when is_list(opts) do
-    posts_path = Keyword.get(opts, :posts)
-    sessions_path = Keyword.get(opts, :sessions)
-    follows_path = Keyword.get(opts, :follows)
+    params_path =
+      Keyword.get(opts, :simulation_plan_params) || Keyword.get(opts, :params)
 
-    with {:ok, posts_plan} <- load_posts_plan(posts_path),
-         {:ok, sessions_plan} <- load_sessions_plan(sessions_path),
-         {:ok, follows_plan} <- load_follows_plan(follows_path) do
+    with {:ok, params} <- load_simulation_plan_params(params_path),
+         {:ok, posts} <- build_posts(params),
+         {:ok, sessions} <- build_sessions(params),
+         {:ok, follows} <- build_follows(params) do
       {:ok,
        %__MODULE__{
-         posts_plan: posts_plan,
-         sessions_plan: sessions_plan,
-         follows_plan: follows_plan
+         posts: posts,
+         sessions: sessions,
+         follows: follows
        }}
     end
   end
 
-  defp load_posts_plan(nil), do: {:ok, nil}
+  defp load_simulation_plan_params(nil), do: {:ok, %SimulationPlanParams{}}
 
-  defp load_posts_plan(path) when is_binary(path) do
-    case PostsParams.load_file(path) do
-      {:ok, posts_params} -> {:ok, Posts.generate(posts_params)}
+  defp load_simulation_plan_params(path) when is_binary(path) do
+    case SimulationPlanParams.load_file(path) do
+      {:ok, params} -> {:ok, params}
       {:error, _reason} = error -> error
     end
   end
 
-  defp load_posts_plan(_path), do: {:error, "posts path must be a string"}
+  defp load_simulation_plan_params(_path),
+    do: {:error, "simulation_plan_params path must be a string"}
 
-  defp load_sessions_plan(nil), do: {:ok, nil}
+  defp build_posts(%SimulationPlanParams{posts_params: nil}), do: {:ok, nil}
 
-  defp load_sessions_plan(path) when is_binary(path) do
-    case SessionsParams.load_file(path) do
-      {:ok, sessions_params} -> {:ok, Sessions.generate(sessions_params)}
-      {:error, _reason} = error -> error
-    end
+  defp build_posts(%SimulationPlanParams{posts_params: posts_params}) do
+    {:ok, Posts.generate(posts_params)}
   end
 
-  defp load_sessions_plan(_path), do: {:error, "sessions path must be a string"}
+  defp build_sessions(%SimulationPlanParams{sessions_params: nil}), do: {:ok, nil}
 
-  defp load_follows_plan(nil), do: {:ok, nil}
-
-  defp load_follows_plan(path) when is_binary(path) do
-    case FollowsParams.load_file(path) do
-      {:ok, follows_params} -> {:ok, Follows.generate(follows_params)}
-      {:error, _reason} = error -> error
-    end
+  defp build_sessions(%SimulationPlanParams{sessions_params: sessions_params}) do
+    {:ok, Sessions.generate(sessions_params)}
   end
 
-  defp load_follows_plan(_path), do: {:error, "follows path must be a string"}
+  defp build_follows(%SimulationPlanParams{follows_params: nil}), do: {:ok, nil}
+
+  defp build_follows(%SimulationPlanParams{follows_params: follows_params}) do
+    {:ok, Follows.generate(follows_params)}
+  end
 end

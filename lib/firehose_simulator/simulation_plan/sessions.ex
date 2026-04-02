@@ -23,11 +23,7 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
           duration_ms: pos_integer()
         }
 
-  @type t :: %__MODULE__{
-          sessions: [session()]
-        }
-
-  defstruct sessions: []
+  @type t :: [session()]
 
   @doc """
   Generate an in-memory session plan from a `%SessionsParams{}` config.
@@ -45,9 +41,7 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
       )
 
     sessions = Enum.sort_by(sessions, &elem(&1, 0))
-    sessions = Enum.map(sessions, &session_from_tuple/1)
-
-    %__MODULE__{sessions: sessions}
+    Enum.map(sessions, &session_from_tuple/1)
   end
 
   defp build_sessions(max_active_user_id, n, time_units, tiers, unit_duration_ms) do

@@ -67,12 +67,18 @@ defmodule FirehoseSimulator do
     end
   end
 
+  @spec load_simulation_plan_from_json(String.t()) ::
+          {:ok, SimulationPlan.t()} | {:error, String.t()}
+  def load_simulation_plan_from_json(path) when is_binary(path) do
+    load_simulation_plan_from_json(simulation_plan_params: path)
+  end
+
   @spec load_simulation_plan_from_json(keyword(String.t())) ::
           {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def load_simulation_plan_from_json(paths) do
-    Logger.info("loading simulation plan from json files: #{inspect(paths)}")
+  def load_simulation_plan_from_json(opts) do
+    Logger.info("loading simulation plan from json file: #{inspect(opts)}")
 
-    case SimulationPlan.load_from_json(paths) do
+    case SimulationPlan.load_from_json(opts) do
       {:ok, plan} ->
         Logger.info("loaded simulation plan sections")
         {:ok, plan}

@@ -6,9 +6,6 @@ defmodule FirehoseSimulator.BulkCreationTest do
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Userbase
 
   test "create_userbase/2 returns the existing connection validation error" do
@@ -46,7 +43,7 @@ defmodule FirehoseSimulator.BulkCreationTest do
   end
 
   test "create_simulation_plan/2 returns the existing connection validation error" do
-    simulation_plan = %SimulationPlan{posts_plan: nil, sessions_plan: nil, follows_plan: nil}
+    simulation_plan = %SimulationPlan{posts: nil, sessions: nil, follows: nil}
     connection = %DatabaseConnection{connection_string: "not-a-url"}
 
     assert {:error, "Connection string must be a postgres URL"} =
@@ -55,9 +52,9 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
   test "create_simulation_plan/2 surfaces connection failures for unreachable databases" do
     simulation_plan = %SimulationPlan{
-      posts_plan: %Posts{posts: [%{offset_ms: 100, user_id: 1}]},
-      sessions_plan: %Sessions{sessions: [%{offset_ms: 0, user_id: 2, duration_ms: 60_000}]},
-      follows_plan: %Follows{follows: [%{offset_ms: 50, actor_id: 1, subject_id: 2}]}
+      posts: [%{offset_ms: 100, user_id: 1}],
+      sessions: [%{offset_ms: 0, user_id: 2, duration_ms: 60_000}],
+      follows: [%{offset_ms: 50, actor_id: 1, subject_id: 2}]
     }
 
     connection =

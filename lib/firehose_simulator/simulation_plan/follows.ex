@@ -22,11 +22,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
           subject_id: pos_integer()
         }
 
-  @type t :: %__MODULE__{
-          follows: [follow()]
-        }
-
-  defstruct follows: []
+  @type t :: [follow()]
 
   @doc """
   Generate an in-memory follows plan from a `%FollowsParams{}` config.
@@ -44,9 +40,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
       )
 
     follows = Enum.sort_by(follows, fn {offset, seq, _actor, _subject} -> {offset, seq} end)
-    follows = Enum.map(follows, &follow_from_tuple/1)
-
-    %__MODULE__{follows: follows}
+    Enum.map(follows, &follow_from_tuple/1)
   end
 
   defp build_follows(max_active_user_id, n, time_units, tiers, unit_duration_ms) do

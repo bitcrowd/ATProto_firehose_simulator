@@ -10,9 +10,6 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
   alias FirehoseSimulator.Event
   alias FirehoseSimulator.Session
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.Store
   alias Phoenix.PubSub
 
@@ -326,15 +323,15 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
   end
 
   defp plan_events(%SimulationPlan{} = simulation_plan, time_offset_ms) do
-    sessions = sessions_from_plan(simulation_plan.sessions_plan, time_offset_ms)
-    posts = posts_from_plan(simulation_plan.posts_plan, time_offset_ms)
-    follows = follows_from_plan(simulation_plan.follows_plan, time_offset_ms)
+    sessions = sessions_from_plan(simulation_plan.sessions, time_offset_ms)
+    posts = posts_from_plan(simulation_plan.posts, time_offset_ms)
+    follows = follows_from_plan(simulation_plan.follows, time_offset_ms)
     {sessions, posts, follows}
   end
 
   defp sessions_from_plan(nil, _time_offset_ms), do: []
 
-  defp sessions_from_plan(%Sessions{sessions: sessions}, time_offset_ms) do
+  defp sessions_from_plan(sessions, time_offset_ms) when is_list(sessions) do
     sessions
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms} ->
       {offset_ms + time_offset_ms, user_id, duration_ms}
@@ -344,7 +341,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
 
   defp posts_from_plan(nil, _time_offset_ms), do: []
 
-  defp posts_from_plan(%Posts{posts: posts}, time_offset_ms) do
+  defp posts_from_plan(posts, time_offset_ms) when is_list(posts) do
     posts
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id} ->
       {offset_ms + time_offset_ms, user_id}
@@ -354,7 +351,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
 
   defp follows_from_plan(nil, _time_offset_ms), do: []
 
-  defp follows_from_plan(%Follows{follows: follows}, time_offset_ms) do
+  defp follows_from_plan(follows, time_offset_ms) when is_list(follows) do
     follows
     |> Enum.map(fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
       {offset_ms + time_offset_ms, actor_id, subject_id}

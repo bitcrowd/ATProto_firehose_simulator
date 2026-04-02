@@ -3,8 +3,6 @@ defmodule FirehoseSimulator.EventFeederTest do
 
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.EventFeeder
-  alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.Posts
   alias FirehoseSimulator.Store
 
   setup do
@@ -28,9 +26,9 @@ defmodule FirehoseSimulator.EventFeederTest do
       {EventFeeder,
        [
          simulation_plan: %SimulationPlan{
-           sessions_plan: nil,
-           posts_plan: %Posts{posts: [%{offset_ms: 0, user_id: 1}]},
-           follows_plan: %Follows{follows: [%{offset_ms: 0, actor_id: 2, subject_id: 1}]}
+           sessions: nil,
+           posts: [%{offset_ms: 0, user_id: 1}],
+           follows: [%{offset_ms: 0, actor_id: 2, subject_id: 1}]
          },
          request_interval_ms: 10,
          scheduler_count: 1
