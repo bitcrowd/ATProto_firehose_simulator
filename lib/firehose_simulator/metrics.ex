@@ -1,0 +1,315 @@
+defmodule FirehoseSimulator.Metrics do
+  @moduledoc false
+
+  use GenServer
+
+  require Logger
+
+  @handler_id "firehose-simulator-metrics"
+  @telemetry_events [
+    [:firehose_simulator, :event_feeder, :inject],
+    [:firehose_simulator, :worker, :query],
+    [:firehose_simulator, :worker, :cycle]
+  ]
+  @worker_query_window_ms 60_000
+
+  @type snapshot :: map()
+
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, :ok, Keyword.put_new(opts, :name, __MODULE__))
+  end
+
+  @spec snapshot() :: snapshot()
+  def snapshot do
+    GenServer.call(__MODULE__, :snapshot)
+  end
+
+  @spec increment(atom(), map()) :: :ok
+  def increment(metric, metadata \\ %{}) when is_atom(metric) and is_map(metadata) do
+    GenServer.cast(__MODULE__, {:increment, metric, metadata})
+  end
+
+  @impl true
+  def init(:ok) do
+    case :telemetry.attach_many(
+           @handler_id,
+           @telemetry_events,
+           &__MODULE__.handle_telemetry/4,
+           %{}
+         ) do
+      :ok ->
+        {:ok, default_state()}
+
+      {:error, :already_exists} ->
+        :ok = :telemetry.detach(@handler_id)
+
+        :ok =
+          :telemetry.attach_many(
+            @handler_id,
+            @telemetry_events,
+            &__MODULE__.handle_telemetry/4,
+            %{}
+          )
+
+        {:ok, default_state()}
+    end
+  end
+
+  @impl true
+  def terminate(_reason, _state) do
+    :telemetry.detach(@handler_id)
+    :ok
+  end
+
+  @impl true
+  def handle_call(:snapshot, _from, state) do
+    now_ms = System.system_time(:millisecond)
+    state = prune_worker_query_window(state, now_ms)
+    {:reply, present_state(state), state}
+  end
+
+  @impl true
+  def handle_cast({:increment, metric, metadata}, state) do
+    next_state =
+      case metric do
+        :json_files_loaded ->
+          Map.update!(state, :json_files_loaded, &(&1 + 1))
+
+        :player_start ->
+          Map.update!(state, :player_start, &(&1 + 1))
+
+        :player_stop ->
+          Map.update!(state, :player_stop, &(&1 + 1))
+
+        :player_reset ->
+          Map.update!(state, :player_reset, &(&1 + 1))
+
+        _other ->
+          state
+      end
+
+    Logger.info(
+      "[metrics] #{metric}=#{metric_value(next_state, metric)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  @impl true
+  def handle_cast({:telemetry_event_feeder_inject, measurements, metadata}, state) do
+    next_state =
+      state
+      |> Map.update!(:event_feeder_inject_count, &(&1 + 1))
+      |> add_measurement(:event_feeder_sessions_started, measurements, :sessions_started)
+      |> add_measurement(:event_feeder_posts_ok, measurements, :posts_ok)
+      |> add_measurement(:event_feeder_posts_error, measurements, :posts_error)
+      |> add_measurement(:event_feeder_follows_ok, measurements, :follows_ok)
+      |> add_measurement(:event_feeder_follows_error, measurements, :follows_error)
+
+    Logger.info(
+      "[metrics] event_feeder.inject count=#{next_state.event_feeder_inject_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_worker_query, measurements, metadata}, state) do
+    now_ms = System.system_time(:millisecond)
+    status = normalize_query_status(metadata)
+    rows = measurement_value(measurements, :rows)
+    latency_ms = measurement_value(measurements, :latency_ms)
+    sample = %{ts_ms: now_ms, latency_ms: latency_ms, status: status}
+
+    next_state =
+      state
+      |> Map.update!(:worker_query_total_count, &(&1 + 1))
+      |> Map.update!(:worker_query_rows, &(&1 + rows))
+      |> Map.update!(:worker_query_total_latency_ms, &(&1 + latency_ms))
+      |> Map.update!(:worker_query_by_status, fn acc ->
+        Map.update(acc, status, 1, &(&1 + 1))
+      end)
+      |> Map.update!(:worker_query_window, &:queue.in(sample, &1))
+      |> prune_worker_query_window(now_ms)
+
+    Logger.info(
+      "[metrics] worker.query total_count=#{next_state.worker_query_total_count} status=#{status} rows=#{rows} latency_ms=#{latency_ms}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_worker_cycle, measurements, metadata}, state) do
+    partition = normalize_partition(metadata)
+
+    next_state =
+      state
+      |> Map.update!(:worker_cycle_count, &(&1 + 1))
+      |> add_measurement(:worker_cycle_session_count, measurements, :session_count)
+      |> add_measurement(:worker_cycle_ok, measurements, :ok)
+      |> add_measurement(:worker_cycle_errors, measurements, :errors)
+      |> add_measurement(:worker_cycle_completed, measurements, :completed)
+      |> add_measurement(:worker_cycle_timeouts, measurements, :timeouts)
+      |> add_measurement(:worker_cycle_duration_ms, measurements, :duration_ms)
+      |> Map.update!(:worker_cycle_by_partition, fn acc ->
+        Map.update(acc, partition, 1, &(&1 + 1))
+      end)
+
+    Logger.info(
+      "[metrics] worker.cycle count=#{next_state.worker_cycle_count} partition=#{partition} measurements=#{inspect(measurements)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  @doc false
+  def handle_telemetry(
+        [:firehose_simulator, :event_feeder, :inject],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_event_feeder_inject, measurements, metadata})
+  end
+
+  def handle_telemetry([:firehose_simulator, :worker, :query], measurements, metadata, _config) do
+    GenServer.cast(__MODULE__, {:telemetry_worker_query, measurements, metadata})
+  end
+
+  def handle_telemetry([:firehose_simulator, :worker, :cycle], measurements, metadata, _config) do
+    GenServer.cast(__MODULE__, {:telemetry_worker_cycle, measurements, metadata})
+  end
+
+  defp present_state(state) do
+    Map.put(
+      state,
+      :worker_query_window_stats,
+      worker_query_window_stats(state.worker_query_window)
+    )
+  end
+
+  defp default_state do
+    %{
+      json_files_loaded: 0,
+      player_start: 0,
+      player_stop: 0,
+      player_reset: 0,
+      event_feeder_inject_count: 0,
+      event_feeder_sessions_started: 0,
+      event_feeder_posts_ok: 0,
+      event_feeder_posts_error: 0,
+      event_feeder_follows_ok: 0,
+      event_feeder_follows_error: 0,
+      worker_query_total_count: 0,
+      worker_query_rows: 0,
+      worker_query_total_latency_ms: 0,
+      worker_query_by_status: %{},
+      worker_query_window: :queue.new(),
+      worker_cycle_count: 0,
+      worker_cycle_session_count: 0,
+      worker_cycle_ok: 0,
+      worker_cycle_errors: 0,
+      worker_cycle_completed: 0,
+      worker_cycle_timeouts: 0,
+      worker_cycle_duration_ms: 0,
+      worker_cycle_by_partition: %{}
+    }
+  end
+
+  defp add_measurement(state, state_key, measurements, measurement_key) do
+    Map.update!(state, state_key, &(&1 + measurement_value(measurements, measurement_key)))
+  end
+
+  defp measurement_value(measurements, key) do
+    case Map.get(measurements, key, 0) do
+      value when is_integer(value) -> value
+      _other -> 0
+    end
+  end
+
+  defp normalize_query_status(metadata) do
+    case metadata |> Map.get(:status, :unknown) |> to_string() do
+      "ok" -> "ok"
+      "timeout" -> "timeout"
+      "exit" -> "exit"
+      _other -> "error"
+    end
+  end
+
+  defp normalize_partition(metadata) do
+    metadata
+    |> Map.get(:partition, "unknown")
+    |> to_string()
+  end
+
+  defp prune_worker_query_window(state, now_ms) do
+    cutoff_ms = now_ms - @worker_query_window_ms
+    %{state | worker_query_window: do_prune_window(state.worker_query_window, cutoff_ms)}
+  end
+
+  defp do_prune_window(queue, cutoff_ms) do
+    case :queue.peek(queue) do
+      {:value, %{ts_ms: ts_ms}} when ts_ms < cutoff_ms ->
+        {_dropped, queue} = :queue.out(queue)
+        do_prune_window(queue, cutoff_ms)
+
+      _other ->
+        queue
+    end
+  end
+
+  defp worker_query_window_stats(queue) do
+    samples = :queue.to_list(queue)
+    query_count = length(samples)
+    status_counts = count_query_statuses(samples)
+    latencies = Enum.map(samples, & &1.latency_ms)
+    sum_latency_ms = Enum.sum(latencies)
+
+    %{
+      window_ms: @worker_query_window_ms,
+      query_count: query_count,
+      ok_count: Map.get(status_counts, "ok", 0),
+      error_count: Map.get(status_counts, "error", 0),
+      timeout_count: Map.get(status_counts, "timeout", 0),
+      exit_count: Map.get(status_counts, "exit", 0),
+      avg_latency_ms: ratio(sum_latency_ms, query_count),
+      p95_latency_ms: percentile_95(latencies),
+      error_rate_pct:
+        ratio(
+          Map.get(status_counts, "error", 0) +
+            Map.get(status_counts, "timeout", 0) +
+            Map.get(status_counts, "exit", 0),
+          query_count
+        ),
+      timeout_rate_pct: ratio(Map.get(status_counts, "timeout", 0), query_count)
+    }
+  end
+
+  defp count_query_statuses(samples) do
+    Enum.reduce(samples, %{}, fn %{status: status}, acc ->
+      Map.update(acc, status, 1, &(&1 + 1))
+    end)
+  end
+
+  defp percentile_95([]), do: 0
+
+  defp percentile_95(latencies) do
+    sorted = Enum.sort(latencies)
+    n = length(sorted)
+    rank = max(1, ceil(n * 0.95))
+    Enum.at(sorted, rank - 1, 0)
+  end
+
+  defp ratio(_numerator, 0), do: 0.0
+  defp ratio(numerator, denominator), do: Float.round(numerator / denominator, 2)
+
+  defp metric_value(state, metric) do
+    case metric do
+      :json_files_loaded -> state.json_files_loaded
+      :player_start -> state.player_start
+      :player_stop -> state.player_stop
+      :player_reset -> state.player_reset
+      _other -> "n/a"
+    end
+  end
+end

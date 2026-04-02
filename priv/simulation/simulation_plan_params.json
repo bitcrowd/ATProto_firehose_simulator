@@ -1,7 +1,7 @@
 {
   "posts_params": {
     "n": 100000,
-    "max_active_user_id": 5500,
+    "max_active_user_id": 10000,
     "seed": 43,
     "time_units": 1,
     "tiers": [
@@ -12,7 +12,7 @@
   },
   "sessions_params": {
     "n": 100000,
-    "max_active_user_id": 5500,
+    "max_active_user_id": 10000,
     "seed": 42,
     "time_units": 1,
     "tiers": [
@@ -23,7 +23,7 @@
   },
   "follows_params": {
     "n": 100000,
-    "max_active_user_id": 5500,
+    "max_active_user_id": 10000,
     "seed": 44,
     "time_units": 1,
     "tiers": [

@@ -104,19 +104,7 @@ defmodule FirehoseSimulator.Store do
 
   @doc false
   def ensure_partition_tables(num_partitions) do
-    for partition <- 0..(num_partitions - 1) do
-      name = table_name(partition)
-
-      if :ets.whereis(name) == :undefined do
-        :ets.new(name, [
-          :set,
-          :public,
-          :named_table,
-          read_concurrency: true,
-          write_concurrency: true
-        ])
-      end
-    end
+    GenServer.call(__MODULE__, {:ensure_partition_tables, num_partitions})
   end
 
   # --- Server ---
@@ -133,5 +121,24 @@ defmodule FirehoseSimulator.Store do
     :ets.insert(@completed_table, {:count, 0})
 
     {:ok, %{}}
+  end
+
+  @impl true
+  def handle_call({:ensure_partition_tables, num_partitions}, _from, state) do
+    for partition <- 0..(num_partitions - 1) do
+      name = table_name(partition)
+
+      if :ets.whereis(name) == :undefined do
+        :ets.new(name, [
+          :set,
+          :public,
+          :named_table,
+          read_concurrency: true,
+          write_concurrency: true
+        ])
+      end
+    end
+
+    {:reply, :ok, state}
   end
 end

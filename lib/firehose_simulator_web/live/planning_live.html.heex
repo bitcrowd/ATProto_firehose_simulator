@@ -105,9 +105,11 @@
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p class="font-semibold" id={"plan-id-#{plan.id}"}>{plan.id}</p>
-              <p class="text-xs text-base-content/70">
-                posts: {plan.posts_count} | sessions: {plan.sessions_count} | follows: {plan.follows_count}
-              </p>
+              <.simulation_plan_summary
+                id={"plan-summary-#{plan.id}"}
+                simulation_plan={plan.simulation_plan}
+                class="text-xs text-base-content/70"
+              />
             </div>
 
             <div class="flex flex-wrap gap-2">

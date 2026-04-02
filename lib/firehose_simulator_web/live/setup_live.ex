@@ -1,6 +1,9 @@
 defmodule FirehoseSimulatorWeb.SetupLive do
   use FirehoseSimulatorWeb, :live_view
 
+  require Logger
+
+  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.State
 
   @impl true
@@ -99,6 +102,15 @@ defmodule FirehoseSimulatorWeb.SetupLive do
   defp consume_json_upload(socket, upload_name) do
     case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
            copied_path = copy_upload_to_tmp(path, entry)
+           Logger.info("loaded json file: #{entry.client_name} -> #{copied_path}")
+
+           :ok =
+             Metrics.increment(:json_files_loaded, %{
+               filename: entry.client_name,
+               path: copied_path,
+               kind: "userbase"
+             })
+
            {:ok, copied_path}
          end) do
       [copied_path] ->

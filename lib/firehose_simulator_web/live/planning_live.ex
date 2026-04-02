@@ -1,6 +1,9 @@
 defmodule FirehoseSimulatorWeb.PlanningLive do
   use FirehoseSimulatorWeb, :live_view
 
+  require Logger
+
+  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
 
@@ -140,6 +143,16 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   defp consume_json_upload(socket, upload_name) do
     case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
            copied_path = copy_upload_to_tmp(path, entry)
+           file_kind = json_file_kind(upload_name)
+           Logger.info("loaded json file: #{entry.client_name} -> #{copied_path} (#{file_kind})")
+
+           :ok =
+             Metrics.increment(:json_files_loaded, %{
+               filename: entry.client_name,
+               path: copied_path,
+               kind: file_kind
+             })
+
            {:ok, {copied_path, entry.client_name}}
          end) do
       [{copied_path, filename}] ->
@@ -168,10 +181,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       |> Enum.map(fn {id, simulation_plan} ->
         %{
           id: id,
-          simulation_plan: simulation_plan,
-          posts_count: section_count(simulation_plan.posts),
-          sessions_count: section_count(simulation_plan.sessions),
-          follows_count: section_count(simulation_plan.follows)
+          simulation_plan: simulation_plan
         }
       end)
       |> Enum.sort_by(& &1.id, :desc)
@@ -179,9 +189,6 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     socket
     |> assign(:plans, plans)
   end
-
-  defp section_count(nil), do: 0
-  defp section_count(events) when is_list(events), do: length(events)
 
   defp fetch_plan(plan_id) when is_binary(plan_id) do
     case State.list_simulation_plans() do
@@ -227,4 +234,8 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   defp simulator_module do
     Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
   end
+
+  defp json_file_kind(:simulation_plan_params_json), do: "simulation_plan_params"
+  defp json_file_kind(:simulation_plan_json), do: "simulation_plan"
+  defp json_file_kind(_upload_name), do: "unknown"
 end

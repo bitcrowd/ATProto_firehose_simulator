@@ -6,6 +6,9 @@ defmodule FirehoseSimulator.Player do
   `%FirehoseSimulator.SimulationPlan{}` to `play/2`.
   """
 
+  require Logger
+
+  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Scheduler
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.EventFeeder
@@ -46,6 +49,8 @@ defmodule FirehoseSimulator.Player do
         {:ok, pid} ->
           Process.unlink(pid)
           :ok = EventFeeder.start_feeding()
+          :ok = Metrics.increment(:player_start, %{scheduler_count: scheduler_count})
+          Logger.info("[player] started scheduler_count=#{scheduler_count}")
 
           {:ok,
            %{
@@ -64,7 +69,10 @@ defmodule FirehoseSimulator.Player do
   @doc "Clear ETS-backed simulation state."
   def reset do
     with :ok <- ensure_store_started() do
-      Store.clear()
+      :ok = Store.clear()
+      :ok = Metrics.increment(:player_reset)
+      Logger.info("[player] reset")
+      :ok
     end
   end
 
@@ -76,6 +84,8 @@ defmodule FirehoseSimulator.Player do
 
       pid ->
         Supervisor.stop(pid, :normal)
+        :ok = Metrics.increment(:player_stop)
+        Logger.info("[player] stopped")
         :ok
     end
   end
@@ -99,9 +109,15 @@ defmodule FirehoseSimulator.Player do
     case Process.whereis(Store) do
       nil ->
         case Store.start_link([]) do
-          {:ok, _pid} -> :ok
-          {:error, {:already_started, _pid}} -> :ok
-          error -> error
+          {:ok, pid} ->
+            Process.unlink(pid)
+            :ok
+
+          {:error, {:already_started, _pid}} ->
+            :ok
+
+          error ->
+            error
         end
 
       _pid ->

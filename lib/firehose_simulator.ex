@@ -139,9 +139,33 @@ defmodule FirehoseSimulator do
     |> play(opts)
   end
 
-  def stop, do: Player.stop()
+  def stop do
+    Logger.info("stopping simulation playback")
 
-  def reset, do: Player.reset()
+    case Player.stop() do
+      :ok = ok ->
+        Logger.info("simulation playback stopped")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to stop simulation playback: #{inspect(reason)}")
+        error
+    end
+  end
+
+  def reset do
+    Logger.info("resetting simulation playback")
+
+    case Player.reset() do
+      :ok = ok ->
+        Logger.info("simulation playback reset")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to reset simulation playback: #{inspect(reason)}")
+        error
+    end
+  end
 
   @spec shift_simulation_plan(SimulationPlan.t(), integer()) :: SimulationPlan.t()
   def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms)

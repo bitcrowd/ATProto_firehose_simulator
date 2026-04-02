@@ -114,6 +114,8 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     refute has_element?(view, "#play-button[disabled]")
     assert has_element?(view, "#plan-status", "Selected plan: plan-1")
+    assert has_element?(view, "#simulation-plan-summary-plan-1")
+    assert has_element?(view, "#selected-plan-summary")
 
     view
     |> element("#simulation-select-plan-1")
@@ -132,6 +134,21 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     view |> element("#reset-button") |> render_click()
     assert render(view) =~ "Simulation reset."
+  end
+
+  test "metrics liveview renders metrics tab and counters", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/metrics")
+
+    assert has_element?(view, ~s(a[href="/metrics"]), "Metrics")
+    assert has_element?(view, "#metric-event-feeder-inject-count")
+    assert has_element?(view, "#metric-worker-window-query-count")
+    assert has_element?(view, "#metric-worker-window-avg-latency-ms")
+    assert has_element?(view, "#metric-worker-window-p95-latency-ms")
+    assert has_element?(view, "#metric-worker-window-error-rate")
+    assert has_element?(view, "#metric-worker-window-timeout-rate")
+    assert has_element?(view, "#metric-worker-lifetime-query-count")
+    assert has_element?(view, "#metric-worker-lifetime-avg-latency-ms")
+    assert has_element?(view, "#metric-worker-cycle-count")
   end
 
   defmodule FakeSimulator do

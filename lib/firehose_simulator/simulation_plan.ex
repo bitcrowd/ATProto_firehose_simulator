@@ -1,6 +1,9 @@
 defmodule FirehoseSimulator.SimulationPlan do
   @moduledoc false
 
+  require Logger
+
+  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.SimulationPlan.Follows
   alias FirehoseSimulator.SimulationPlan.JSON
   alias FirehoseSimulator.SimulationPlan.Posts
@@ -46,6 +49,9 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   @spec from_json_file(String.t()) :: {:ok, t()} | {:error, String.t()}
   def from_json_file(path) when is_binary(path) do
+    Logger.info("loading simulation plan json file: #{path}")
+    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "simulation_plan"})
+
     with {:ok, json} <- File.read(path),
          {:ok, simulation_plan} <- from_json(json) do
       {:ok, simulation_plan}
@@ -64,6 +70,9 @@ defmodule FirehoseSimulator.SimulationPlan do
   defp load_simulation_plan_params(nil), do: {:ok, %SimulationPlanParams{}}
 
   defp load_simulation_plan_params(path) when is_binary(path) do
+    Logger.info("loading simulation plan params json file: #{path}")
+    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "simulation_plan_params"})
+
     case SimulationPlanParams.load_file(path) do
       {:ok, params} -> {:ok, params}
       {:error, _reason} = error -> error

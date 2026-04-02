@@ -98,12 +98,18 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   defp assign_plans(socket) do
     plans =
       State.list_simulation_plans()
-      |> Map.keys()
-      |> Enum.sort(:desc)
+      |> Enum.map(fn {id, simulation_plan} ->
+        %{id: id, simulation_plan: simulation_plan}
+      end)
+      |> Enum.sort_by(& &1.id, :desc)
+
+    selected_plan_id = State.get_selected_simulation_plan_id()
+    selected_plan = Enum.find(plans, &(&1.id == selected_plan_id))
 
     socket
     |> assign(:plans, plans)
-    |> assign(:selected_plan_id, State.get_selected_simulation_plan_id())
+    |> assign(:selected_plan_id, selected_plan_id)
+    |> assign(:selected_plan, selected_plan)
   end
 
   defp simulator_module do

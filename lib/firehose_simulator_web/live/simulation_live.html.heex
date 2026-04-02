@@ -17,22 +17,27 @@
           </p>
 
           <button
-            :for={plan_id <- @plans}
-            id={"simulation-select-#{plan_id}"}
+            :for={plan <- @plans}
+            id={"simulation-select-#{plan.id}"}
             type="button"
             phx-click="select_plan"
-            phx-value-plan_id={plan_id}
+            phx-value-plan_id={plan.id}
             class={[
-              "w-full rounded-box border px-3 py-2 text-left text-sm transition-colors",
-              @selected_plan_id == plan_id && "border-primary/70 bg-primary/10",
-              @selected_plan_id != plan_id && "border-base-300 hover:border-base-content/40"
+              "w-full rounded-box border px-3 py-2 text-left transition-colors",
+              @selected_plan_id == plan.id && "border-primary/70 bg-primary/10",
+              @selected_plan_id != plan.id && "border-base-300 hover:border-base-content/40"
             ]}
           >
-            {plan_id}
+            <p class="text-sm font-semibold">{plan.id}</p>
+            <.simulation_plan_summary
+              id={"simulation-plan-summary-#{plan.id}"}
+              simulation_plan={plan.simulation_plan}
+              class="mt-1 text-xs text-base-content/70"
+            />
           </button>
         </div>
 
-        <p
+        <div
           id="plan-status"
           class={[
             "text-sm",
@@ -41,10 +46,17 @@
         >
           <%= if @selected_plan_id do %>
             Selected plan: {@selected_plan_id}
+            <%= if @selected_plan do %>
+              <.simulation_plan_summary
+                id="selected-plan-summary"
+                simulation_plan={@selected_plan.simulation_plan}
+                class="text-xs text-success/80 mt-1"
+              />
+            <% end %>
           <% else %>
             No simulation plan selected.
           <% end %>
-        </p>
+        </div>
       </div>
     </div>
 

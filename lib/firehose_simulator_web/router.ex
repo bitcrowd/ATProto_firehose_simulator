@@ -20,6 +20,7 @@ defmodule FirehoseSimulatorWeb.Router do
     live "/setup", SetupLive
     live "/planning", PlanningLive
     live "/simulation", SimulationLive
+    live "/metrics", MetricsLive
     get "/", PageController, :home
   end
 
