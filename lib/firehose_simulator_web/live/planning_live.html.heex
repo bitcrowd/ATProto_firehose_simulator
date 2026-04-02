@@ -1,4 +1,6 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <div id="planning-export-hook" phx-hook="SaveSimulationPlan" phx-update="ignore" class="hidden" />
+
   <.header>
     Planning
     <:subtitle>
@@ -109,6 +111,15 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
+              <.button
+                id={"export-plan-#{plan.id}"}
+                type="button"
+                phx-click="export_plan"
+                phx-value-plan_id={plan.id}
+              >
+                Export
+              </.button>
+
               <.button
                 id={"delete-plan-#{plan.id}"}
                 type="button"

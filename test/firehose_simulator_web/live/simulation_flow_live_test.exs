@@ -69,6 +69,15 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert generated_plan_id
     assert has_element?(view, "#plan-row-#{generated_plan_id}")
 
+    view
+    |> element("#export-plan-#{generated_plan_id}")
+    |> render_click()
+
+    assert_push_event(view, "save_simulation_plan_json", %{filename: filename, content: content})
+    assert filename == "#{generated_plan_id}.json"
+    assert {:ok, %{"posts" => posts, "sessions" => nil, "follows" => nil}} = Jason.decode(content)
+    assert is_list(posts)
+
     import_upload =
       file_input(view, "#planning-import-form", :simulation_plan_json, [
         %{

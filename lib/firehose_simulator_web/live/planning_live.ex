@@ -1,6 +1,7 @@
 defmodule FirehoseSimulatorWeb.PlanningLive do
   use FirehoseSimulatorWeb, :live_view
 
+  alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
 
   @impl true
@@ -102,6 +103,25 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
      |> put_flash(:info, "Simulation plan deleted.")}
   end
 
+  @impl true
+  def handle_event("export_plan", %{"plan_id" => plan_id}, socket) do
+    with {:ok, simulation_plan} <- fetch_plan(plan_id),
+         {:ok, json} <- SimulationPlan.to_json(simulation_plan) do
+      filename = export_filename(plan_id)
+
+      socket =
+        push_event(socket, "save_simulation_plan_json", %{filename: filename, content: json})
+
+      {:noreply,
+       socket
+       |> assign(:last_action, "Exported plan #{plan_id}.")
+       |> put_flash(:info, "Simulation plan exported.")}
+    else
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to export plan: #{inspect(reason)}")}
+    end
+  end
+
   defp ensure_upload_completed(socket, upload_name, label) do
     {completed_entries, in_progress_entries} = uploaded_entries(socket, upload_name)
 
@@ -163,6 +183,13 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   defp section_count(nil), do: 0
   defp section_count(events) when is_list(events), do: length(events)
 
+  defp fetch_plan(plan_id) when is_binary(plan_id) do
+    case State.list_simulation_plans() do
+      %{^plan_id => %SimulationPlan{} = simulation_plan} -> {:ok, simulation_plan}
+      _other -> {:error, "Simulation plan #{plan_id} not found"}
+    end
+  end
+
   defp build_plan_id(plan_name, filename) do
     base =
       case String.trim(plan_name || "") do
@@ -181,6 +208,20 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       end
 
     "#{slug}-#{upload_token()}"
+  end
+
+  defp export_filename(plan_id) do
+    sanitized =
+      plan_id
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9_-]+/u, "-")
+      |> String.trim("-")
+      |> case do
+        "" -> "simulation-plan"
+        value -> value
+      end
+
+    "#{sanitized}.json"
   end
 
   defp simulator_module do
