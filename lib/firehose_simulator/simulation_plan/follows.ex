@@ -12,7 +12,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
   """
 
   alias FirehoseSimulator.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.FollowsParams
+  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
 
   @default_unit_duration_ms 86_400_000
 

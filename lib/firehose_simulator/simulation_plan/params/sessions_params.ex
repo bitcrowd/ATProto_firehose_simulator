@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.SessionsParams do
+defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
   @moduledoc false
 
   use Ecto.Schema
@@ -6,7 +6,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsParams do
   import Ecto.Changeset
 
   alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
-  alias FirehoseSimulator.SimulationPlan.SessionTier
+  alias FirehoseSimulator.SimulationPlan.Params.SessionTier
 
   @type t :: %__MODULE__{
           n: pos_integer(),

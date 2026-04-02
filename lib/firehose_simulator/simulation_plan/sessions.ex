@@ -13,7 +13,7 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
   """
 
   alias FirehoseSimulator.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
 
   @default_unit_duration_ms 86_400_000
 

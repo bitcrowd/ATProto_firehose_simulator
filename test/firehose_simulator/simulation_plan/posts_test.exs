@@ -2,7 +2,7 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.PostsParams
+  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
   alias FirehoseSimulator.SimulationPlan.CSV
 
   @config %PostsParams{
@@ -11,7 +11,9 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     seed: 42,
     time_units: 1,
     path: "posts.csv",
-    tiers: [%FirehoseSimulator.SimulationPlan.PostTier{max_followers: 1_000, posts_per_day: 1.0}]
+    tiers: [
+      %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 1_000, posts_per_day: 1.0}
+    ]
   }
 
   test "generate/1 returns an in-memory plan struct" do

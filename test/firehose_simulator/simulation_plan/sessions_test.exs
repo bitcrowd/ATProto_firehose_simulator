@@ -2,7 +2,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan.Sessions
-  alias FirehoseSimulator.SimulationPlan.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
   alias FirehoseSimulator.SimulationPlan.CSV
 
   @config %SessionsParams{
@@ -12,7 +12,10 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
     time_units: 1,
     path: "sessions.csv",
     tiers: [
-      %FirehoseSimulator.SimulationPlan.SessionTier{max_followers: 1_000, session_minutes: 10}
+      %FirehoseSimulator.SimulationPlan.Params.SessionTier{
+        max_followers: 1_000,
+        session_minutes: 10
+      }
     ]
   }
 

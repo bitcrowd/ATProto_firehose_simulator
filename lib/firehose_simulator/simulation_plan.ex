@@ -2,11 +2,11 @@ defmodule FirehoseSimulator.SimulationPlan do
   @moduledoc false
 
   alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.FollowsParams
+  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
   alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.PostsParams
+  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
   alias FirehoseSimulator.SimulationPlan.Sessions
-  alias FirehoseSimulator.SimulationPlan.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
 
   @enforce_keys [:posts_plan, :sessions_plan, :follows_plan]
   defstruct [:posts_plan, :sessions_plan, :follows_plan]

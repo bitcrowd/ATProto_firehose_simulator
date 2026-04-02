@@ -2,7 +2,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.FollowsParams
+  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
   alias FirehoseSimulator.SimulationPlan.CSV
 
   @config %FollowsParams{
@@ -12,7 +12,10 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     time_units: 1,
     path: "follows.csv",
     tiers: [
-      %FirehoseSimulator.SimulationPlan.FollowTier{max_followers: 1_000, follows_per_day: 1.0}
+      %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+        max_followers: 1_000,
+        follows_per_day: 1.0
+      }
     ]
   }
 

@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.SimulationPlan.SessionsParamsTest do
+defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan.SessionsParams
+  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
 
   describe "load/1" do
     test "returns a sessions struct for valid json" do
