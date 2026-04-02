@@ -56,7 +56,44 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
-      summary("vm.total_run_queue_lengths.io")
+      summary("vm.total_run_queue_lengths.io"),
+
+      # Firehose Simulator Metrics
+      counter("firehose_simulator.event_feeder.inject.count"),
+      sum("firehose_simulator.event_feeder.inject.sessions_started"),
+      sum("firehose_simulator.event_feeder.inject.posts_ok"),
+      sum("firehose_simulator.event_feeder.inject.posts_error"),
+      sum("firehose_simulator.event_feeder.inject.follows_ok"),
+      sum("firehose_simulator.event_feeder.inject.follows_error"),
+      summary("firehose_simulator.event_feeder.inject.elapsed_ms",
+        unit: {:millisecond, :millisecond}
+      ),
+      counter("firehose_simulator.worker.query.count",
+        tags: [:status],
+        tag_values: &worker_query_tag_values/1
+      ),
+      summary("firehose_simulator.worker.query.latency_ms",
+        unit: {:millisecond, :millisecond},
+        tags: [:status],
+        tag_values: &worker_query_tag_values/1
+      ),
+      summary("firehose_simulator.worker.query.rows",
+        tags: [:status],
+        tag_values: &worker_query_tag_values/1
+      ),
+      counter("firehose_simulator.worker.cycle.count",
+        tags: [:partition],
+        tag_values: &worker_cycle_tag_values/1
+      ),
+      sum("firehose_simulator.worker.cycle.session_count"),
+      sum("firehose_simulator.worker.cycle.ok"),
+      sum("firehose_simulator.worker.cycle.errors"),
+      sum("firehose_simulator.worker.cycle.completed"),
+      sum("firehose_simulator.worker.cycle.timeouts"),
+      summary("firehose_simulator.worker.cycle.duration_ms",
+        unit: {:millisecond, :millisecond},
+        keep: &cycle_duration_present?/2
+      )
     ]
   end
 
@@ -66,5 +103,17 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       # This function must call :telemetry.execute/3 and a metric must be added above.
       # {FirehoseSimulatorWeb, :count_users, []}
     ]
+  end
+
+  defp worker_query_tag_values(metadata) do
+    %{status: to_string(Map.get(metadata, :status, :unknown))}
+  end
+
+  defp worker_cycle_tag_values(metadata) do
+    %{partition: to_string(Map.get(metadata, :partition, "unknown"))}
+  end
+
+  defp cycle_duration_present?(measurements, _metadata) do
+    Map.has_key?(measurements, :duration_ms)
   end
 end
