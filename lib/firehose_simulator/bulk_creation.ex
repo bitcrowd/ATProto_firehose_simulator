@@ -2,9 +2,14 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.BulkCreation.Actor
   alias FirehoseSimulator.BulkCreation.DynamicRepo
   alias FirehoseSimulator.BulkCreation.Follow
+  alias FirehoseSimulator.BulkCreation.Post
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.SimulationPlan.Follows
   alias FirehoseSimulator.SimulationPlan.FollowerGraph
+  alias FirehoseSimulator.SimulationPlan.Posts
+  alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Userbase
 
   @insert_batch_size 1_000
@@ -29,6 +34,15 @@ defmodule FirehoseSimulator.BulkCreation do
     end
   end
 
+  def create_simulation_plan(%SimulationPlan{} = simulation_plan, %DatabaseConnection{
+        connection_string: connection_string
+      }) do
+    with :ok <- connect(connection_string),
+         {:ok, result} <- insert_simulation_plan(repo_name(connection_string), simulation_plan) do
+      {:ok, result}
+    end
+  end
+
   def repo_name(connection_string) do
     :"bulk_repo_#{:erlang.phash2(connection_string)}"
   end
@@ -49,6 +63,33 @@ defmodule FirehoseSimulator.BulkCreation do
 
       max_user_id = Enum.max(user_ids, fn -> 0 end)
       {:ok, length(follow_rows), max_user_id}
+    end)
+  end
+
+  defp insert_simulation_plan(repo_name, %SimulationPlan{} = simulation_plan) do
+    with_dynamic_repo(repo_name, fn ->
+      posts = posts_from_plan(simulation_plan.posts_plan)
+      follows = follows_from_plan(simulation_plan.follows_plan)
+      sessions = sessions_from_plan(simulation_plan.sessions_plan)
+
+      actor_ids =
+        actor_ids_from_posts(posts) ++
+          actor_ids_from_follows(follows) ++
+          actor_ids_from_sessions(sessions)
+
+      actor_ids = Enum.uniq(actor_ids)
+
+      insert_actor_rows(actor_ids)
+      insert_post_rows(posts)
+      insert_follow_rows(follows)
+
+      {:ok,
+       %{
+         inserted_actor_count: length(actor_ids),
+         inserted_post_count: length(posts),
+         inserted_follow_count: length(follows),
+         included_session_count: length(sessions)
+       }}
     end)
   end
 
@@ -101,11 +142,59 @@ defmodule FirehoseSimulator.BulkCreation do
           creator: did,
           subjectDid: subject_did,
           createdAt: created_at,
-          indexedAt: indexed_timestamp(base_time, offset_ms)
+          indexedAt: indexed_timestamp(base_time, offset_ms),
+          sortAt: created_at
         }
       end)
 
     insert_all_in_batches(Follow, follow_rows, on_conflict: :nothing, conflict_target: [:uri])
+  end
+
+  defp insert_post_rows(rows) do
+    base_time = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    post_rows =
+      Enum.map(rows, fn %{offset_ms: offset_ms, user_id: user_id} ->
+        did = Data.did_for_user_id(user_id)
+        created_at = shifted_timestamp(base_time, offset_ms)
+        text = "Simulated post from user #{user_id}"
+        record = Data.create_record(Data.post_type(), text: text, created_at: created_at)
+
+        %{
+          uri: at_uri(did, Data.post_type()),
+          cid: Data.cid_for_record(record),
+          creator: did,
+          text: text,
+          createdAt: created_at,
+          indexedAt: indexed_timestamp(base_time, offset_ms),
+          sortAt: created_at
+        }
+      end)
+
+    insert_all_in_batches(Post, post_rows, on_conflict: :nothing, conflict_target: [:uri])
+  end
+
+  defp posts_from_plan(nil), do: []
+  defp posts_from_plan(%Posts{posts: posts}), do: posts
+
+  defp follows_from_plan(nil), do: []
+  defp follows_from_plan(%Follows{follows: follows}), do: follows
+
+  defp sessions_from_plan(nil), do: []
+  defp sessions_from_plan(%Sessions{sessions: sessions}), do: sessions
+
+  defp actor_ids_from_posts(posts) do
+    Enum.map(posts, fn %{user_id: user_id} -> user_id end)
+  end
+
+  defp actor_ids_from_follows(follows) do
+    Enum.flat_map(follows, fn %{actor_id: actor_id, subject_id: subject_id} ->
+      [actor_id, subject_id]
+    end)
+  end
+
+  defp actor_ids_from_sessions(sessions) do
+    Enum.map(sessions, fn %{user_id: user_id} -> user_id end)
   end
 
   defp validate_connection_string("postgres://" <> _), do: :ok

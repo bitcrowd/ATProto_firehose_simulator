@@ -31,6 +31,30 @@ defmodule FirehoseSimulator do
     end
   end
 
+  @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
+  def bulk_create_simulation_plan(%SimulationPlan{} = simulation_plan) do
+    bulk_create_simulation_plan(simulation_plan, database_connection())
+  end
+
+  @spec bulk_create_simulation_plan(SimulationPlan.t(), DatabaseConnection.t()) ::
+          {:ok, map()} | {:error, String.t()}
+  def bulk_create_simulation_plan(
+        %SimulationPlan{} = simulation_plan,
+        %DatabaseConnection{} = connection
+      ) do
+    Logger.info("creating simulation plan data in database")
+
+    case BulkCreation.create_simulation_plan(simulation_plan, connection) do
+      {:ok, result} = ok ->
+        Logger.info("created simulation plan data: #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to create simulation plan data: #{reason}")
+        error
+    end
+  end
+
   @spec load_simulation_plan_from_json(keyword(String.t())) ::
           {:ok, SimulationPlan.t()} | {:error, String.t()}
   def load_simulation_plan_from_json(paths) do

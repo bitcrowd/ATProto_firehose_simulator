@@ -6,6 +6,7 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.SimulationPlan.Posts
 
   describe "load_simulation_plan_from_json/1" do
     @tag :tmp_dir
@@ -73,6 +74,23 @@ defmodule FirehoseSimulatorTest do
       capture_log(fn ->
         assert {:error, "cannot read userbase file at missing-userbase.json"} =
                  FirehoseSimulator.create_userbase("missing-userbase.json", connection)
+      end)
+    end
+  end
+
+  describe "create_simulation_plan/2" do
+    test "returns connection validation errors before attempting database work" do
+      connection = %DatabaseConnection{connection_string: "not-a-url"}
+
+      simulation_plan = %SimulationPlan{
+        posts_plan: %Posts{posts: [%{offset_ms: 25, user_id: 1}]},
+        sessions_plan: nil,
+        follows_plan: nil
+      }
+
+      capture_log(fn ->
+        assert {:error, "Connection string must be a postgres URL"} =
+                 FirehoseSimulator.create_simulation_plan(simulation_plan, connection)
       end)
     end
   end

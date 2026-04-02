@@ -5,6 +5,10 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.SimulationPlan.Follows
+  alias FirehoseSimulator.SimulationPlan.Posts
+  alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Userbase
 
   test "create_userbase/2 returns the existing connection validation error" do
@@ -36,6 +40,33 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
     capture_log(fn ->
       assert {:error, message} = BulkCreation.create_userbase(userbase, connection)
+      assert is_binary(message)
+      refute message == ""
+    end)
+  end
+
+  test "create_simulation_plan/2 returns the existing connection validation error" do
+    simulation_plan = %SimulationPlan{posts_plan: nil, sessions_plan: nil, follows_plan: nil}
+    connection = %DatabaseConnection{connection_string: "not-a-url"}
+
+    assert {:error, "Connection string must be a postgres URL"} =
+             BulkCreation.create_simulation_plan(simulation_plan, connection)
+  end
+
+  test "create_simulation_plan/2 surfaces connection failures for unreachable databases" do
+    simulation_plan = %SimulationPlan{
+      posts_plan: %Posts{posts: [%{offset_ms: 100, user_id: 1}]},
+      sessions_plan: %Sessions{sessions: [%{offset_ms: 0, user_id: 2, duration_ms: 60_000}]},
+      follows_plan: %Follows{follows: [%{offset_ms: 50, actor_id: 1, subject_id: 2}]}
+    }
+
+    connection =
+      %DatabaseConnection{
+        connection_string: "postgres://postgres:postgres@127.0.0.1:1/firehose_simulator_test"
+      }
+
+    capture_log(fn ->
+      assert {:error, message} = BulkCreation.create_simulation_plan(simulation_plan, connection)
       assert is_binary(message)
       refute message == ""
     end)
