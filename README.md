@@ -149,19 +149,46 @@ userbase_path = "priv/simulation/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
 ```
 
-Load a simulation plan from JSON:
+You can also run vacuum actions from IEx to either delete the full userbase footprint or vacuum posts:
+
+```elixir
+{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true)
+{:ok, _result} = FirehoseSimulator.vacuum(db_url, vacuum_posts?: true)
+```
+
+Flow in the web UI:
+
+1. `Setup`: configure database connection and create the userbase.
+2. `Vacuum`: run delete userbase and/or vacuum posts actions.
+3. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
+4. `Simulation`: select one available plan and play/stop/reset.
+
+Generate a simulation plan from params JSON:
 
 ```elixir
 {:ok, simulation_plan} =
-  FirehoseSimulator.load_simulation_plan_from_json(
+  FirehoseSimulator.generate_simulation_plan_from_json(
     simulation_plan_params: "priv/simulation/simulation_plan_params.json"
   )
+```
+
+Export and re-import full simulation plan structs as JSON:
+
+```elixir
+:ok =
+  FirehoseSimulator.export_simulation_plan_to_json(
+    simulation_plan,
+    "/tmp/simulation-plan.json"
+  )
+
+{:ok, imported_plan} =
+  FirehoseSimulator.import_simulation_plan_from_json("/tmp/simulation-plan.json")
 ```
 
 Play the plan:
 
 ```elixir
-{:ok, _result} = FirehoseSimulator.play(simulation_plan)
+{:ok, _result} = FirehoseSimulator.play(imported_plan)
 ```
 
 Stop and reset the player:
@@ -175,7 +202,7 @@ Shift an in-memory simulation plan by a millisecond offset:
 
 ```elixir
 {:ok, simulation_plan} =
-  FirehoseSimulator.load_simulation_plan_from_json(
+  FirehoseSimulator.generate_simulation_plan_from_json(
     simulation_plan_params: "priv/simulation/simulation_plan_params.json"
   )
 
