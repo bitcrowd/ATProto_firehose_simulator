@@ -62,6 +62,8 @@ defmodule FirehoseSimulator do
     end
   end
 
+  def stop, do: Player.stop()
+
   defp userbase_filename do
     System.get_env("USERBASE_JSON", @default_userbase_filename)
   end
