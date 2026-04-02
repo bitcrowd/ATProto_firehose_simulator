@@ -4,6 +4,7 @@ defmodule FirehoseSimulator.BulkCreationTest do
   import ExUnit.CaptureLog
 
   alias FirehoseSimulator.BulkCreation
+  alias FirehoseSimulator.BulkCreation.Vacuum
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Userbase
@@ -64,6 +65,23 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
     capture_log(fn ->
       assert {:error, message} = BulkCreation.create_simulation_plan(simulation_plan, connection)
+      assert is_binary(message)
+      refute message == ""
+    end)
+  end
+
+  test "vacuum returns action validation errors" do
+    assert {:error, "Select at least one vacuum action"} =
+             Vacuum.run("postgres://example", [])
+  end
+
+  test "vacuum surfaces connection failures for unreachable databases" do
+    connection_string = "postgres://postgres:postgres@127.0.0.1:1/firehose_simulator_test"
+
+    capture_log(fn ->
+      assert {:error, message} =
+               Vacuum.run(connection_string, delete_userbase?: true)
+
       assert is_binary(message)
       refute message == ""
     end)

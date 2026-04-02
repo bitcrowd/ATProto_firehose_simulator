@@ -10,6 +10,7 @@ defmodule FirehoseSimulator do
   require Logger
 
   alias FirehoseSimulator.BulkCreation
+  alias FirehoseSimulator.BulkCreation.Vacuum
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.State
@@ -46,6 +47,32 @@ defmodule FirehoseSimulator do
   @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
   def bulk_create_simulation_plan(%SimulationPlan{} = simulation_plan) do
     bulk_create_simulation_plan(simulation_plan, database_connection())
+  end
+
+  @spec vacuum() :: {:ok, map()} | {:error, String.t()}
+  def vacuum do
+    vacuum([])
+  end
+
+  @spec vacuum(keyword()) :: {:ok, map()} | {:error, String.t()}
+  def vacuum(opts) when is_list(opts) do
+    vacuum(database_connection().connection_string, opts)
+  end
+
+  @spec vacuum(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
+  def vacuum(connection_string, opts)
+      when is_binary(connection_string) and is_list(opts) do
+    Logger.info("running vacuum actions")
+
+    case Vacuum.run(connection_string, opts) do
+      {:ok, result} = ok ->
+        Logger.info("completed vacuum actions: #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed vacuum actions: #{inspect(reason)}")
+        error
+    end
   end
 
   @spec bulk_create_simulation_plan(SimulationPlan.t(), DatabaseConnection.t()) ::

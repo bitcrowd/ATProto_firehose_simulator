@@ -165,6 +165,22 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
+  describe "vacuum/2" do
+    test "returns action validation errors" do
+      capture_log(fn ->
+        assert {:error, "Select at least one vacuum action"} =
+                 FirehoseSimulator.vacuum("postgres://example", [])
+      end)
+    end
+
+    test "returns connection validation errors before attempting database work" do
+      capture_log(fn ->
+        assert {:error, "Connection string must be a postgres URL"} =
+                 FirehoseSimulator.vacuum("not-a-url", delete_userbase?: true)
+      end)
+    end
+  end
+
   describe "reset/0" do
     test "exposes player reset from the top-level api" do
       assert :ok = FirehoseSimulator.reset()

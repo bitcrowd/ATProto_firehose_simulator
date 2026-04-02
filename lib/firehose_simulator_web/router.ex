@@ -18,6 +18,7 @@ defmodule FirehoseSimulatorWeb.Router do
     pipe_through :browser
 
     live "/setup", SetupLive
+    live "/vacuum", VacuumLive
     live "/planning", PlanningLive
     live "/simulation", SimulationLive
     live "/metrics", MetricsLive

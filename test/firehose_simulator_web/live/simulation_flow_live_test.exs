@@ -102,6 +102,26 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert has_element?(view, "#plan-row-#{imported_plan_id}")
   end
 
+  test "vacuum liveview runs selected vacuum actions", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/vacuum")
+
+    assert has_element?(view, ~s(a[href="/vacuum"]), "Vacuum")
+    assert has_element?(view, "#vacuum-db-connection-string")
+
+    view
+    |> form("#vacuum-form", %{
+      "vacuum" => %{
+        "db_connection_string" => "postgres://example",
+        "delete_userbase" => "true",
+        "vacuum_posts" => "true"
+      }
+    })
+    |> render_submit()
+
+    assert has_element?(view, "#vacuum-result")
+    assert render(view) =~ "Vacuum actions completed."
+  end
+
   test "simulation liveview selects plan and controls playback", %{conn: conn} do
     :ok =
       State.put_simulation_plan("plan-1", %SimulationPlan{
@@ -206,6 +226,24 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     def play(%SimulationPlan{}, _opts), do: {:error, :invalid_shift}
     def stop, do: :ok
     def reset, do: :ok
+
+    def vacuum(connection_string, opts) when is_binary(connection_string) do
+      delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
+      vacuum_posts? = Keyword.get(opts, :vacuum_posts?, false)
+
+      if String.starts_with?(connection_string, "postgres://") and
+           (delete_userbase? or vacuum_posts?) do
+        {:ok,
+         %{
+           delete_userbase?: delete_userbase?,
+           vacuum_posts?: vacuum_posts?,
+           deleted: %{actors: 10, posts: 20, follows: 30},
+           vacuum: %{table: "bsky.post", mode: "full"}
+         }}
+      else
+        {:error, "invalid vacuum inputs"}
+      end
+    end
   end
 
   defp userbase_json do

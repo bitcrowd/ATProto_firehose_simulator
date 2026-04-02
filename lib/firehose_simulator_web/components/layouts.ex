@@ -70,6 +70,7 @@ defmodule FirehoseSimulatorWeb.Layouts do
           <:tab label="Planning" navigate={~p"/planning"} />
           <:tab label="Simulation" navigate={~p"/simulation"} />
           <:tab label="Metrics" navigate={~p"/metrics"} />
+          <:tab label="Vacuum" navigate={~p"/vacuum"} />
         </.tab_nav>
 
         {render_slot(@inner_block)}
