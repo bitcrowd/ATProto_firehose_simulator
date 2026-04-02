@@ -14,7 +14,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Userbase
 
-  @default_userbase_filename "userbase.json"
+  @default_userbase_filename "priv/simulation/userbase.json"
   @default_connection_string "postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky"
 
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
