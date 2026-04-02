@@ -2,6 +2,6 @@ defmodule FirehoseSimulatorWeb.PageController do
   use FirehoseSimulatorWeb, :controller
 
   def home(conn, _params) do
-    render(conn, :home)
+    redirect(conn, to: ~p"/setup")
   end
 end

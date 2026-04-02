@@ -142,8 +142,7 @@ defmodule FirehoseSimulator.BulkCreation do
           creator: did,
           subjectDid: subject_did,
           createdAt: created_at,
-          indexedAt: indexed_timestamp(base_time, offset_ms),
-          sortAt: created_at
+          indexedAt: indexed_timestamp(base_time, offset_ms)
         }
       end)
 
@@ -166,8 +165,7 @@ defmodule FirehoseSimulator.BulkCreation do
           creator: did,
           text: text,
           createdAt: created_at,
-          indexedAt: indexed_timestamp(base_time, offset_ms),
-          sortAt: created_at
+          indexedAt: indexed_timestamp(base_time, offset_ms)
         }
       end)
 

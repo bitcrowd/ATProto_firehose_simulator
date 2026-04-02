@@ -12,6 +12,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
+  alias FirehoseSimulator.State
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Userbase
 
@@ -35,6 +36,11 @@ defmodule FirehoseSimulator do
   def create_userbase(path, connection_string)
       when is_binary(path) and is_binary(connection_string) do
     create_userbase(path, %DatabaseConnection{connection_string: connection_string})
+  end
+
+  @spec create_userbase(String.t()) :: {:ok, map()} | {:error, String.t()}
+  def create_userbase(path) when is_binary(path) do
+    create_userbase(path, database_connection())
   end
 
   @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
@@ -102,8 +108,17 @@ defmodule FirehoseSimulator do
 
   defp database_connection do
     %DatabaseConnection{
-      connection_string: System.get_env("DATABASE_URL") || @default_connection_string
+      connection_string:
+        state_connection_string() || System.get_env("DATABASE_URL") || @default_connection_string
     }
+  end
+
+  defp state_connection_string do
+    try do
+      State.get_db_connection_string()
+    catch
+      :exit, _reason -> nil
+    end
   end
 
   defp load_userbase(path) do

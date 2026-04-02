@@ -1,0 +1,90 @@
+<Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <.header>
+    Simulation
+    <:subtitle>Create a simulation plan from uploaded JSON and control playback.</:subtitle>
+  </.header>
+
+  <section id="simulation-step" class="grid gap-6 lg:grid-cols-2">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-document-chart-bar" class="size-5 text-primary" />
+          Step 2: Create simulation plan
+        </div>
+
+        <.form for={@form} id="simulation-plan-form" phx-submit="create_plan" class="space-y-4">
+          <div class="space-y-2">
+            <label for={@uploads.posts_json.ref} class="label">Posts JSON</label>
+            <.live_file_input
+              upload={@uploads.posts_json}
+              id="posts-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label for={@uploads.sessions_json.ref} class="label">Sessions JSON</label>
+            <.live_file_input
+              upload={@uploads.sessions_json}
+              id="sessions-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label for={@uploads.follows_json.ref} class="label">Follows JSON</label>
+            <.live_file_input
+              upload={@uploads.follows_json}
+              id="follows-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="create-plan-submit" type="submit">Create simulation plan</.button>
+        </.form>
+
+        <p id="plan-status" class={["text-sm", @simulation_plan_loaded? && "text-success"]}>
+          <%= if @simulation_plan_loaded? do %>
+            Simulation plan is loaded and ready to play.
+          <% else %>
+            No simulation plan loaded yet.
+          <% end %>
+        </p>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-play-circle" class="size-5 text-primary" /> Step 3: Control playback
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <.button
+            id="play-button"
+            type="button"
+            phx-click="play"
+            disabled={!@simulation_plan_loaded?}
+          >
+            Play
+          </.button>
+          <.button id="stop-button" type="button" phx-click="stop" variant="primary">
+            Stop
+          </.button>
+          <.button id="reset-button" type="button" phx-click="reset" variant="primary">
+            Reset
+          </.button>
+        </div>
+
+        <p :if={@last_action} id="last-action" class="text-sm text-base-content/80">
+          Last action: {@last_action}
+        </p>
+
+        <div id="player-ids" class="rounded-box bg-base-200/60 p-3 text-xs">
+          <p class="font-semibold">Stored player IDs</p>
+          <pre class="mt-1 overflow-auto">{inspect(@player_ids, pretty: true)}</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layouts.app>

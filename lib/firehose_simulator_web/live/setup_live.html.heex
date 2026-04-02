@@ -1,0 +1,70 @@
+<Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <.header>
+    Setup
+    <:subtitle>Connect to your database and create a userbase from uploaded JSON.</:subtitle>
+  </.header>
+
+  <section id="setup-step" class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body gap-5">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <.icon name="hero-circle-stack" class="size-5 text-primary" /> Step 1: Database + userbase
+      </div>
+
+      <.form
+        for={@form}
+        id="setup-form"
+        phx-change="validate"
+        phx-submit="create_userbase"
+        class="space-y-4"
+      >
+        <.input
+          field={@form[:db_connection_string]}
+          id="setup-db-connection-string"
+          type="text"
+          label="DB connection string"
+          required
+          autocomplete="off"
+        />
+
+        <div class="space-y-2">
+          <label for={@uploads.userbase.ref} class="label">Userbase JSON</label>
+          <.live_file_input
+            upload={@uploads.userbase}
+            id="setup-userbase-upload"
+            class="file-input w-full"
+          />
+          <p :if={@uploads.userbase.entries == []} class="text-sm text-base-content/70">
+            Upload one JSON file with userbase configuration.
+          </p>
+          <ul :if={@uploads.userbase.entries != []} class="text-sm text-base-content/70 space-y-1">
+            <li :for={entry <- @uploads.userbase.entries} id={"userbase-entry-#{entry.ref}"}>
+              {entry.client_name}
+            </li>
+          </ul>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <.button id="setup-submit" type="submit" disabled={@creating_userbase?}>
+            <span :if={@creating_userbase?} class="inline-flex items-center gap-2">
+              <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+              Creating userbase...
+            </span>
+            <span :if={!@creating_userbase?}>Create userbase</span>
+          </.button>
+          <.button id="to-simulation" navigate={~p"/simulation"} variant="primary">
+            Go to simulation
+          </.button>
+        </div>
+      </.form>
+
+      <div
+        :if={@state.userbase_result}
+        id="setup-result"
+        class="rounded-box border border-success/40 bg-success/10 p-4"
+      >
+        <p class="text-sm font-medium text-success">Latest userbase creation result</p>
+        <pre class="mt-2 text-xs overflow-auto">{inspect(@state.userbase_result, pretty: true)}</pre>
+      </div>
+    </div>
+  </section>
+</Layouts.app>

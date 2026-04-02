@@ -15,6 +15,7 @@ defmodule FirehoseSimulator.Application do
         {DNSCluster,
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
+        FirehoseSimulator.State,
         {PLC.OpLog, %{}},
         PLCWeb.Endpoint,
         PDSWeb.Endpoint,
