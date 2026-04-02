@@ -12,7 +12,13 @@
           Step 2: Create simulation plan
         </div>
 
-        <.form for={@form} id="simulation-plan-form" phx-submit="create_plan" class="space-y-4">
+        <.form
+          for={@form}
+          id="simulation-plan-form"
+          phx-change="validate_plan"
+          phx-submit="create_plan"
+          class="space-y-4"
+        >
           <div class="space-y-2">
             <label for={@uploads.simulation_plan_params_json.ref} class="label">
               Simulation Plan Params JSON
@@ -23,6 +29,16 @@
               class="file-input w-full"
             />
           </div>
+
+          <.input
+            field={@form[:time_offset_ms]}
+            type="number"
+            label="Simulation Offset (ms)"
+            min="-2147483648"
+            max="2147483647"
+            step="1"
+            required
+          />
 
           <.button id="create-plan-submit" type="submit">Create simulation plan</.button>
         </.form>

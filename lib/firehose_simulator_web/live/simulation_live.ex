@@ -15,7 +15,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:simulation_plan_loaded?, not is_nil(simulation_plan))
       |> assign(:player_ids, player_ids)
       |> assign(:last_action, nil)
-      |> assign(:form, to_form(%{}, as: :simulation))
+      |> assign(:form, to_form(%{"time_offset_ms" => "0"}, as: :simulation))
       |> allow_upload(:simulation_plan_params_json,
         accept: ~w(.json),
         max_entries: 1,
@@ -26,22 +26,40 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   @impl true
-  def handle_event("create_plan", _params, socket) do
+  def handle_event("validate_plan", %{"simulation" => simulation_params}, socket) do
+    {:noreply, assign(socket, :form, to_form(simulation_params, as: :simulation))}
+  end
+
+  def handle_event("validate_plan", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_plan", %{"simulation" => simulation_params}, socket) do
+    socket = assign(socket, :form, to_form(simulation_params, as: :simulation))
+
     with :ok <-
            ensure_upload_completed(
              socket,
              :simulation_plan_params_json,
              "simulation plan params"
            ),
+         {:ok, time_offset_ms} <- parse_time_offset_ms(simulation_params),
          {:ok, params_path} <- consume_json_upload(socket, :simulation_plan_params_json),
          {:ok, simulation_plan} <-
            simulator_module().load_simulation_plan_from_json(simulation_plan_params: params_path) do
-      :ok = State.put_simulation_plan(simulation_plan)
+      shifted_simulation_plan =
+        simulator_module().shift_simulation_plan(simulation_plan, time_offset_ms)
+
+      :ok = State.put_simulation_plan(shifted_simulation_plan)
 
       {:noreply,
        socket
        |> assign(:simulation_plan_loaded?, true)
-       |> assign(:last_action, "Simulation plan created in memory.")
+       |> assign(
+         :last_action,
+         "Simulation plan created in memory with #{time_offset_ms} ms offset."
+       )
        |> put_flash(:info, "Simulation plan loaded.")}
     else
       {:error, reason} ->
@@ -142,6 +160,25 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   defp upload_token do
     System.unique_integer([:positive, :monotonic])
+  end
+
+  defp parse_time_offset_ms(%{"time_offset_ms" => value}) when is_binary(value) do
+    case String.trim(value) do
+      "" ->
+        {:ok, 0}
+
+      trimmed ->
+        parse_integer_offset(trimmed)
+    end
+  end
+
+  defp parse_time_offset_ms(_params), do: {:ok, 0}
+
+  defp parse_integer_offset(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {offset_ms, ""} -> {:ok, offset_ms}
+      _parse_error -> {:error, "Simulation offset must be a valid integer in milliseconds"}
+    end
   end
 
   defp simulator_module do

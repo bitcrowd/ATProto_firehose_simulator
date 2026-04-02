@@ -108,6 +108,16 @@ defmodule FirehoseSimulator do
 
   def reset, do: Player.reset()
 
+  @spec shift_simulation_plan(SimulationPlan.t(), integer()) :: SimulationPlan.t()
+  def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms)
+      when is_integer(offset_ms) do
+    %SimulationPlan{
+      posts: shift_events(simulation_plan.posts, offset_ms),
+      sessions: shift_events(simulation_plan.sessions, offset_ms),
+      follows: shift_events(simulation_plan.follows, offset_ms)
+    }
+  end
+
   defp userbase_filename do
     System.get_env("USERBASE_JSON", @default_userbase_filename)
   end
@@ -156,5 +166,13 @@ defmodule FirehoseSimulator do
         Logger.error("failed to create userbase #{userbase.name}: #{reason}")
         {:error, reason}
     end
+  end
+
+  defp shift_events(nil, _offset_ms), do: nil
+
+  defp shift_events(events, offset_ms) when is_list(events) do
+    Enum.map(events, fn event ->
+      Map.update!(event, :offset_ms, &(&1 + offset_ms))
+    end)
   end
 end

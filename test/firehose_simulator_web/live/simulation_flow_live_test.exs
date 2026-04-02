@@ -60,7 +60,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     render_upload(simulation_plan_params_upload, "simulation_plan_params.json")
 
     view
-    |> form("#simulation-plan-form", %{"simulation" => %{}})
+    |> form("#simulation-plan-form", %{"simulation" => %{"time_offset_ms" => "250"}})
     |> render_submit()
 
     assert has_element?(view, "#plan-status", "Simulation plan is loaded and ready to play.")
@@ -74,6 +74,27 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     view |> element("#reset-button") |> render_click()
     assert has_element?(view, "#play-button[disabled]")
     assert render(view) =~ "Simulation reset."
+  end
+
+  test "simulation liveview defaults empty offset to zero", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/simulation")
+
+    simulation_plan_params_upload =
+      file_input(view, "#simulation-plan-form", :simulation_plan_params_json, [
+        %{
+          name: "simulation_plan_params.json",
+          content: simulation_plan_params_json(),
+          type: "application/json"
+        }
+      ])
+
+    render_upload(simulation_plan_params_upload, "simulation_plan_params.json")
+
+    view
+    |> form("#simulation-plan-form", %{"simulation" => %{"time_offset_ms" => ""}})
+    |> render_submit()
+
+    assert has_element?(view, "#plan-status", "Simulation plan is loaded and ready to play.")
   end
 
   defmodule FakeSimulator do
@@ -90,13 +111,25 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     def load_simulation_plan_from_json(paths) do
       if is_binary(Keyword.get(paths, :simulation_plan_params)) and
            File.exists?(Keyword.fetch!(paths, :simulation_plan_params)) do
-        {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}}
+        {:ok, %SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}], sessions: nil, follows: nil}}
       else
         {:error, "invalid simulation plan paths"}
       end
     end
 
-    def play(%SimulationPlan{}, _opts \\ []), do: {:ok, %{started?: true}}
+    def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms) do
+      FirehoseSimulator.shift_simulation_plan(simulation_plan, offset_ms)
+    end
+
+    def play(%SimulationPlan{} = simulation_plan), do: play(simulation_plan, [])
+
+    def play(%SimulationPlan{posts: [%{offset_ms: 260, user_id: 1}]}, _opts),
+      do: {:ok, %{started?: true}}
+
+    def play(%SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}]}, _opts),
+      do: {:ok, %{started?: true}}
+
+    def play(%SimulationPlan{}, _opts), do: {:error, :invalid_shift}
     def stop, do: :ok
     def reset, do: :ok
   end

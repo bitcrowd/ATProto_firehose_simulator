@@ -170,3 +170,15 @@ Stop and reset the player:
 :ok = FirehoseSimulator.stop()
 :ok = FirehoseSimulator.reset()
 ```
+
+Shift an in-memory simulation plan by a millisecond offset:
+
+```elixir
+{:ok, simulation_plan} =
+  FirehoseSimulator.load_simulation_plan_from_json(
+    simulation_plan_params: "priv/simulation/simulation_plan_params.json"
+  )
+
+shifted_simulation_plan = FirehoseSimulator.shift_simulation_plan(simulation_plan, 5_000)
+{:ok, _result} = FirehoseSimulator.play(shifted_simulation_plan)
+```
