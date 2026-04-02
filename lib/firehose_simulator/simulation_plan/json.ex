@@ -1,0 +1,110 @@
+defmodule FirehoseSimulator.SimulationPlan.JSON do
+  @moduledoc false
+
+  alias FirehoseSimulator.SimulationPlan
+
+  @spec encode(SimulationPlan.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def encode(%SimulationPlan{} = simulation_plan) do
+    payload = %{
+      posts: simulation_plan.posts,
+      sessions: simulation_plan.sessions,
+      follows: simulation_plan.follows
+    }
+
+    case Jason.encode(payload) do
+      {:ok, json} -> {:ok, json}
+      {:error, reason} -> {:error, "failed to encode simulation plan json: #{inspect(reason)}"}
+    end
+  end
+
+  @spec decode(String.t()) :: {:ok, SimulationPlan.t()} | {:error, String.t()}
+  def decode(json) when is_binary(json) do
+    with {:ok, attrs} <- decode_object(json),
+         {:ok, posts} <- decode_posts(Map.get(attrs, "posts")),
+         {:ok, sessions} <- decode_sessions(Map.get(attrs, "sessions")),
+         {:ok, follows} <- decode_follows(Map.get(attrs, "follows")) do
+      {:ok, %SimulationPlan{posts: posts, sessions: sessions, follows: follows}}
+    end
+  end
+
+  defp decode_object(json) do
+    case Jason.decode(json) do
+      {:ok, %{} = attrs} -> {:ok, attrs}
+      {:ok, _other} -> {:error, "invalid simulation plan json: expected json object"}
+      {:error, _reason} -> {:error, "invalid simulation plan json"}
+    end
+  end
+
+  defp decode_posts(nil), do: {:ok, nil}
+  defp decode_posts(rows), do: decode_rows(rows, "posts", &decode_post/1)
+
+  defp decode_sessions(nil), do: {:ok, nil}
+  defp decode_sessions(rows), do: decode_rows(rows, "sessions", &decode_session/1)
+
+  defp decode_follows(nil), do: {:ok, nil}
+  defp decode_follows(rows), do: decode_rows(rows, "follows", &decode_follow/1)
+
+  defp decode_rows(rows, label, decoder) when is_list(rows) do
+    rows
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, []}, fn {row, index}, {:ok, acc} ->
+      case decoder.(row) do
+        {:ok, parsed} -> {:cont, {:ok, [parsed | acc]}}
+        {:error, reason} -> {:halt, {:error, "invalid #{label}[#{index}]: #{reason}"}}
+      end
+    end)
+    |> case do
+      {:ok, acc} -> {:ok, Enum.reverse(acc)}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp decode_rows(_rows, label, _decoder),
+    do: {:error, "invalid #{label}: expected list or null"}
+
+  defp decode_post(%{} = row) do
+    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
+         {:ok, user_id} <- fetch_integer(row, "user_id") do
+      {:ok, %{offset_ms: offset_ms, user_id: user_id}}
+    end
+  end
+
+  defp decode_post(_row), do: {:error, "expected object"}
+
+  defp decode_session(%{} = row) do
+    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
+         {:ok, user_id} <- fetch_integer(row, "user_id"),
+         {:ok, duration_ms} <- fetch_integer(row, "duration_ms") do
+      {:ok, %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}}
+    end
+  end
+
+  defp decode_session(_row), do: {:error, "expected object"}
+
+  defp decode_follow(%{} = row) do
+    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
+         {:ok, actor_id} <- fetch_integer(row, "actor_id"),
+         {:ok, subject_id} <- fetch_integer(row, "subject_id") do
+      {:ok, %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id}}
+    end
+  end
+
+  defp decode_follow(_row), do: {:error, "expected object"}
+
+  defp fetch_integer(map, key) do
+    value =
+      case key do
+        "offset_ms" -> Map.get(map, "offset_ms") || Map.get(map, :offset_ms)
+        "user_id" -> Map.get(map, "user_id") || Map.get(map, :user_id)
+        "duration_ms" -> Map.get(map, "duration_ms") || Map.get(map, :duration_ms)
+        "actor_id" -> Map.get(map, "actor_id") || Map.get(map, :actor_id)
+        "subject_id" -> Map.get(map, "subject_id") || Map.get(map, :subject_id)
+      end
+
+    if is_integer(value) do
+      {:ok, value}
+    else
+      {:error, "#{key} must be an integer"}
+    end
+  end
+end

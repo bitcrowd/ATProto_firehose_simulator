@@ -67,25 +67,45 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec load_simulation_plan_from_json(String.t()) ::
+  @spec generate_simulation_plan_from_json(String.t()) ::
           {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def load_simulation_plan_from_json(path) when is_binary(path) do
-    load_simulation_plan_from_json(simulation_plan_params: path)
+  def generate_simulation_plan_from_json(path) when is_binary(path) do
+    generate_simulation_plan_from_json(simulation_plan_params: path)
   end
 
-  @spec load_simulation_plan_from_json(keyword(String.t())) ::
+  @spec generate_simulation_plan_from_json(keyword(String.t())) ::
           {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def load_simulation_plan_from_json(opts) do
-    Logger.info("loading simulation plan from json file: #{inspect(opts)}")
+  def generate_simulation_plan_from_json(opts) do
+    Logger.info("generating simulation plan from params json file: #{inspect(opts)}")
 
-    case SimulationPlan.load_from_json(opts) do
+    case SimulationPlan.generate_from_json(opts) do
       {:ok, plan} ->
-        Logger.info("loaded simulation plan sections")
+        Logger.info("generated simulation plan sections")
         {:ok, plan}
 
       {:error, reason} ->
-        Logger.error("failed to load simulation plan from json: #{reason}")
+        Logger.error("failed to generate simulation plan from json: #{reason}")
         {:error, reason}
+    end
+  end
+
+  @spec import_simulation_plan_from_json(String.t()) ::
+          {:ok, SimulationPlan.t()} | {:error, String.t()}
+  def import_simulation_plan_from_json(path) when is_binary(path) do
+    Logger.info("importing simulation plan from json file: #{path}")
+    SimulationPlan.from_json_file(path)
+  end
+
+  @spec export_simulation_plan_to_json(SimulationPlan.t(), String.t()) ::
+          :ok | {:error, String.t()}
+  def export_simulation_plan_to_json(%SimulationPlan{} = simulation_plan, path)
+      when is_binary(path) do
+    with {:ok, json} <- SimulationPlan.to_json(simulation_plan),
+         :ok <- File.write(path, json) do
+      :ok
+    else
+      {:error, reason} when is_binary(reason) -> {:error, reason}
+      {:error, reason} -> {:error, "failed to write simulation plan json: #{inspect(reason)}"}
     end
   end
 

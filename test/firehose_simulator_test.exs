@@ -7,7 +7,7 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.SimulationPlan
 
-  describe "load_simulation_plan_from_json/1" do
+  describe "generate_simulation_plan_from_json/1" do
     @tag :tmp_dir
     test "loads simulation plan params json through the top-level api", %{tmp_dir: tmp_dir} do
       params_path =
@@ -33,12 +33,44 @@ defmodule FirehoseSimulatorTest do
         send(
           self(),
           {:result,
-           FirehoseSimulator.load_simulation_plan_from_json(simulation_plan_params: params_path)}
+           FirehoseSimulator.generate_simulation_plan_from_json(
+             simulation_plan_params: params_path
+           )}
         )
       end)
 
       assert_receive {:result, {:ok, %SimulationPlan{posts: posts}}}
       assert is_list(posts)
+    end
+  end
+
+  describe "import_simulation_plan_from_json/1 + export_simulation_plan_to_json/2" do
+    @tag :tmp_dir
+    test "imports and exports full simulation plan json", %{tmp_dir: tmp_dir} do
+      input_path =
+        write_file!(
+          tmp_dir,
+          "simulation-plan",
+          """
+          {
+            "posts": [{"offset_ms": 10, "user_id": 1}],
+            "sessions": [{"offset_ms": 20, "user_id": 2, "duration_ms": 30000}],
+            "follows": [{"offset_ms": 30, "actor_id": 2, "subject_id": 1}]
+          }
+          """
+        )
+
+      assert {:ok, %SimulationPlan{} = simulation_plan} =
+               FirehoseSimulator.import_simulation_plan_from_json(input_path)
+
+      output_path = Path.join(tmp_dir, "exported-plan.json")
+      assert :ok = FirehoseSimulator.export_simulation_plan_to_json(simulation_plan, output_path)
+      assert File.exists?(output_path)
+
+      assert {:ok, %SimulationPlan{} = reloaded} =
+               FirehoseSimulator.import_simulation_plan_from_json(output_path)
+
+      assert reloaded == simulation_plan
     end
   end
 
@@ -59,7 +91,6 @@ defmodule FirehoseSimulatorTest do
                  FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
       end)
 
-      # Ensure EventFeeder has processed the start cast.
       _ = :sys.get_state(FirehoseSimulator.SimulationPlan.EventFeeder)
 
       status = Player.status()

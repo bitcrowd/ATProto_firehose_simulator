@@ -1,53 +1,48 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Simulation
-    <:subtitle>Create a simulation plan from uploaded JSON and control playback.</:subtitle>
+    <:subtitle>Select a plan and control simulation playback.</:subtitle>
   </.header>
 
   <section id="simulation-step" class="grid gap-6 lg:grid-cols-2">
     <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-document-chart-bar" class="size-5 text-primary" />
-          Step 2: Create simulation plan
+          <.icon name="hero-list-bullet" class="size-5 text-primary" /> Select plan
         </div>
 
-        <.form
-          for={@form}
-          id="simulation-plan-form"
-          phx-change="validate_plan"
-          phx-submit="create_plan"
-          class="space-y-4"
+        <div id="simulation-plan-list" class="space-y-2">
+          <p :if={@plans == []} id="simulation-plans-empty" class="text-sm text-base-content/70">
+            No simulation plans available. Generate or import one in Planning.
+          </p>
+
+          <button
+            :for={plan_id <- @plans}
+            id={"simulation-select-#{plan_id}"}
+            type="button"
+            phx-click="select_plan"
+            phx-value-plan_id={plan_id}
+            class={[
+              "w-full rounded-box border px-3 py-2 text-left text-sm transition-colors",
+              @selected_plan_id == plan_id && "border-primary/70 bg-primary/10",
+              @selected_plan_id != plan_id && "border-base-300 hover:border-base-content/40"
+            ]}
+          >
+            {plan_id}
+          </button>
+        </div>
+
+        <p
+          id="plan-status"
+          class={[
+            "text-sm",
+            @selected_plan_id && "text-success"
+          ]}
         >
-          <div class="space-y-2">
-            <label for={@uploads.simulation_plan_params_json.ref} class="label">
-              Simulation Plan Params JSON
-            </label>
-            <.live_file_input
-              upload={@uploads.simulation_plan_params_json}
-              id="simulation-plan-params-upload"
-              class="file-input w-full"
-            />
-          </div>
-
-          <.input
-            field={@form[:time_offset_ms]}
-            type="number"
-            label="Simulation Offset (ms)"
-            min="-2147483648"
-            max="2147483647"
-            step="1"
-            required
-          />
-
-          <.button id="create-plan-submit" type="submit">Create simulation plan</.button>
-        </.form>
-
-        <p id="plan-status" class={["text-sm", @simulation_plan_loaded? && "text-success"]}>
-          <%= if @simulation_plan_loaded? do %>
-            Simulation plan is loaded and ready to play.
+          <%= if @selected_plan_id do %>
+            Selected plan: {@selected_plan_id}
           <% else %>
-            No simulation plan loaded yet.
+            No simulation plan selected.
           <% end %>
         </p>
       </div>
@@ -56,7 +51,7 @@
     <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-play-circle" class="size-5 text-primary" /> Step 3: Control playback
+          <.icon name="hero-play-circle" class="size-5 text-primary" /> Control playback
         </div>
 
         <div class="flex flex-wrap gap-3">
@@ -64,7 +59,7 @@
             id="play-button"
             type="button"
             phx-click="play"
-            disabled={!@simulation_plan_loaded?}
+            disabled={!@selected_plan_id}
           >
             Play
           </.button>

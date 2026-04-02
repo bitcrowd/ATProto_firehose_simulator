@@ -67,6 +67,7 @@ defmodule FirehoseSimulatorWeb.Layouts do
       <div class="mx-auto max-w-5xl space-y-6">
         <.tab_nav :if={@current_path} current_path={@current_path}>
           <:tab label="Setup" navigate={~p"/setup"} />
+          <:tab label="Planning" navigate={~p"/planning"} />
           <:tab label="Simulation" navigate={~p"/simulation"} />
         </.tab_nav>
 

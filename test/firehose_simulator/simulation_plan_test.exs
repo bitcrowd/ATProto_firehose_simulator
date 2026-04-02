@@ -3,7 +3,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
 
   alias FirehoseSimulator.SimulationPlan
 
-  describe "load_from_json/1" do
+  describe "generate_from_json/1" do
     @tag :tmp_dir
     test "loads unified params json and generates posts, sessions, and follows plans",
          %{tmp_dir: tmp_dir} do
@@ -50,7 +50,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
                 sessions: sessions,
                 follows: follows
               }} =
-               SimulationPlan.load_from_json(simulation_plan_params: params_path)
+               SimulationPlan.generate_from_json(simulation_plan_params: params_path)
 
       assert length(sessions) == 5
       assert is_list(posts)
@@ -59,7 +59,21 @@ defmodule FirehoseSimulator.SimulationPlanTest do
 
     test "returns nil for sections without a path" do
       assert {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}} =
-               SimulationPlan.load_from_json([])
+               SimulationPlan.generate_from_json([])
+    end
+  end
+
+  describe "to_json/1 and from_json/1" do
+    test "round-trips a full simulation plan struct" do
+      simulation_plan = %SimulationPlan{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
+        follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}]
+      }
+
+      assert {:ok, json} = SimulationPlan.to_json(simulation_plan)
+      assert {:ok, decoded} = SimulationPlan.from_json(json)
+      assert decoded == simulation_plan
     end
   end
 

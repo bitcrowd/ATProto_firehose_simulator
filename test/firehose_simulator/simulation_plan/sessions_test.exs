@@ -3,8 +3,6 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
 
   alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
-  alias FirehoseSimulator.SimulationPlan.CSV
-  alias FirehoseSimulator.SimulationPlan
 
   @config %SessionsParams{
     n: 100,
@@ -26,31 +24,5 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
     assert Enum.all?(sessions, &is_integer(&1.offset_ms))
     assert sessions |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
     assert Enum.all?(sessions, &(&1.duration_ms == 600_000))
-  end
-
-  @tag :tmp_dir
-  test "CSV.write/2 and CSV.load/2 round-trip the generated sessions", %{tmp_dir: tmp_dir} do
-    sessions = Sessions.generate(@config)
-    simulation_plan = %SimulationPlan{posts: nil, sessions: sessions, follows: nil}
-    path = Path.join(tmp_dir, "sessions.csv")
-
-    assert :ok = CSV.write(simulation_plan, sessions: path)
-
-    assert File.read!(path) ==
-             "offset_ms,user_id,duration_ms\n" <>
-               Enum.map_join(sessions, "", fn session ->
-                 "#{session.offset_ms},#{session.user_id},#{session.duration_ms}\n"
-               end)
-
-    assert {:ok, loaded_sessions} = CSV.load(:sessions, path)
-
-    assert loaded_sessions == sessions
-  end
-
-  test "CSV.load/2 returns an error for missing csv" do
-    path = "does-not-exist-sessions.csv"
-    error_msg = "cannot read sessions csv at #{path}"
-
-    assert {:error, ^error_msg} = CSV.load(:sessions, path)
   end
 end

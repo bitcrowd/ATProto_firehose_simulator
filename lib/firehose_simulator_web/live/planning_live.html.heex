@@ -1,0 +1,131 @@
+<Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <.header>
+    Planning
+    <:subtitle>
+      Generate plans from params JSON or import plan JSON.
+    </:subtitle>
+  </.header>
+
+  <section id="planning-forms" class="grid gap-6 lg:grid-cols-2">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-sparkles" class="size-5 text-primary" /> Generate simulation plan
+        </div>
+
+        <.form
+          for={@generate_form}
+          id="planning-generate-form"
+          phx-change="validate_generate"
+          phx-submit="generate_plan"
+          class="space-y-4"
+        >
+          <.input
+            field={@generate_form[:plan_name]}
+            id="planning-generate-plan-name"
+            type="text"
+            label="Plan name (optional)"
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.simulation_plan_params_json.ref} class="label">
+              Simulation Plan Params JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.simulation_plan_params_json}
+              id="planning-params-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-generate-submit" type="submit">Generate plan</.button>
+        </.form>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-arrow-down-tray" class="size-5 text-primary" /> Import simulation plan
+        </div>
+
+        <.form
+          for={@import_form}
+          id="planning-import-form"
+          phx-change="validate_import"
+          phx-submit="import_plan"
+          class="space-y-4"
+        >
+          <.input
+            field={@import_form[:plan_name]}
+            id="planning-import-plan-name"
+            type="text"
+            label="Plan name override (optional)"
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.simulation_plan_json.ref} class="label">
+              Simulation Plan JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.simulation_plan_json}
+              id="planning-plan-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-import-submit" type="submit" variant="primary">
+            Import plan
+          </.button>
+        </.form>
+      </div>
+    </div>
+  </section>
+
+  <section id="plans-list" class="card bg-base-100 border border-base-300 shadow-sm mt-6">
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <.icon name="hero-queue-list" class="size-5 text-primary" /> Available simulation plans
+      </div>
+
+      <p :if={@plans == []} id="plans-empty" class="text-sm text-base-content/70">
+        No simulation plans available yet.
+      </p>
+
+      <div :if={@plans != []} class="space-y-3">
+        <div
+          :for={plan <- @plans}
+          id={"plan-row-#{plan.id}"}
+          class="rounded-box border border-base-300 p-4 transition-colors"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold" id={"plan-id-#{plan.id}"}>{plan.id}</p>
+              <p class="text-xs text-base-content/70">
+                posts: {plan.posts_count} | sessions: {plan.sessions_count} | follows: {plan.follows_count}
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <.button
+                id={"delete-plan-#{plan.id}"}
+                type="button"
+                phx-click="delete_plan"
+                phx-value-plan_id={plan.id}
+                variant="primary"
+              >
+                Delete
+              </.button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p :if={@last_action} id="planning-last-action" class="text-sm text-base-content/80">
+        Last action: {@last_action}
+      </p>
+    </div>
+  </section>
+</Layouts.app>
