@@ -1,13 +1,16 @@
 defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.BulkCreation.Actor
   alias FirehoseSimulator.BulkCreation.DynamicRepo
+  alias FirehoseSimulator.BulkCreation.FeedItem
   alias FirehoseSimulator.BulkCreation.Follow
   alias FirehoseSimulator.BulkCreation.Post
+  alias FirehoseSimulator.BulkCreation.Record
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.FollowerGraph
   alias FirehoseSimulator.SimulationPlan.Userbase
+  alias Aether.ATProto.TID
 
   @insert_batch_size 5_000
 
@@ -51,6 +54,57 @@ defmodule FirehoseSimulator.BulkCreation do
     end
   end
 
+  @doc false
+  def prepare_post_rows(rows, base_time) when is_list(rows) and is_struct(base_time, DateTime) do
+    {post_rows, record_rows, feed_item_rows} =
+      Enum.reduce(rows, {[], [], []}, fn %{offset_ms: offset_ms, user_id: user_id},
+                                         {post_acc, record_acc, feed_item_acc} ->
+        did = Data.did_for_user_id(user_id)
+        created_at = shifted_timestamp(base_time, offset_ms)
+        indexed_at = indexed_timestamp(base_time, offset_ms)
+        text = "Simulated post from user #{user_id}"
+        record = Data.create_record(Data.post_type(), text: text, created_at: created_at)
+        uri = at_uri(did, Data.post_type())
+        cid = Data.cid_for_record(record)
+
+        post_row = %{
+          uri: uri,
+          cid: cid,
+          creator: did,
+          text: text,
+          createdAt: created_at,
+          indexedAt: indexed_at,
+          sortAt: created_at
+        }
+
+        record_row = %{
+          uri: uri,
+          cid: cid,
+          did: did,
+          json: Jason.encode!(record),
+          indexedAt: indexed_at,
+          rev: TID.new()
+        }
+
+        feed_item_row = %{
+          uri: uri,
+          cid: cid,
+          type: "post",
+          postUri: uri,
+          originatorDid: did,
+          sortAt: created_at
+        }
+
+        {[post_row | post_acc], [record_row | record_acc], [feed_item_row | feed_item_acc]}
+      end)
+
+    %{
+      post_rows: post_rows,
+      record_rows: record_rows,
+      feed_item_rows: feed_item_rows
+    }
+  end
+
   defp insert_userbase_graph(repo_name, user_ids, graph) do
     with_dynamic_repo(repo_name, fn ->
       insert_actor_rows(user_ids)
@@ -77,13 +131,21 @@ defmodule FirehoseSimulator.BulkCreation do
       actor_ids = Enum.uniq(actor_ids)
 
       insert_actor_rows(actor_ids)
-      insert_post_rows(posts)
+
+      %{
+        inserted_post_count: inserted_post_count,
+        inserted_record_count: inserted_record_count,
+        inserted_feed_item_count: inserted_feed_item_count
+      } = insert_post_rows(posts)
+
       insert_follow_rows(follows)
 
       {:ok,
        %{
          inserted_actor_count: length(actor_ids),
-         inserted_post_count: length(posts),
+         inserted_post_count: inserted_post_count,
+         inserted_record_count: inserted_record_count,
+         inserted_feed_item_count: inserted_feed_item_count,
          inserted_follow_count: length(follows),
          included_session_count: length(sessions)
        }}
@@ -149,24 +211,22 @@ defmodule FirehoseSimulator.BulkCreation do
   defp insert_post_rows(rows) do
     base_time = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
-    post_rows =
-      Enum.map(rows, fn %{offset_ms: offset_ms, user_id: user_id} ->
-        did = Data.did_for_user_id(user_id)
-        created_at = shifted_timestamp(base_time, offset_ms)
-        text = "Simulated post from user #{user_id}"
-        record = Data.create_record(Data.post_type(), text: text, created_at: created_at)
-
-        %{
-          uri: at_uri(did, Data.post_type()),
-          cid: Data.cid_for_record(record),
-          creator: did,
-          text: text,
-          createdAt: created_at,
-          indexedAt: indexed_timestamp(base_time, offset_ms)
-        }
-      end)
+    %{post_rows: post_rows, record_rows: record_rows, feed_item_rows: feed_item_rows} =
+      prepare_post_rows(rows, base_time)
 
     insert_all_in_batches(Post, post_rows, on_conflict: :nothing, conflict_target: [:uri])
+    insert_all_in_batches(Record, record_rows, on_conflict: :nothing, conflict_target: [:uri])
+
+    insert_all_in_batches(FeedItem, feed_item_rows,
+      on_conflict: :nothing,
+      conflict_target: [:uri]
+    )
+
+    %{
+      inserted_post_count: length(post_rows),
+      inserted_record_count: length(record_rows),
+      inserted_feed_item_count: length(feed_item_rows)
+    }
   end
 
   defp events_from_plan(nil), do: []
