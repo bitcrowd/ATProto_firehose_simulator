@@ -9,7 +9,7 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.SimulationPlan.FollowerGraph
   alias FirehoseSimulator.SimulationPlan.Userbase
 
-  @insert_batch_size 1_000
+  @insert_batch_size 5_000
 
   def create_userbase(%Userbase{} = userbase, %DatabaseConnection{
         connection_string: connection_string
