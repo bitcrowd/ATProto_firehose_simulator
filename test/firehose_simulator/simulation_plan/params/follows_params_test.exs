@@ -10,6 +10,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                {
                  "n": 1000000,
                  "max_active_user_id": 5000,
+                 "follower_density": 2.0,
                  "seed": 42,
                  "time_units": 1,
                  "tiers": [
@@ -20,7 +21,25 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                }
                """)
 
+      assert follows.follower_density == 2.0
       assert Enum.map(follows.tiers, & &1.follows_per_day) == [0.25, 10.0, 3.0]
+    end
+
+    test "defaults follower_density to 1.0 when omitted" do
+      assert {:ok, %FollowsParams{} = follows} =
+               FollowsParams.load("""
+               {
+                 "n": 10,
+                 "max_active_user_id": 5,
+                 "seed": 1,
+                 "time_units": 1,
+                 "tiers": [
+                   {"max_followers": 1000, "follows_per_day": 0.25}
+                 ]
+               }
+               """)
+
+      assert follows.follower_density == 1.0
     end
 
     test "returns an error for malformed json" do

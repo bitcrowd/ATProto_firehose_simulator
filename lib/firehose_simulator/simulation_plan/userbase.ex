@@ -19,7 +19,7 @@ defmodule FirehoseSimulator.SimulationPlan.Userbase do
     field(:name, :string)
     field(:num_users, :integer)
     field(:max_active_user_id, :integer)
-    field(:follower_density, :float)
+    field(:follower_density, :float, default: 1.0)
   end
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
@@ -52,11 +52,11 @@ defmodule FirehoseSimulator.SimulationPlan.Userbase do
     userbase
     |> cast(attrs, [:name, :num_users, :max_active_user_id, :follower_density])
     |> update_change(:name, &String.trim/1)
-    |> validate_required([:name, :num_users, :max_active_user_id, :follower_density])
+    |> validate_required([:name, :num_users, :max_active_user_id])
     |> validate_length(:name, min: 1)
     |> validate_number(:num_users, greater_than: 0)
     |> validate_number(:max_active_user_id, greater_than: 0)
-    |> validate_number(:follower_density, greater_than_or_equal_to: 0)
+    |> validate_number(:follower_density, greater_than: 0)
     |> validate_max_active_user_id_within_num_users()
   end
 

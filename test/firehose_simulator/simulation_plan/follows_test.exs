@@ -7,6 +7,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
   @config %FollowsParams{
     n: 100,
     max_active_user_id: 2,
+    follower_density: 1.0,
     seed: 42,
     time_units: 1,
     tiers: [
@@ -24,5 +25,30 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     assert Enum.all?(follows, &is_integer(&1.offset_ms))
     assert follows |> Enum.map(& &1.actor_id) |> Enum.sort() == [1, 2]
     assert Enum.all?(follows, &is_integer(&1.subject_id))
+  end
+
+  test "generate/1 uses follower_density for tier matching" do
+    config = %FollowsParams{
+      n: 10,
+      max_active_user_id: 2,
+      follower_density: 1.0,
+      seed: 42,
+      time_units: 1,
+      tiers: [
+        %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+          max_followers: 6,
+          follows_per_day: 0.0
+        },
+        %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+          max_followers: 100,
+          follows_per_day: 1.0
+        }
+      ]
+    }
+
+    dense_config = %{config | follower_density: 2.0}
+
+    assert length(Follows.generate(config)) == 1
+    assert length(Follows.generate(dense_config)) == 2
   end
 end

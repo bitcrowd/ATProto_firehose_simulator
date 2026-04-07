@@ -10,6 +10,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                {
                  "n": 1000000,
                  "max_active_user_id": 5000,
+                 "follower_density": 2.0,
                  "seed": 42,
                  "time_units": 1,
                  "tiers": [
@@ -22,9 +23,27 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
 
       assert sessions.n == 1_000_000
       assert sessions.max_active_user_id == 5_000
+      assert sessions.follower_density == 2.0
       assert sessions.seed == 42
       assert sessions.time_units == 1
       assert Enum.map(sessions.tiers, & &1.session_minutes) == [240, 480, 1000]
+    end
+
+    test "defaults follower_density to 1.0 when omitted" do
+      assert {:ok, %SessionsParams{} = sessions} =
+               SessionsParams.load("""
+               {
+                 "n": 10,
+                 "max_active_user_id": 5,
+                 "seed": 1,
+                 "time_units": 1,
+                 "tiers": [
+                   {"max_followers": 1000, "session_minutes": 240}
+                 ]
+               }
+               """)
+
+      assert sessions.follower_density == 1.0
     end
 
     test "returns an error for malformed json" do

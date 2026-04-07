@@ -7,6 +7,7 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
   @config %PostsParams{
     n: 100,
     max_active_user_id: 2,
+    follower_density: 1.0,
     seed: 42,
     time_units: 1,
     tiers: [
@@ -20,5 +21,24 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     assert length(posts) == 2
     assert Enum.all?(posts, &is_integer(&1.offset_ms))
     assert posts |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
+  end
+
+  test "generate/1 uses follower_density for tier matching" do
+    config = %PostsParams{
+      n: 10,
+      max_active_user_id: 2,
+      follower_density: 1.0,
+      seed: 42,
+      time_units: 1,
+      tiers: [
+        %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 6, posts_per_day: 0.0},
+        %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 100, posts_per_day: 1.0}
+      ]
+    }
+
+    dense_config = %{config | follower_density: 2.0}
+
+    assert length(Posts.generate(config)) == 1
+    assert length(Posts.generate(dense_config)) == 2
   end
 end

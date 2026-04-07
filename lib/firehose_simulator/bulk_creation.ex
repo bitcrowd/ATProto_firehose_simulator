@@ -20,7 +20,11 @@ defmodule FirehoseSimulator.BulkCreation do
     with :ok <- connect(connection_string),
          first_user_id <- 1,
          user_ids = Enum.to_list(first_user_id..(first_user_id + userbase.num_users - 1)),
-         {:ok, graph, follows_count} <- FollowerGraph.generate(userbase.num_users, first_user_id),
+         {:ok, graph, follows_count} <-
+           FollowerGraph.generate(userbase.num_users,
+             start_id: first_user_id,
+             follower_density: userbase.follower_density
+           ),
          {:ok, inserted_follow_count, last_user_id} <-
            insert_userbase_graph(repo_name(connection_string), user_ids, graph) do
       {:ok,

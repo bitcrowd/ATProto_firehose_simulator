@@ -34,6 +34,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
       build_follows(
         config.max_active_user_id,
         config.n,
+        config.follower_density,
         config.time_units,
         config.tiers,
         @default_unit_duration_ms
@@ -43,12 +44,12 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
     Enum.map(follows, &follow_from_tuple/1)
   end
 
-  defp build_follows(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
+  defp build_follows(max_active_user_id, n, follower_density, time_units, tiers, unit_duration_ms) do
     {events, _next_seq} =
       for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id, reduce: {[], 0} do
         {acc_events, seq} ->
           unit_offset = unit * unit_duration_ms
-          tier = lookup_tier(user_id, n, tiers)
+          tier = lookup_tier(user_id, n, tiers, follower_density)
 
           {new_events, next_seq} =
             generate_follows(
@@ -122,8 +123,8 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
     end
   end
 
-  defp lookup_tier(user_id, n, tiers) do
-    follower_count = FollowerGraph.follower_count(user_id, n)
+  defp lookup_tier(user_id, n, tiers, follower_density) do
+    follower_count = FollowerGraph.follower_count(user_id, n, follower_density)
 
     Enum.find(tiers, List.last(tiers), fn tier ->
       follower_count <= tier.max_followers

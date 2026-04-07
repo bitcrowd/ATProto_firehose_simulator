@@ -39,7 +39,6 @@ defmodule FirehoseSimulator.SimulationPlan.UserbaseTest do
 
       assert String.contains?(message, "invalid userbase config:")
       assert String.contains?(message, "max_active_user_id")
-      assert String.contains?(message, "follower_density")
     end
 
     test "returns invalid field details for range errors" do
@@ -65,10 +64,23 @@ defmodule FirehoseSimulator.SimulationPlan.UserbaseTest do
                  "name": "with extras",
                  "num_users": 100,
                  "max_active_user_id": 20,
-                 "follower_density": 0.0,
+                 "follower_density": 1.0,
                  "unknown_key": "ignored"
                }
                """)
+    end
+
+    test "defaults follower_density to 1.0 when omitted" do
+      assert {:ok, %Userbase{} = userbase} =
+               Userbase.load("""
+               {
+                 "name": "with default density",
+                 "num_users": 100,
+                 "max_active_user_id": 20
+               }
+               """)
+
+      assert userbase.follower_density == 1.0
     end
   end
 

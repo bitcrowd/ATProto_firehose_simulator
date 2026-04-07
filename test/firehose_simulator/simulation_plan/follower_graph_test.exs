@@ -25,4 +25,16 @@ defmodule FirehoseSimulator.SimulationPlan.FollowerGraphTest do
              13 => []
            }
   end
+
+  test "supports follower_density option while preserving shape" do
+    assert {:ok, graph, 10} = FollowerGraph.generate(5, follower_density: 2.0)
+
+    assert graph == %{
+             1 => [2, 3, 4, 5],
+             2 => [3, 4, 5],
+             3 => [4, 5],
+             4 => [5],
+             5 => []
+           }
+  end
 end

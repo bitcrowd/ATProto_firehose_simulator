@@ -35,6 +35,7 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
       build_sessions(
         config.max_active_user_id,
         config.n,
+        config.follower_density,
         config.time_units,
         config.tiers,
         @default_unit_duration_ms
@@ -44,10 +45,17 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
     Enum.map(sessions, &session_from_tuple/1)
   end
 
-  defp build_sessions(max_active_user_id, n, time_units, tiers, unit_duration_ms) do
+  defp build_sessions(
+         max_active_user_id,
+         n,
+         follower_density,
+         time_units,
+         tiers,
+         unit_duration_ms
+       ) do
     for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id do
       unit_offset = unit * unit_duration_ms
-      tier = lookup_tier(user_id, n, tiers)
+      tier = lookup_tier(user_id, n, tiers, follower_density)
 
       session_ms = tier.session_minutes * 60_000
       max_start = max(unit_duration_ms - session_ms, 1)
@@ -62,8 +70,8 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
 
   Tiers must be sorted ascending by `:max_followers`. First match wins.
   """
-  def lookup_tier(user_id, n, tiers) do
-    follower_count = FollowerGraph.follower_count(user_id, n)
+  def lookup_tier(user_id, n, tiers, follower_density \\ 1.0) do
+    follower_count = FollowerGraph.follower_count(user_id, n, follower_density)
 
     Enum.find(tiers, List.last(tiers), fn tier ->
       follower_count <= tier.max_followers
