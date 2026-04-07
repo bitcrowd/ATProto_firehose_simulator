@@ -14,15 +14,15 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
                  "seed": 42,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "posts_per_day": 0.25},
-                   {"max_followers": 10000, "posts_per_day": 10},
-                   {"max_followers": 1000000, "posts_per_day": 3}
+                   {"max_followers": 1000, "posts_per_time_unit": 0.25},
+                   {"max_followers": 10000, "posts_per_time_unit": 10},
+                   {"max_followers": 1000000, "posts_per_time_unit": 3}
                  ]
                }
                """)
 
       assert posts.follower_density == 2.0
-      assert Enum.map(posts.tiers, & &1.posts_per_day) == [0.25, 10.0, 3.0]
+      assert Enum.map(posts.tiers, & &1.posts_per_time_unit) == [0.25, 10.0, 3.0]
     end
 
     test "defaults follower_density to 1.0 when omitted" do
@@ -34,7 +34,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
                  "seed": 1,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "posts_per_day": 0.25}
+                   {"max_followers": 1000, "posts_per_time_unit": 0.25}
                  ]
                }
                """)
@@ -65,7 +65,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
                  "seed": 1,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "posts_per_day": 0.25}
+                   {"max_followers": 1000, "posts_per_time_unit": 0.25}
                  ]
                }
                """)
@@ -86,7 +86,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
             "seed": 1,
             "time_units": 1,
             "tiers": [
-              {"max_followers": 1000, "posts_per_day": 0.25}
+              {"max_followers": 1000, "posts_per_time_unit": 0.25}
             ]
           }
           """

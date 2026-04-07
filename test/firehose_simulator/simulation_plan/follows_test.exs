@@ -13,7 +13,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.FollowTier{
         max_followers: 1_000,
-        follows_per_day: 1.0
+        follows_per_time_unit: 1.0
       }
     ]
   }
@@ -37,11 +37,11 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
       tiers: [
         %FirehoseSimulator.SimulationPlan.Params.FollowTier{
           max_followers: 6,
-          follows_per_day: 0.0
+          follows_per_time_unit: 0.0
         },
         %FirehoseSimulator.SimulationPlan.Params.FollowTier{
           max_followers: 100,
-          follows_per_day: 1.0
+          follows_per_time_unit: 1.0
         }
       ]
     }

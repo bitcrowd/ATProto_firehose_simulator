@@ -14,15 +14,15 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                  "seed": 42,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "follows_per_day": 0.25},
-                   {"max_followers": 10000, "follows_per_day": 10},
-                   {"max_followers": 1000000, "follows_per_day": 3}
+                   {"max_followers": 1000, "follows_per_time_unit": 0.25},
+                   {"max_followers": 10000, "follows_per_time_unit": 10},
+                   {"max_followers": 1000000, "follows_per_time_unit": 3}
                  ]
                }
                """)
 
       assert follows.follower_density == 2.0
-      assert Enum.map(follows.tiers, & &1.follows_per_day) == [0.25, 10.0, 3.0]
+      assert Enum.map(follows.tiers, & &1.follows_per_time_unit) == [0.25, 10.0, 3.0]
     end
 
     test "defaults follower_density to 1.0 when omitted" do
@@ -34,7 +34,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                  "seed": 1,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "follows_per_day": 0.25}
+                   {"max_followers": 1000, "follows_per_time_unit": 0.25}
                  ]
                }
                """)
@@ -75,7 +75,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
                  "seed": 1,
                  "time_units": 1,
                  "tiers": [
-                   {"max_followers": 1000, "follows_per_day": 0.25}
+                   {"max_followers": 1000, "follows_per_time_unit": 0.25}
                  ]
                }
                """)
@@ -96,7 +96,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
             "seed": 1,
             "time_units": 1,
             "tiers": [
-              {"max_followers": 1000, "follows_per_day": 0.25}
+              {"max_followers": 1000, "follows_per_time_unit": 0.25}
             ]
           }
           """

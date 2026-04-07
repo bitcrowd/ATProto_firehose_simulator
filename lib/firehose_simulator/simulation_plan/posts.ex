@@ -48,23 +48,26 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
       acc ->
         unit_offset = unit * unit_duration_ms
         tier = lookup_tier(user_id, n, tiers, follower_density)
-        new_posts = generate_posts(tier.posts_per_day, user_id, unit_offset, unit_duration_ms)
+
+        new_posts =
+          generate_posts(tier.posts_per_time_unit, user_id, unit_offset, unit_duration_ms)
+
         new_posts ++ acc
     end
   end
 
-  defp generate_posts(posts_per_day, user_id, unit_offset, unit_duration_ms)
-       when posts_per_day < 1.0 do
-    if :rand.uniform() < posts_per_day do
+  defp generate_posts(posts_per_time_unit, user_id, unit_offset, unit_duration_ms)
+       when posts_per_time_unit < 1.0 do
+    if :rand.uniform() < posts_per_time_unit do
       [{unit_offset + :rand.uniform(unit_duration_ms) - 1, user_id}]
     else
       []
     end
   end
 
-  defp generate_posts(posts_per_day, user_id, unit_offset, unit_duration_ms) do
-    count = trunc(posts_per_day)
-    fractional = posts_per_day - count
+  defp generate_posts(posts_per_time_unit, user_id, unit_offset, unit_duration_ms) do
+    count = trunc(posts_per_time_unit)
+    fractional = posts_per_time_unit - count
 
     base_posts =
       for _ <- 1..count do

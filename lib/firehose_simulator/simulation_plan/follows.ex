@@ -53,7 +53,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
 
           {new_events, next_seq} =
             generate_follows(
-              tier.follows_per_day,
+              tier.follows_per_time_unit,
               user_id,
               n,
               unit_offset,
@@ -67,18 +67,18 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
     events
   end
 
-  defp generate_follows(follows_per_day, user_id, n, unit_offset, unit_duration_ms, seq)
-       when follows_per_day < 1.0 do
-    if :rand.uniform() < follows_per_day do
+  defp generate_follows(follows_per_time_unit, user_id, n, unit_offset, unit_duration_ms, seq)
+       when follows_per_time_unit < 1.0 do
+    if :rand.uniform() < follows_per_time_unit do
       build_follow_event(user_id, n, unit_offset, unit_duration_ms, seq)
     else
       {[], seq}
     end
   end
 
-  defp generate_follows(follows_per_day, user_id, n, unit_offset, unit_duration_ms, seq) do
-    count = trunc(follows_per_day)
-    fractional = follows_per_day - count
+  defp generate_follows(follows_per_time_unit, user_id, n, unit_offset, unit_duration_ms, seq) do
+    count = trunc(follows_per_time_unit)
+    fractional = follows_per_time_unit - count
 
     {base_events, seq} =
       Enum.reduce(1..count, {[], seq}, fn _idx, {events_acc, seq_acc} ->

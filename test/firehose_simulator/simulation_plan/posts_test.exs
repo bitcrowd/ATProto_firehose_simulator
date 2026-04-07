@@ -11,7 +11,10 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     seed: 42,
     time_units: 1,
     tiers: [
-      %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 1_000, posts_per_day: 1.0}
+      %FirehoseSimulator.SimulationPlan.Params.PostTier{
+        max_followers: 1_000,
+        posts_per_time_unit: 1.0
+      }
     ]
   }
 
@@ -31,8 +34,14 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
       seed: 42,
       time_units: 1,
       tiers: [
-        %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 6, posts_per_day: 0.0},
-        %FirehoseSimulator.SimulationPlan.Params.PostTier{max_followers: 100, posts_per_day: 1.0}
+        %FirehoseSimulator.SimulationPlan.Params.PostTier{
+          max_followers: 6,
+          posts_per_time_unit: 0.0
+        },
+        %FirehoseSimulator.SimulationPlan.Params.PostTier{
+          max_followers: 100,
+          posts_per_time_unit: 1.0
+        }
       ]
     }
 

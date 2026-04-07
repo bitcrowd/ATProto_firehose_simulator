@@ -20,7 +20,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               "seed": 1,
               "time_units": 1,
               "tiers": [
-                {"max_followers": 1000, "posts_per_day": 0.25}
+                {"max_followers": 1000, "posts_per_time_unit": 0.25}
               ]
             },
             "sessions_params": {
@@ -40,7 +40,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               "seed": 1,
               "time_units": 1,
               "tiers": [
-                {"max_followers": 1000, "follows_per_day": 0.25}
+                {"max_followers": 1000, "follows_per_time_unit": 0.25}
               ]
             }
           }
