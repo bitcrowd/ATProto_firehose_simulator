@@ -45,6 +45,13 @@ if config_env() == :prod do
         """)
 
   config :firehose_simulator,
+         :dataplane_url,
+         System.get_env("DATAPLANE_URL") ||
+           raise("""
+           environment variable DATAPLANE_URL is missing.
+           """)
+
+  config :firehose_simulator,
          :bsky_api_url,
          System.get_env("BSKY_API_URL") ||
            raise("""

@@ -121,22 +121,9 @@ defmodule FirehoseSimulator.Scheduler.Worker do
             did = Data.did_for_user_id(session.user_id)
 
             results =
-              case AppView.get_timeline(did, 20) do
-                %{"feed" => feed} when is_list(feed) ->
-                  feed
-
-                body when is_binary(body) ->
-                  case Jason.decode(body) do
-                    {:ok, %{"feed" => feed}} when is_list(feed) ->
-                      feed
-
-                    _ ->
-                      Logger.warning(
-                        "[Worker #{state.partition}] unexpected AppView timeline response: #{inspect(body)}"
-                      )
-
-                      []
-                  end
+              case Dataplane.get_timeline(did, 20) do
+                %{"items" => items} when is_list(items) ->
+                  items
 
                 {:error, reason} ->
                   throw({:error, reason})

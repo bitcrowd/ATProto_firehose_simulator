@@ -8,6 +8,10 @@ config :firehose_simulator, :plc,
       "bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a"
     )
 
+config :firehose_simulator,
+       :dataplane_url,
+       System.get_env("DATAPLANE_URL", "http://localhost:2585")
+
 config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
 config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 config :firehose_simulator, :create_startup_userbase?, false
