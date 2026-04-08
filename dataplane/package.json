@@ -1,0 +1,15 @@
+{
+  "name": "atproto-firehose-simulator-dataplane",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node dataplane.js"
+  },
+  "dependencies": {
+    "@atproto/bsky": "0.0.223",
+    "@atproto/identity": "0.4.12"
+  }
+}

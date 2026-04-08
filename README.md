@@ -14,6 +14,14 @@ The PDS stub will start on [`localhost:4002`](http://localhost:4002).
 
 Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator.
 
+## With Bluesky dataplane
+
+```bash
+cd dataplane
+npm install
+npm start
+```
+
 ## With ATProto dev-env
 
 1. Clone the repo
