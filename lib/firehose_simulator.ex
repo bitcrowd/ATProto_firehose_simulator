@@ -15,7 +15,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.State
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Userbase
+  alias FirehoseSimulator.BaseData.Userbase
 
   @default_userbase_filename "priv/simulation/userbase.json"
   @default_connection_string "postgres://postgres:postgres@localhost:5432/dataplane"

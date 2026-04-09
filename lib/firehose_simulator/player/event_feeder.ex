@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
+defmodule FirehoseSimulator.Player.EventFeeder do
   @moduledoc """
   GenServer that injects events from a `%FirehoseSimulator.SimulationPlan{}` over wallclock time.
   """
@@ -7,10 +7,10 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
   require Logger
 
   alias FirehoseSimulator.Data
-  alias FirehoseSimulator.Event
-  alias FirehoseSimulator.Session
+  alias FirehoseSimulator.Player.Event
+  alias FirehoseSimulator.Player.Session
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.Store
+  alias FirehoseSimulator.Player.Store
   alias Phoenix.PubSub
 
   @check_interval_ms 100

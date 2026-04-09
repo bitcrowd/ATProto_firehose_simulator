@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.EventTest do
+defmodule FirehoseSimulator.Player.EventTest do
   use ExUnit.Case, async: true
 
-  alias FirehoseSimulator.Event
+  alias FirehoseSimulator.Player.Event
 
   test "builds a manual follow event" do
     event =

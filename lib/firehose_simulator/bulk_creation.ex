@@ -8,8 +8,8 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.Userbase
+  alias FirehoseSimulator.BaseData.FollowerGraph
+  alias FirehoseSimulator.BaseData.Userbase
   alias Aether.ATProto.TID
 
   @insert_batch_size 5_000

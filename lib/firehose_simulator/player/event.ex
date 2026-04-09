@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.Event do
+defmodule FirehoseSimulator.Player.Event do
   alias Aether.ATProto.TID
   alias FirehoseSimulator.Data
 

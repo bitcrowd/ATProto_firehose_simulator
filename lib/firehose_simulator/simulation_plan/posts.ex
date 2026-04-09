@@ -11,7 +11,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
       FirehoseSimulator.SimulationPlan.Posts.generate(%PostsParams{...})
   """
 
-  alias FirehoseSimulator.SimulationPlan.FollowerGraph
+  alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.SimulationPlan.Params.PostsParams
 
   @default_unit_duration_ms 86_400_000

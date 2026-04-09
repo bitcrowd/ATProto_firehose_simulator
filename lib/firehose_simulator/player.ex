@@ -10,11 +10,11 @@ defmodule FirehoseSimulator.Player do
 
   alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Player.DynamicSupervisor, as: PlayerDynamicSupervisor
-  alias FirehoseSimulator.Scheduler
+  alias FirehoseSimulator.Player.Scheduler.Supervisor, as: SchedulerSupervisor
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.EventFeeder
+  alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.State
-  alias FirehoseSimulator.Store
+  alias FirehoseSimulator.Player.Store
 
   @registry FirehoseSimulator.Player.Registry
 
@@ -55,7 +55,7 @@ defmodule FirehoseSimulator.Player do
 
     child_spec = %{
       id: {:simulation_player, player_id},
-      start: {Scheduler.Supervisor, :start_link, [scheduler_opts]},
+      start: {SchedulerSupervisor, :start_link, [scheduler_opts]},
       restart: :temporary
     }
 

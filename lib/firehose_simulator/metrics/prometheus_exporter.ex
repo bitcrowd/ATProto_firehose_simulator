@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.PrometheusExporter do
+defmodule FirehoseSimulator.Metrics.PrometheusExporter do
   @moduledoc false
 
   import Plug.Conn

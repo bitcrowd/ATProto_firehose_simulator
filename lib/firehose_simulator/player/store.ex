@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.Store do
+defmodule FirehoseSimulator.Player.Store do
   @moduledoc """
   ETS-backed per-player session store.
   """

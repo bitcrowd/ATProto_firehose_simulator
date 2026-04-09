@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.Userbase do
+defmodule FirehoseSimulator.BaseData.Userbase do
   @moduledoc false
 
   use Ecto.Schema

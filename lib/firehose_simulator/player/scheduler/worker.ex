@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.Scheduler.Worker do
+defmodule FirehoseSimulator.Player.Scheduler.Worker do
   @moduledoc """
   Scheduler worker that owns a partition of sessions.
 
@@ -18,7 +18,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
   require Logger
 
   alias FirehoseSimulator.Data
-  alias FirehoseSimulator.Store
+  alias FirehoseSimulator.Player.Store
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)

@@ -87,7 +87,7 @@ defmodule FirehoseSimulator.Application do
       )
 
     [
-      {Bandit, plug: FirehoseSimulator.PrometheusExporter, ip: {0, 0, 0, 0}, port: port}
+      {Bandit, plug: FirehoseSimulator.Metrics.PrometheusExporter, ip: {0, 0, 0, 0}, port: port}
     ]
   end
 end

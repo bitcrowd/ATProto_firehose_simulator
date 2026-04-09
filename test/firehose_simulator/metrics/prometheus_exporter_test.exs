@@ -1,10 +1,10 @@
-defmodule FirehoseSimulator.PrometheusExporterTest do
+defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
   use ExUnit.Case, async: false
 
   import Plug.Test
 
   alias FirehoseSimulator.Metrics
-  alias FirehoseSimulator.PrometheusExporter
+  alias FirehoseSimulator.Metrics.PrometheusExporter
 
   test "exports metrics in prometheus text format" do
     :telemetry.execute(

@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.FollowerGraph do
+defmodule FirehoseSimulator.BaseData.FollowerGraph do
   @moduledoc """
   Generates a deterministic follower graph for `n` users with a power-law distribution.
 
@@ -18,11 +18,11 @@ defmodule FirehoseSimulator.SimulationPlan.FollowerGraph do
 
   ## Examples
 
-      iex> {:ok, graph, 7} = FirehoseSimulator.SimulationPlan.FollowerGraph.generate(5)
+      iex> {:ok, graph, 7} = FirehoseSimulator.BaseData.FollowerGraph.generate(5)
       iex> graph
       %{1 => [2, 3, 4, 5], 2 => [3, 4], 3 => [4], 4 => [], 5 => []}
 
-      iex> {:ok, graph, 10} = FirehoseSimulator.SimulationPlan.FollowerGraph.generate(5, follower_density: 2.0)
+      iex> {:ok, graph, 10} = FirehoseSimulator.BaseData.FollowerGraph.generate(5, follower_density: 2.0)
       iex> graph[2]
       [3, 4, 5]
   """
@@ -59,13 +59,13 @@ defmodule FirehoseSimulator.SimulationPlan.FollowerGraph do
 
   ## Examples
 
-      iex> FirehoseSimulator.SimulationPlan.FollowerGraph.follower_count(1, 5)
+      iex> FirehoseSimulator.BaseData.FollowerGraph.follower_count(1, 5)
       4
 
-      iex> FirehoseSimulator.SimulationPlan.FollowerGraph.follower_count(5, 5)
+      iex> FirehoseSimulator.BaseData.FollowerGraph.follower_count(5, 5)
       0
 
-      iex> FirehoseSimulator.SimulationPlan.FollowerGraph.follower_count(2, 5, 2.0)
+      iex> FirehoseSimulator.BaseData.FollowerGraph.follower_count(2, 5, 2.0)
       4
   """
   def follower_count(rank, n, follower_density \\ 1.0)

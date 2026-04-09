@@ -1,9 +1,9 @@
-defmodule FirehoseSimulator.EventFeederTest do
+defmodule FirehoseSimulator.Player.EventFeederTest do
   use ExUnit.Case, async: false
 
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.EventFeeder
-  alias FirehoseSimulator.Store
+  alias FirehoseSimulator.Player.EventFeeder
+  alias FirehoseSimulator.Player.Store
 
   setup do
     Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, "firehose")

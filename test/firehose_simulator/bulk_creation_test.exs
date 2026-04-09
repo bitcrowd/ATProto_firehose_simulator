@@ -7,7 +7,7 @@ defmodule FirehoseSimulator.BulkCreationTest do
   alias FirehoseSimulator.BulkCreation.Vacuum
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
-  alias FirehoseSimulator.SimulationPlan.Userbase
+  alias FirehoseSimulator.BaseData.Userbase
 
   test "create_userbase/2 returns the existing connection validation error" do
     userbase = %Userbase{

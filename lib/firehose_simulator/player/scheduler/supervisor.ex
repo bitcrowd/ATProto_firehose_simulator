@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.Scheduler.Supervisor do
+defmodule FirehoseSimulator.Player.Scheduler.Supervisor do
   @moduledoc """
   Supervisor for the scheduler worker pool.
 
@@ -28,12 +28,12 @@ defmodule FirehoseSimulator.Scheduler.Supervisor do
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
     event_feeder_opts = Keyword.get(opts, :event_feeder_opts)
 
-    store = {FirehoseSimulator.Store, [name: store_name]}
+    store = {FirehoseSimulator.Player.Store, [name: store_name]}
 
     workers =
       for partition <- 0..(scheduler_count - 1) do
         Supervisor.child_spec(
-          {FirehoseSimulator.Scheduler.Worker,
+          {FirehoseSimulator.Player.Scheduler.Worker,
            [
              player_id: player_id,
              partition: partition,
@@ -41,14 +41,14 @@ defmodule FirehoseSimulator.Scheduler.Supervisor do
              store: store_name,
              max_concurrency: worker_max_concurrency
            ]},
-          id: {FirehoseSimulator.Scheduler.Worker, player_id, partition}
+          id: {FirehoseSimulator.Player.Scheduler.Worker, player_id, partition}
         )
       end
 
     event_feeder =
       if event_feeder_opts do
         [
-          {FirehoseSimulator.SimulationPlan.EventFeeder,
+          {FirehoseSimulator.Player.EventFeeder,
            event_feeder_opts
            |> Keyword.put(:name, event_feeder_name)
            |> Keyword.put(:store, store_name)}

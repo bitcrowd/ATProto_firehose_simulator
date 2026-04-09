@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.Session do
+defmodule FirehoseSimulator.Player.Session do
   @moduledoc """
   Defines the data stored per session in ETS.
 
