@@ -25,7 +25,7 @@ defmodule FirehoseSimulator.Player do
   def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
     player_id = next_player_id()
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
-    request_interval_ms = Keyword.get(opts, :request_interval_ms, 30_000)
+    request_interval_ms = simulation_plan.request_interval_ms || 30_000
     time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
     simulation_plan_id = Keyword.get(opts, :simulation_plan_id)

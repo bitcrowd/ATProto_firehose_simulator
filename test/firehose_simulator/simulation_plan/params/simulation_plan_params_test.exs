@@ -23,6 +23,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                    "max_active_user_id": 5,
                    "seed": 1,
                    "time_units": 1,
+                   "request_interval_ms": 15000,
                    "tiers": [
                      {"max_followers": 1000, "session_minutes": 240}
                    ]
@@ -42,6 +43,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
       assert params.time_unit_duration_ms == 3_600_000
       assert params.posts_params.n == 10
       assert params.sessions_params.n == 10
+      assert params.sessions_params.request_interval_ms == 15_000
       assert params.follows_params.n == 10
     end
 

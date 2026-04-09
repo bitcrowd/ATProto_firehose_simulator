@@ -30,6 +30,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               "follower_density": 2.0,
               "seed": 1,
               "time_units": 1,
+              "request_interval_ms": 25000,
               "tiers": [
                 {"max_followers": 1000, "session_minutes": 240}
               ]
@@ -52,20 +53,28 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               %SimulationPlan{
                 posts: posts,
                 sessions: sessions,
-                follows: follows
+                follows: follows,
+                request_interval_ms: request_interval_ms
               }} =
                SimulationPlan.generate_from_json(simulation_plan_params: params_path)
 
       assert length(sessions) == 5
       assert is_list(posts)
       assert is_list(follows)
+      assert request_interval_ms == 25_000
       assert Enum.all?(sessions, &(&1.offset_ms < 3_600_000))
       assert Enum.all?(posts, &(&1.offset_ms < 3_600_000))
       assert Enum.all?(follows, &(&1.offset_ms < 3_600_000))
     end
 
     test "returns nil for sections without a path" do
-      assert {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}} =
+      assert {:ok,
+              %SimulationPlan{
+                posts: nil,
+                sessions: nil,
+                follows: nil,
+                request_interval_ms: 30_000
+              }} =
                SimulationPlan.generate_from_json([])
     end
 
@@ -108,9 +117,16 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           """
         )
 
-      assert {:ok, %SimulationPlan{posts: posts, sessions: sessions, follows: follows}} =
+      assert {:ok,
+              %SimulationPlan{
+                posts: posts,
+                sessions: sessions,
+                follows: follows,
+                request_interval_ms: request_interval_ms
+              }} =
                SimulationPlan.generate_from_json(simulation_plan_params: params_path)
 
+      assert request_interval_ms == 30_000
       assert Enum.all?(sessions, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(posts, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(follows, &(&1.offset_ms < 86_400_000))
@@ -122,12 +138,26 @@ defmodule FirehoseSimulator.SimulationPlanTest do
       simulation_plan = %SimulationPlan{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
-        follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}]
+        follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
+        request_interval_ms: 45_000
       }
 
       assert {:ok, json} = SimulationPlan.to_json(simulation_plan)
       assert {:ok, decoded} = SimulationPlan.from_json(json)
       assert decoded == simulation_plan
+    end
+
+    test "defaults request_interval_ms when decoding legacy json without it" do
+      legacy_json = """
+      {
+        "posts": [{"offset_ms": 10, "user_id": 1}],
+        "sessions": [{"offset_ms": 20, "user_id": 2, "duration_ms": 30000}],
+        "follows": [{"offset_ms": 30, "actor_id": 2, "subject_id": 1}]
+      }
+      """
+
+      assert {:ok, decoded} = SimulationPlan.from_json(legacy_json)
+      assert decoded.request_interval_ms == 30_000
     end
   end
 

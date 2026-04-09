@@ -3,12 +3,15 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
 
   alias FirehoseSimulator.SimulationPlan
 
+  @default_request_interval_ms 30_000
+
   @spec encode(SimulationPlan.t()) :: {:ok, String.t()} | {:error, String.t()}
   def encode(%SimulationPlan{} = simulation_plan) do
     payload = %{
       posts: simulation_plan.posts,
       sessions: simulation_plan.sessions,
-      follows: simulation_plan.follows
+      follows: simulation_plan.follows,
+      request_interval_ms: simulation_plan.request_interval_ms
     }
 
     case Jason.encode(payload) do
@@ -22,8 +25,15 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
     with {:ok, attrs} <- decode_object(json),
          {:ok, posts} <- decode_posts(Map.get(attrs, "posts")),
          {:ok, sessions} <- decode_sessions(Map.get(attrs, "sessions")),
-         {:ok, follows} <- decode_follows(Map.get(attrs, "follows")) do
-      {:ok, %SimulationPlan{posts: posts, sessions: sessions, follows: follows}}
+         {:ok, follows} <- decode_follows(Map.get(attrs, "follows")),
+         {:ok, request_interval_ms} <- decode_request_interval_ms(attrs) do
+      {:ok,
+       %SimulationPlan{
+         posts: posts,
+         sessions: sessions,
+         follows: follows,
+         request_interval_ms: request_interval_ms
+       }}
     end
   end
 
@@ -43,6 +53,19 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
 
   defp decode_follows(nil), do: {:ok, nil}
   defp decode_follows(rows), do: decode_rows(rows, "follows", &decode_follow/1)
+
+  defp decode_request_interval_ms(attrs) when is_map(attrs) do
+    case Map.get(attrs, "request_interval_ms") do
+      nil ->
+        {:ok, @default_request_interval_ms}
+
+      value when is_integer(value) and value > 0 ->
+        {:ok, value}
+
+      _invalid ->
+        {:error, "invalid request_interval_ms: must be a positive integer"}
+    end
+  end
 
   defp decode_rows(rows, label, decoder) when is_list(rows) do
     rows

@@ -75,8 +75,17 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     assert_push_event(view, "save_simulation_plan_json", %{filename: filename, content: content})
     assert filename == "#{generated_plan_id}.json"
-    assert {:ok, %{"posts" => posts, "sessions" => nil, "follows" => nil}} = Jason.decode(content)
+
+    assert {:ok,
+            %{
+              "posts" => posts,
+              "sessions" => nil,
+              "follows" => nil,
+              "request_interval_ms" => request_interval_ms
+            }} = Jason.decode(content)
+
     assert is_list(posts)
+    assert request_interval_ms == 30_000
 
     import_upload =
       file_input(view, "#planning-import-form", :simulation_plan_json, [
@@ -337,6 +346,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
         "follower_density": 2.0,
         "seed": 1,
         "time_units": 1,
+        "request_interval_ms": 25000,
         "tiers": [
           {"max_followers": 1000, "session_minutes": 240}
         ]
@@ -366,7 +376,8 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       ],
       "follows": [
         {"offset_ms": 50, "actor_id": 3, "subject_id": 1}
-      ]
+      ],
+      "request_interval_ms": 35000
     }
     """
   end

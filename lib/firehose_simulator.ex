@@ -228,7 +228,8 @@ defmodule FirehoseSimulator do
     %SimulationPlan{
       posts: shift_events(simulation_plan.posts, offset_ms),
       sessions: shift_events(simulation_plan.sessions, offset_ms),
-      follows: shift_events(simulation_plan.follows, offset_ms)
+      follows: shift_events(simulation_plan.follows, offset_ms),
+      request_interval_ms: simulation_plan.request_interval_ms
     }
   end
 

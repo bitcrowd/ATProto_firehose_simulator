@@ -13,6 +13,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                  "follower_density": 2.0,
                  "seed": 42,
                  "time_units": 1,
+                 "request_interval_ms": 45000,
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240},
                    {"max_followers": 10000, "session_minutes": 480},
@@ -26,6 +27,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
       assert sessions.follower_density == 2.0
       assert sessions.seed == 42
       assert sessions.time_units == 1
+      assert sessions.request_interval_ms == 45_000
       assert Enum.map(sessions.tiers, & &1.session_minutes) == [240, 480, 1000]
     end
 
@@ -44,6 +46,26 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                """)
 
       assert sessions.follower_density == 1.0
+      assert sessions.request_interval_ms == 30_000
+    end
+
+    test "returns an error for invalid request_interval_ms" do
+      assert {:error, message} =
+               SessionsParams.load("""
+               {
+                 "n": 10,
+                 "max_active_user_id": 5,
+                 "seed": 1,
+                 "time_units": 1,
+                 "request_interval_ms": 0,
+                 "tiers": [
+                   {"max_followers": 1000, "session_minutes": 240}
+                 ]
+               }
+               """)
+
+      assert String.contains?(message, "invalid sessions config:")
+      assert String.contains?(message, "request_interval_ms")
     end
 
     test "returns an error for malformed json" do

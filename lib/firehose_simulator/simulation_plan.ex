@@ -11,14 +11,16 @@ defmodule FirehoseSimulator.SimulationPlan do
   alias FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams
 
   @default_time_unit_duration_ms 86_400_000
+  @default_request_interval_ms 30_000
 
   @enforce_keys [:posts, :sessions, :follows]
-  defstruct [:posts, :sessions, :follows]
+  defstruct [:posts, :sessions, :follows, request_interval_ms: @default_request_interval_ms]
 
   @type t :: %__MODULE__{
           posts: Posts.t() | nil,
           sessions: Sessions.t() | nil,
-          follows: Follows.t() | nil
+          follows: Follows.t() | nil,
+          request_interval_ms: pos_integer()
         }
 
   @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
@@ -31,16 +33,21 @@ defmodule FirehoseSimulator.SimulationPlan do
     params_path =
       Keyword.get(opts, :simulation_plan_params) || Keyword.get(opts, :params)
 
-    with {:ok, params} <- load_simulation_plan_params(params_path),
-         {:ok, posts} <- build_posts(params, time_unit_duration_ms(params)),
-         {:ok, sessions} <- build_sessions(params, time_unit_duration_ms(params)),
-         {:ok, follows} <- build_follows(params, time_unit_duration_ms(params)) do
-      {:ok,
-       %__MODULE__{
-         posts: posts,
-         sessions: sessions,
-         follows: follows
-       }}
+    with {:ok, params} <- load_simulation_plan_params(params_path) do
+      unit_duration_ms = time_unit_duration_ms(params)
+      request_interval_ms = request_interval_ms(params)
+
+      with {:ok, posts} <- build_posts(params, unit_duration_ms),
+           {:ok, sessions} <- build_sessions(params, unit_duration_ms),
+           {:ok, follows} <- build_follows(params, unit_duration_ms) do
+        {:ok,
+         %__MODULE__{
+           posts: posts,
+           sessions: sessions,
+           follows: follows,
+           request_interval_ms: request_interval_ms
+         }}
+      end
     end
   end
 
@@ -118,4 +125,17 @@ defmodule FirehoseSimulator.SimulationPlan do
     do: @default_time_unit_duration_ms
 
   defp time_unit_duration_ms(%SimulationPlanParams{time_unit_duration_ms: value}), do: value
+
+  defp request_interval_ms(%SimulationPlanParams{sessions_params: nil}),
+    do: @default_request_interval_ms
+
+  defp request_interval_ms(%SimulationPlanParams{
+         sessions_params: %{request_interval_ms: nil}
+       }),
+       do: @default_request_interval_ms
+
+  defp request_interval_ms(%SimulationPlanParams{
+         sessions_params: %{request_interval_ms: request_interval_ms}
+       }),
+       do: request_interval_ms
 end

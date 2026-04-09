@@ -243,7 +243,8 @@ defmodule FirehoseSimulatorTest do
       simulation_plan = %SimulationPlan{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
-        follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}]
+        follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
+        request_interval_ms: 15_000
       }
 
       shifted = FirehoseSimulator.shift_simulation_plan(simulation_plan, 250)
@@ -251,6 +252,7 @@ defmodule FirehoseSimulatorTest do
       assert shifted.posts == [%{offset_ms: 260, user_id: 1}]
       assert shifted.sessions == [%{offset_ms: 270, user_id: 2, duration_ms: 30_000}]
       assert shifted.follows == [%{offset_ms: 280, actor_id: 2, subject_id: 1}]
+      assert shifted.request_interval_ms == 15_000
     end
 
     test "keeps nil sections unchanged" do
