@@ -1,13 +1,6 @@
 defmodule Dataplane do
   def new(options \\ []) when is_list(options) do
     Req.new(base_url: dataplane_url())
-    |> Req.Request.append_request_steps(
-      post: fn req ->
-        with %{method: :get, body: <<_::binary>>} <- req do
-          %{req | method: :post}
-        end
-      end
-    )
     |> Req.merge(options)
   end
 
