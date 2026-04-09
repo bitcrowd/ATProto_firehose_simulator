@@ -3,8 +3,6 @@ defmodule FirehoseSimulator.Player.Event do
   alias FirehoseSimulator.Data
 
   @clock_id 0
-  @post_type Data.post_type()
-  @follow_type Data.follow_type()
 
   def from_config(config) when is_map(config) do
     {did, record} = build_record(config)
@@ -14,30 +12,30 @@ defmodule FirehoseSimulator.Player.Event do
     commit_event(did, cid_link, ops, record)
   end
 
-  defp build_record(%{"type" => @follow_type, "random" => true}) do
+  defp build_record(%{"type" => "app.bsky.graph.follow", "random" => true}) do
     author_did = Data.random_did()
     subject_did = Data.random_did(author_did)
 
-    {author_did, Data.create_record(@follow_type, subject: subject_did)}
+    {author_did, Data.create_record("app.bsky.graph.follow", subject: subject_did)}
   end
 
   defp build_record(%{
-         "type" => @follow_type,
+         "type" => "app.bsky.graph.follow",
          "author_did" => author_did,
          "subject_did" => subject_did
        }) do
-    {author_did, Data.create_record(@follow_type, subject: subject_did)}
+    {author_did, Data.create_record("app.bsky.graph.follow", subject: subject_did)}
   end
 
-  defp build_record(%{"type" => @post_type, "random" => true}) do
+  defp build_record(%{"type" => "app.bsky.feed.post", "random" => true}) do
     author_did = Data.random_did()
     text = random_post_text()
 
-    {author_did, Data.create_record(@post_type, text: text)}
+    {author_did, Data.create_record("app.bsky.feed.post", text: text)}
   end
 
-  defp build_record(%{"type" => @post_type, "author_did" => author_did, "text" => text}) do
-    {author_did, Data.create_record(@post_type, text: text)}
+  defp build_record(%{"type" => "app.bsky.feed.post", "author_did" => author_did, "text" => text}) do
+    {author_did, Data.create_record("app.bsky.feed.post", text: text)}
   end
 
   defp cid_link_and_ops(record) do
