@@ -8,7 +8,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Player.Event
-  alias FirehoseSimulator.Player.Session
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.Player.Store
   alias Phoenix.PubSub
@@ -235,7 +234,7 @@ defmodule FirehoseSimulator.Player.EventFeeder do
                                                                            duration_ms},
                                                                           {sid, sc} ->
         session =
-          Session.new(
+          new_session(
             id: sid,
             user_id: user_id,
             duration_ms: duration_ms,
@@ -410,5 +409,22 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     :ok
   rescue
     error -> {:error, error}
+  end
+
+  defp new_session(opts) do
+    id = Keyword.fetch!(opts, :id)
+    duration_ms = Keyword.fetch!(opts, :duration_ms)
+    interval = Keyword.fetch!(opts, :request_interval_ms)
+    now = System.monotonic_time(:millisecond)
+
+    %{
+      id: id,
+      user_id: Keyword.get(opts, :user_id, id),
+      duration_ms: duration_ms,
+      request_interval_ms: interval,
+      next_request_at: now + rem(id, interval),
+      expires_at: now + duration_ms,
+      started_at: now
+    }
   end
 end
