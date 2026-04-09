@@ -1,4 +1,5 @@
 {
+  "time_unit_duration_ms": 86400000,
   "posts_params": {
     "n": 100000,
     "max_active_user_id": 10000,
@@ -17,6 +18,7 @@
     "follower_density": 5.0,
     "seed": 42,
     "time_units": 1,
+    "request_interval_ms": 30000,
     "tiers": [
       { "max_followers": 10, "session_minutes": 10 },
       { "max_followers": 100, "session_minutes": 30 },
