@@ -13,6 +13,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           "simulation-plan-params",
           """
           {
+            "time_unit_duration_ms": 3600000,
             "posts_params": {
               "n": 10,
               "max_active_user_id": 5,
@@ -58,11 +59,61 @@ defmodule FirehoseSimulator.SimulationPlanTest do
       assert length(sessions) == 5
       assert is_list(posts)
       assert is_list(follows)
+      assert Enum.all?(sessions, &(&1.offset_ms < 3_600_000))
+      assert Enum.all?(posts, &(&1.offset_ms < 3_600_000))
+      assert Enum.all?(follows, &(&1.offset_ms < 3_600_000))
     end
 
     test "returns nil for sections without a path" do
       assert {:ok, %SimulationPlan{posts: nil, sessions: nil, follows: nil}} =
                SimulationPlan.generate_from_json([])
+    end
+
+    @tag :tmp_dir
+    test "defaults time unit duration to one day when omitted", %{tmp_dir: tmp_dir} do
+      params_path =
+        write_file!(
+          tmp_dir,
+          "simulation-plan-params-default-duration",
+          """
+          {
+            "posts_params": {
+              "n": 10,
+              "max_active_user_id": 1,
+              "seed": 1,
+              "time_units": 1,
+              "tiers": [
+                {"max_followers": 1000, "posts_per_time_unit": 1.0}
+              ]
+            },
+            "sessions_params": {
+              "n": 10,
+              "max_active_user_id": 1,
+              "seed": 1,
+              "time_units": 1,
+              "tiers": [
+                {"max_followers": 1000, "session_minutes": 10}
+              ]
+            },
+            "follows_params": {
+              "n": 10,
+              "max_active_user_id": 1,
+              "seed": 1,
+              "time_units": 1,
+              "tiers": [
+                {"max_followers": 1000, "follows_per_time_unit": 1.0}
+              ]
+            }
+          }
+          """
+        )
+
+      assert {:ok, %SimulationPlan{posts: posts, sessions: sessions, follows: follows}} =
+               SimulationPlan.generate_from_json(simulation_plan_params: params_path)
+
+      assert Enum.all?(sessions, &(&1.offset_ms < 86_400_000))
+      assert Enum.all?(posts, &(&1.offset_ms < 86_400_000))
+      assert Enum.all?(follows, &(&1.offset_ms < 86_400_000))
     end
   end
 

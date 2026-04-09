@@ -39,4 +39,10 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
     assert %{session_minutes: 5} = Sessions.lookup_tier(2, 10, tiers, 1.0)
     assert %{session_minutes: 10} = Sessions.lookup_tier(2, 10, tiers, 2.0)
   end
+
+  test "generate/2 uses the provided time unit duration" do
+    sessions = Sessions.generate(@config, 1_000)
+
+    assert Enum.all?(sessions, &(&1.offset_ms < 1_000))
+  end
 end

@@ -28,6 +28,15 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
   Generate an in-memory follows plan from a `%FollowsParams{}` config.
   """
   def generate(%FollowsParams{} = config) do
+    generate(config, @default_unit_duration_ms)
+  end
+
+  @doc """
+  Generate an in-memory follows plan from a `%FollowsParams{}` config and explicit
+  time unit duration in milliseconds.
+  """
+  def generate(%FollowsParams{} = config, unit_duration_ms)
+      when is_integer(unit_duration_ms) and unit_duration_ms > 0 do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
 
     follows =
@@ -37,7 +46,7 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
         config.follower_density,
         config.time_units,
         config.tiers,
-        @default_unit_duration_ms
+        unit_duration_ms
       )
 
     follows = Enum.sort_by(follows, fn {offset, seq, _actor, _subject} -> {offset, seq} end)

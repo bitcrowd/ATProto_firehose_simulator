@@ -11,6 +11,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams do
   alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
 
   @type t :: %__MODULE__{
+          time_unit_duration_ms: pos_integer() | nil,
           posts_params: PostsParams.t() | nil,
           sessions_params: SessionsParams.t() | nil,
           follows_params: FollowsParams.t() | nil
@@ -18,6 +19,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams do
 
   @primary_key false
   embedded_schema do
+    field(:time_unit_duration_ms, :integer)
     embeds_one(:posts_params, PostsParams, on_replace: :delete)
     embeds_one(:sessions_params, SessionsParams, on_replace: :delete)
     embeds_one(:follows_params, FollowsParams, on_replace: :delete)
@@ -51,7 +53,8 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams do
 
   def changeset(params, attrs) do
     params
-    |> cast(attrs, [])
+    |> cast(attrs, [:time_unit_duration_ms])
+    |> validate_number(:time_unit_duration_ms, greater_than: 0)
     |> cast_embed(:posts_params, with: &PostsParams.changeset/2)
     |> cast_embed(:sessions_params, with: &SessionsParams.changeset/2)
     |> cast_embed(:follows_params, with: &FollowsParams.changeset/2)

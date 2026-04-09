@@ -51,4 +51,10 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     assert length(Follows.generate(config)) == 1
     assert length(Follows.generate(dense_config)) == 2
   end
+
+  test "generate/2 uses the provided time unit duration" do
+    follows = Follows.generate(@config, 1_000)
+
+    assert Enum.all?(follows, &(&1.offset_ms < 1_000))
+  end
 end

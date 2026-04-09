@@ -29,6 +29,15 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
   Generate an in-memory session plan from a `%SessionsParams{}` config.
   """
   def generate(%SessionsParams{} = config) do
+    generate(config, @default_unit_duration_ms)
+  end
+
+  @doc """
+  Generate an in-memory session plan from a `%SessionsParams{}` config and explicit
+  time unit duration in milliseconds.
+  """
+  def generate(%SessionsParams{} = config, unit_duration_ms)
+      when is_integer(unit_duration_ms) and unit_duration_ms > 0 do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
 
     sessions =
@@ -38,7 +47,7 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
         config.follower_density,
         config.time_units,
         config.tiers,
-        @default_unit_duration_ms
+        unit_duration_ms
       )
 
     sessions = Enum.sort_by(sessions, &elem(&1, 0))

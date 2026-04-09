@@ -177,6 +177,10 @@ the Simulation page under "Recent simulation reports".
 
 Generate a simulation plan from params JSON:
 
+`simulation_plan_params.json` supports an optional top-level
+`"time_unit_duration_ms"` field. If omitted, one time unit defaults to
+`86_400_000` ms (24 hours).
+
 ```elixir
 {:ok, simulation_plan} =
   FirehoseSimulator.generate_simulation_plan_from_json(

@@ -8,6 +8,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
       assert {:ok, %SimulationPlanParams{} = params} =
                SimulationPlanParams.load("""
                {
+                 "time_unit_duration_ms": 3600000,
                  "posts_params": {
                    "n": 10,
                    "max_active_user_id": 5,
@@ -38,13 +39,27 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                }
                """)
 
+      assert params.time_unit_duration_ms == 3_600_000
       assert params.posts_params.n == 10
       assert params.sessions_params.n == 10
       assert params.follows_params.n == 10
     end
 
+    test "validates time_unit_duration_ms when provided" do
+      assert {:error, message} =
+               SimulationPlanParams.load("""
+               {
+                 "time_unit_duration_ms": 0
+               }
+               """)
+
+      assert String.contains?(message, "invalid simulation plan params config:")
+      assert String.contains?(message, "time_unit_duration_ms")
+    end
+
     test "supports optional sections" do
       assert {:ok, %SimulationPlanParams{} = params} = SimulationPlanParams.load("{}")
+      assert is_nil(params.time_unit_duration_ms)
       assert is_nil(params.posts_params)
       assert is_nil(params.sessions_params)
       assert is_nil(params.follows_params)

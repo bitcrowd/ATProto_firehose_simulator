@@ -27,6 +27,15 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
   Generate an in-memory posts plan from a `%PostsParams{}` config.
   """
   def generate(%PostsParams{} = config) do
+    generate(config, @default_unit_duration_ms)
+  end
+
+  @doc """
+  Generate an in-memory posts plan from a `%PostsParams{}` config and explicit
+  time unit duration in milliseconds.
+  """
+  def generate(%PostsParams{} = config, unit_duration_ms)
+      when is_integer(unit_duration_ms) and unit_duration_ms > 0 do
     :rand.seed(:exsss, {config.seed, config.seed, config.seed})
 
     posts =
@@ -36,7 +45,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
         config.follower_density,
         config.time_units,
         config.tiers,
-        @default_unit_duration_ms
+        unit_duration_ms
       )
 
     posts = Enum.sort_by(posts, &elem(&1, 0))

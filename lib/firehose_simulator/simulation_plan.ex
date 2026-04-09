@@ -10,6 +10,8 @@ defmodule FirehoseSimulator.SimulationPlan do
   alias FirehoseSimulator.SimulationPlan.Sessions
   alias FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams
 
+  @default_time_unit_duration_ms 86_400_000
+
   @enforce_keys [:posts, :sessions, :follows]
   defstruct [:posts, :sessions, :follows]
 
@@ -30,9 +32,9 @@ defmodule FirehoseSimulator.SimulationPlan do
       Keyword.get(opts, :simulation_plan_params) || Keyword.get(opts, :params)
 
     with {:ok, params} <- load_simulation_plan_params(params_path),
-         {:ok, posts} <- build_posts(params),
-         {:ok, sessions} <- build_sessions(params),
-         {:ok, follows} <- build_follows(params) do
+         {:ok, posts} <- build_posts(params, time_unit_duration_ms(params)),
+         {:ok, sessions} <- build_sessions(params, time_unit_duration_ms(params)),
+         {:ok, follows} <- build_follows(params, time_unit_duration_ms(params)) do
       {:ok,
        %__MODULE__{
          posts: posts,
@@ -82,21 +84,38 @@ defmodule FirehoseSimulator.SimulationPlan do
   defp load_simulation_plan_params(_path),
     do: {:error, "simulation_plan_params path must be a string"}
 
-  defp build_posts(%SimulationPlanParams{posts_params: nil}), do: {:ok, nil}
+  defp build_posts(%SimulationPlanParams{posts_params: nil}, _time_unit_duration_ms),
+    do: {:ok, nil}
 
-  defp build_posts(%SimulationPlanParams{posts_params: posts_params}) do
-    {:ok, Posts.generate(posts_params)}
+  defp build_posts(
+         %SimulationPlanParams{posts_params: posts_params},
+         time_unit_duration_ms
+       ) do
+    {:ok, Posts.generate(posts_params, time_unit_duration_ms)}
   end
 
-  defp build_sessions(%SimulationPlanParams{sessions_params: nil}), do: {:ok, nil}
+  defp build_sessions(%SimulationPlanParams{sessions_params: nil}, _time_unit_duration_ms),
+    do: {:ok, nil}
 
-  defp build_sessions(%SimulationPlanParams{sessions_params: sessions_params}) do
-    {:ok, Sessions.generate(sessions_params)}
+  defp build_sessions(
+         %SimulationPlanParams{sessions_params: sessions_params},
+         time_unit_duration_ms
+       ) do
+    {:ok, Sessions.generate(sessions_params, time_unit_duration_ms)}
   end
 
-  defp build_follows(%SimulationPlanParams{follows_params: nil}), do: {:ok, nil}
+  defp build_follows(%SimulationPlanParams{follows_params: nil}, _time_unit_duration_ms),
+    do: {:ok, nil}
 
-  defp build_follows(%SimulationPlanParams{follows_params: follows_params}) do
-    {:ok, Follows.generate(follows_params)}
+  defp build_follows(
+         %SimulationPlanParams{follows_params: follows_params},
+         time_unit_duration_ms
+       ) do
+    {:ok, Follows.generate(follows_params, time_unit_duration_ms)}
   end
+
+  defp time_unit_duration_ms(%SimulationPlanParams{time_unit_duration_ms: nil}),
+    do: @default_time_unit_duration_ms
+
+  defp time_unit_duration_ms(%SimulationPlanParams{time_unit_duration_ms: value}), do: value
 end

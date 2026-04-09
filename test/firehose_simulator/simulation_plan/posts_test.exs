@@ -50,4 +50,10 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     assert length(Posts.generate(config)) == 1
     assert length(Posts.generate(dense_config)) == 2
   end
+
+  test "generate/2 uses the provided time unit duration" do
+    posts = Posts.generate(@config, 1_000)
+
+    assert Enum.all?(posts, &(&1.offset_ms < 1_000))
+  end
 end
