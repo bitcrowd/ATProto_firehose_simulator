@@ -1,15 +1,14 @@
 defmodule FirehoseSimulator.Player do
   @moduledoc """
-  Process orchestration API for simulation-plan runs.
+  Context for player.
 
-  Each run owns an isolated process tree with its own ETS-backed store,
-  scheduler workers, and event feeder.
+  Player takes a simulation plan and runs it.
   """
 
   require Logger
 
   alias FirehoseSimulator.Metrics
-  alias FirehoseSimulator.Player.DynamicSupervisor, as: PlayerDynamicSupervisor
+  alias FirehoseSimulator.PlayerSupervisor
   alias FirehoseSimulator.Player.Scheduler.Supervisor, as: SchedulerSupervisor
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.Player.EventFeeder
@@ -59,7 +58,7 @@ defmodule FirehoseSimulator.Player do
       restart: :temporary
     }
 
-    case DynamicSupervisor.start_child(PlayerDynamicSupervisor, child_spec) do
+    case DynamicSupervisor.start_child(PlayerSupervisor, child_spec) do
       {:ok, supervisor_pid} ->
         :ok = EventFeeder.start_feeding(via(player_id, :event_feeder))
 
@@ -93,7 +92,7 @@ defmodule FirehoseSimulator.Player do
   @spec stop(String.t()) :: :ok | {:error, term()}
   def stop(player_id) when is_binary(player_id) do
     with {:ok, supervisor_pid} <- scheduler_pid(player_id),
-         :ok <- DynamicSupervisor.terminate_child(PlayerDynamicSupervisor, supervisor_pid) do
+         :ok <- DynamicSupervisor.terminate_child(PlayerSupervisor, supervisor_pid) do
       :ok = State.delete_running_player(player_id)
       :ok = Metrics.increment(:player_stop, %{player_id: player_id})
       Logger.info("[player #{player_id}] stopped")
@@ -112,7 +111,7 @@ defmodule FirehoseSimulator.Player do
   def reset(player_id) when is_binary(player_id) do
     case scheduler_pid(player_id) do
       {:ok, supervisor_pid} ->
-        case DynamicSupervisor.terminate_child(PlayerDynamicSupervisor, supervisor_pid) do
+        case DynamicSupervisor.terminate_child(PlayerSupervisor, supervisor_pid) do
           :ok ->
             :ok = State.delete_running_player(player_id)
             :ok = Metrics.increment(:player_reset, %{player_id: player_id})

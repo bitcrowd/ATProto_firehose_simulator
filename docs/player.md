@@ -7,7 +7,6 @@ The player executes simulation plans in real time using per-run process trees wi
 ## Modules
 
 - `FirehoseSimulator.Player`
-- `FirehoseSimulator.Player.DynamicSupervisor`
 - `FirehoseSimulator.Scheduler.Supervisor`
 - `FirehoseSimulator.Scheduler.Worker`
 - `FirehoseSimulator.SimulationPlan.EventFeeder`

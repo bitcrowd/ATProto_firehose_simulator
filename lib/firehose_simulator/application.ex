@@ -23,7 +23,7 @@ defmodule FirehoseSimulator.Application do
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
         {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
-        FirehoseSimulator.Player.DynamicSupervisor,
+        {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
         FirehoseSimulator.State,
         FirehoseSimulator.Metrics,
         {Bandit,
