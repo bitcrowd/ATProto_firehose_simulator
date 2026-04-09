@@ -171,6 +171,10 @@ Flow in the web UI:
 3. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
 4. `Simulation`: select one available plan and play/stop/reset.
 
+When a running simulation is stopped or reset, the app writes a metrics-over-time
+report JSON file to `tmp/simulation_reports/` and shows the absolute file path in
+the Simulation page under "Recent simulation reports".
+
 Generate a simulation plan from params JSON:
 
 ```elixir

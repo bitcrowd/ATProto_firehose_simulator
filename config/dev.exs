@@ -11,6 +11,7 @@ config :firehose_simulator, :plc,
 config :firehose_simulator,
        :dataplane_url,
        System.get_env("DATAPLANE_URL", "http://localhost:2585")
+
 config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
 config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 

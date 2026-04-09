@@ -9,6 +9,7 @@ defmodule FirehoseSimulator.Player do
   require Logger
 
   alias FirehoseSimulator.Metrics
+  alias FirehoseSimulator.Metrics.Reporter
   alias FirehoseSimulator.Player.DynamicSupervisor, as: PlayerDynamicSupervisor
   alias FirehoseSimulator.Scheduler
   alias FirehoseSimulator.SimulationPlan
@@ -27,8 +28,10 @@ defmodule FirehoseSimulator.Player do
     request_interval_ms = Keyword.get(opts, :request_interval_ms, 30_000)
     time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
+    simulation_plan_id = Keyword.get(opts, :simulation_plan_id)
 
     event_feeder_opts = [
+      player_id: player_id,
       simulation_plan: simulation_plan,
       time_offset_ms: time_offset_ms,
       request_interval_ms: request_interval_ms,
@@ -63,6 +66,7 @@ defmodule FirehoseSimulator.Player do
 
         metadata = %{
           player_id: player_id,
+          simulation_plan_id: simulation_plan_id,
           request_interval_ms: request_interval_ms,
           schedulers: scheduler_count,
           supervisor: supervisor_pid,
@@ -71,6 +75,7 @@ defmodule FirehoseSimulator.Player do
         }
 
         :ok = State.put_running_player(player_id, metadata)
+        :ok = Reporter.start_run(player_id, metadata)
 
         :ok =
           Metrics.increment(:player_start, %{
@@ -93,6 +98,7 @@ defmodule FirehoseSimulator.Player do
          :ok <- DynamicSupervisor.terminate_child(PlayerDynamicSupervisor, supervisor_pid) do
       :ok = State.delete_running_player(player_id)
       :ok = Metrics.increment(:player_stop, %{player_id: player_id})
+      persist_report(player_id, :stop)
       Logger.info("[player #{player_id}] stopped")
       :ok
     else
@@ -113,6 +119,7 @@ defmodule FirehoseSimulator.Player do
           :ok ->
             :ok = State.delete_running_player(player_id)
             :ok = Metrics.increment(:player_reset, %{player_id: player_id})
+            persist_report(player_id, :reset)
             Logger.info("[player #{player_id}] reset")
             :ok
 
@@ -205,5 +212,30 @@ defmodule FirehoseSimulator.Player do
 
   defp next_player_id do
     "player-" <> Integer.to_string(System.unique_integer([:positive, :monotonic]))
+  end
+
+  defp persist_report(player_id, reason) do
+    case Reporter.finalize_run(player_id, reason) do
+      {:ok, report_path} ->
+        report_metadata = %{
+          player_id: player_id,
+          reason: reason,
+          path: report_path,
+          finalized_at_ms: System.system_time(:millisecond)
+        }
+
+        :ok = State.put_simulation_report(player_id, report_metadata)
+        :ok
+
+      {:error, :run_not_found} ->
+        :ok
+
+      {:error, report_reason} ->
+        Logger.warning(
+          "[player #{player_id}] failed to finalize report reason=#{reason}: #{inspect(report_reason)}"
+        )
+
+        :ok
+    end
   end
 end

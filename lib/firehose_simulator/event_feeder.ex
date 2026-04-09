@@ -41,6 +41,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
 
   @impl true
   def init(opts) do
+    player_id = Keyword.get(opts, :player_id)
     simulation_plan = Keyword.fetch!(opts, :simulation_plan)
     store = Keyword.fetch!(opts, :store)
     request_interval_ms = Keyword.fetch!(opts, :request_interval_ms)
@@ -58,6 +59,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
 
     {:ok,
      %{
+       player_id: player_id,
        sessions: sessions,
        posts: posts,
        follows: follows,
@@ -139,7 +141,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
           follows_ok: 0,
           follows_error: 0
         },
-        %{elapsed_ms: elapsed_ms}
+        telemetry_metadata(state, %{elapsed_ms: elapsed_ms})
       )
     end
 
@@ -159,7 +161,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
         follows_ok: 0,
         follows_error: 0
       },
-      %{}
+      telemetry_metadata(state, %{})
     )
 
     {:noreply, %{state | post_task: nil}}
@@ -177,7 +179,7 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
         follows_ok: follow_results.ok,
         follows_error: follow_results.error
       },
-      %{}
+      telemetry_metadata(state, %{})
     )
 
     {:noreply, %{state | follow_task: nil}}
@@ -219,6 +221,12 @@ defmodule FirehoseSimulator.SimulationPlan.EventFeeder do
   defp schedule_check do
     Process.send_after(self(), :check, @check_interval_ms)
   end
+
+  defp telemetry_metadata(%{player_id: player_id}, metadata) when is_binary(player_id) do
+    Map.put(metadata, :player_id, player_id)
+  end
+
+  defp telemetry_metadata(_state, metadata), do: metadata
 
   defp process_sessions(state, elapsed_ms) do
     {due, remaining} =

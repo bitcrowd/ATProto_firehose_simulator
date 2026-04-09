@@ -13,9 +13,11 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:selected_plan_id, nil)
       |> assign(:play_form, to_form(%{"offset_ms" => "0"}, as: :play))
       |> assign(:running_players, [])
+      |> assign(:simulation_reports, [])
       |> assign(:last_action, nil)
       |> assign_plans()
       |> assign_running_players()
+      |> assign_simulation_reports()
 
     {:ok, socket}
   end
@@ -39,7 +41,12 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
     with {:ok, offset_ms} <- parse_offset_ms(params),
          {:ok, simulation_plan} <- fetch_selected_plan() do
-      case simulator_module().play_with_offset(simulation_plan, offset_ms) do
+      shifted_plan = simulator_module().shift_simulation_plan(simulation_plan, offset_ms)
+
+      case simulator_module().play(
+             shifted_plan,
+             simulation_plan_id: socket.assigns.selected_plan_id
+           ) do
         {:ok, player_id, _metadata} ->
           {:noreply,
            socket
@@ -70,6 +77,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:noreply,
          socket
          |> assign_running_players()
+         |> assign_simulation_reports()
          |> assign(:last_action, "Simulation stopped for #{player_id}.")
          |> put_flash(:info, "Simulation stopped for #{player_id}.")}
 
@@ -89,6 +97,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:noreply,
          socket
          |> assign_running_players()
+         |> assign_simulation_reports()
          |> assign(:last_action, "All simulation players stopped.")
          |> put_flash(:info, "All simulation players stopped.")}
 
@@ -104,6 +113,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:noreply,
          socket
          |> assign_running_players()
+         |> assign_simulation_reports()
          |> assign(:last_action, "Simulation reset for #{player_id}.")
          |> put_flash(:info, "Simulation reset for #{player_id}.")}
 
@@ -123,6 +133,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:noreply,
          socket
          |> assign_running_players()
+         |> assign_simulation_reports()
          |> assign(:last_action, "All simulation players reset.")
          |> put_flash(:info, "All simulation players reset.")}
 
@@ -178,5 +189,18 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> Enum.sort_by(fn %{metadata: metadata} -> Map.get(metadata, :started_at_ms, 0) end, :desc)
 
     assign(socket, :running_players, running_players)
+  end
+
+  defp assign_simulation_reports(socket) do
+    simulation_reports =
+      State.list_simulation_reports()
+      |> Enum.map(fn {player_id, report} ->
+        report
+        |> Map.put_new(:player_id, player_id)
+        |> Map.update(:reason, "unknown", &to_string/1)
+      end)
+      |> Enum.sort_by(&Map.get(&1, :finalized_at_ms, 0), :desc)
+
+    assign(socket, :simulation_reports, simulation_reports)
   end
 end

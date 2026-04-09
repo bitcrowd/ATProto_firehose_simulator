@@ -141,7 +141,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
             :telemetry.execute(
               [:firehose_simulator, :worker, :query],
               %{latency_ms: latency, rows: length(results)},
-              %{status: :ok}
+              %{status: :ok, player_id: state.player_id}
             )
 
             updated = %{session | next_request_at: now + session.request_interval_ms}
@@ -154,7 +154,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
               :telemetry.execute(
                 [:firehose_simulator, :worker, :query],
                 %{latency_ms: latency, rows: 0},
-                %{status: :exit, reason: inspect(reason)}
+                %{status: :exit, reason: inspect(reason), player_id: state.player_id}
               )
 
               {:error, {:exit, reason}}
@@ -165,7 +165,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
               :telemetry.execute(
                 [:firehose_simulator, :worker, :query],
                 %{latency_ms: latency, rows: 0},
-                %{status: :error, reason: inspect(reason)}
+                %{status: :error, reason: inspect(reason), player_id: state.player_id}
               )
 
               {:error, {kind, reason}}
@@ -186,7 +186,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
           :telemetry.execute(
             [:firehose_simulator, :worker, :query],
             %{latency_ms: 30_000, rows: 0},
-            %{status: :timeout}
+            %{status: :timeout, player_id: state.player_id}
           )
 
           %{acc | timeout: acc.timeout + 1}
@@ -216,7 +216,7 @@ defmodule FirehoseSimulator.Scheduler.Worker do
       :telemetry.execute(
         [:firehose_simulator, :worker, :cycle],
         measurements,
-        %{partition: state.partition}
+        %{partition: state.partition, player_id: state.player_id}
       )
     end
 

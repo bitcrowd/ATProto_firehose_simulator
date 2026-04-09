@@ -24,6 +24,7 @@ defmodule FirehoseSimulator.Application do
         FirehoseSimulator.Player.DynamicSupervisor,
         FirehoseSimulator.State,
         FirehoseSimulator.Metrics,
+        FirehoseSimulator.Metrics.Reporter,
         {PLC.OpLog, %{}},
         PLCWeb.Endpoint,
         PDSWeb.Endpoint,

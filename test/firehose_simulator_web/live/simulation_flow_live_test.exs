@@ -156,9 +156,13 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     view |> element("#stop-player-player-1") |> render_click()
     assert render(view) =~ "Simulation stopped for player-1."
+    assert has_element?(view, "#simulation-report-player-player-1")
+    assert has_element?(view, "#simulation-report-path-player-1")
 
     view |> element("#reset-player-player-2") |> render_click()
     assert render(view) =~ "Simulation reset for player-2."
+    assert has_element?(view, "#simulation-report-player-player-2")
+    assert has_element?(view, "#simulation-report-path-player-2")
 
     view
     |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
@@ -251,18 +255,22 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     def play(%SimulationPlan{}, _opts), do: {:error, :invalid_shift}
 
     def stop(player_id) do
-      State.delete_running_player(player_id)
+      :ok = State.delete_running_player(player_id)
+      put_fake_report(player_id, :stop)
     end
 
     def reset(player_id) do
-      State.delete_running_player(player_id)
+      :ok = State.delete_running_player(player_id)
+      put_fake_report(player_id, :reset)
     end
 
     def reset_all do
+      Enum.each(Map.keys(State.list_running_players()), &put_fake_report(&1, :reset))
       State.clear_running_players()
     end
 
     def stop_all do
+      Enum.each(Map.keys(State.list_running_players()), &put_fake_report(&1, :stop))
       State.clear_running_players()
     end
 
@@ -287,6 +295,15 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     defp next_fake_player_id do
       count = map_size(State.list_running_players()) + 1
       "player-#{count}"
+    end
+
+    defp put_fake_report(player_id, reason) do
+      State.put_simulation_report(player_id, %{
+        player_id: player_id,
+        reason: reason,
+        path: "/tmp/simulation_reports/#{player_id}-#{reason}.json",
+        finalized_at_ms: System.system_time(:millisecond)
+      })
     end
   end
 
