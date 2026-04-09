@@ -5,8 +5,6 @@ defmodule FirehoseSimulator.State do
 
   alias FirehoseSimulator.SimulationPlan
 
-  @default_connection_string "postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky"
-
   @type state :: %{
           db_connection_string: String.t(),
           simulation_plans: %{optional(String.t()) => SimulationPlan.t()},
@@ -228,7 +226,7 @@ defmodule FirehoseSimulator.State do
 
   defp default_state do
     %{
-      db_connection_string: System.get_env("DATABASE_URL") || @default_connection_string,
+      db_connection_string: nil,
       simulation_plans: %{},
       selected_simulation_plan_id: nil,
       running_players: %{},

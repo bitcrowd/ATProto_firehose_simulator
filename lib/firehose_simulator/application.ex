@@ -9,11 +9,12 @@ defmodule FirehoseSimulator.Application do
 
   @file_log_handler :firehose_simulator_file_log
   @default_log_file "log/firehose_simulator.log"
-  @default_prometheus_port 9568
 
   @impl true
   def start(_type, _args) do
     configure_file_logging()
+
+    prometheus_port = Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port)
 
     children =
       [
@@ -25,11 +26,15 @@ defmodule FirehoseSimulator.Application do
         FirehoseSimulator.Player.DynamicSupervisor,
         FirehoseSimulator.State,
         FirehoseSimulator.Metrics,
+        {Bandit,
+         plug: FirehoseSimulator.Metrics.PrometheusExporter,
+         ip: {0, 0, 0, 0},
+         port: prometheus_port},
         {PLC.OpLog, %{}},
         PLCWeb.Endpoint,
         PDSWeb.Endpoint,
         FirehoseSimulatorWeb.Endpoint
-      ] ++ prometheus_exporter_children()
+      ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -76,18 +81,5 @@ defmodule FirehoseSimulator.Application do
       {:error, _reason} = error ->
         error
     end
-  end
-
-  defp prometheus_exporter_children do
-    port =
-      Application.get_env(
-        :firehose_simulator,
-        :prometheus_exporter_port,
-        @default_prometheus_port
-      )
-
-    [
-      {Bandit, plug: FirehoseSimulator.Metrics.PrometheusExporter, ip: {0, 0, 0, 0}, port: port}
-    ]
   end
 end
