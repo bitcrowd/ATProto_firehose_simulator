@@ -188,12 +188,7 @@ defmodule FirehoseSimulator do
   @spec shift_simulation_plan(SimulationPlan.t(), integer()) :: SimulationPlan.t()
   def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms)
       when is_integer(offset_ms) do
-    %SimulationPlan{
-      posts: shift_events(simulation_plan.posts, offset_ms),
-      sessions: shift_events(simulation_plan.sessions, offset_ms),
-      follows: shift_events(simulation_plan.follows, offset_ms),
-      request_interval_ms: simulation_plan.request_interval_ms
-    }
+    SimulationPlan.shift(simulation_plan, offset_ms)
   end
 
   # Player
@@ -283,12 +278,4 @@ defmodule FirehoseSimulator do
 
   @spec status(String.t()) :: map() | {:error, term()}
   def status(player_id) when is_binary(player_id), do: Player.status(player_id)
-
-  defp shift_events(nil, _offset_ms), do: nil
-
-  defp shift_events(events, offset_ms) when is_list(events) do
-    Enum.map(events, fn event ->
-      Map.update!(event, :offset_ms, &(&1 + offset_ms))
-    end)
-  end
 end

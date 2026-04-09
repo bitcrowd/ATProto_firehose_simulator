@@ -76,6 +76,16 @@ defmodule FirehoseSimulator.SimulationPlan do
     JSON.encode(simulation_plan)
   end
 
+  @spec shift(t(), integer()) :: t()
+  def shift(%__MODULE__{} = simulation_plan, offset_ms) when is_integer(offset_ms) do
+    %__MODULE__{
+      posts: shift_events(simulation_plan.posts, offset_ms),
+      sessions: shift_events(simulation_plan.sessions, offset_ms),
+      follows: shift_events(simulation_plan.follows, offset_ms),
+      request_interval_ms: simulation_plan.request_interval_ms
+    }
+  end
+
   defp load_simulation_plan_params(nil), do: {:ok, %SimulationPlanParams{}}
 
   defp load_simulation_plan_params(path) when is_binary(path) do
@@ -138,4 +148,12 @@ defmodule FirehoseSimulator.SimulationPlan do
          sessions_params: %{request_interval_ms: request_interval_ms}
        }),
        do: request_interval_ms
+
+  defp shift_events(nil, _offset_ms), do: nil
+
+  defp shift_events(events, offset_ms) when is_list(events) do
+    Enum.map(events, fn event ->
+      Map.update!(event, :offset_ms, &(&1 + offset_ms))
+    end)
+  end
 end

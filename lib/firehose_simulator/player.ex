@@ -24,14 +24,12 @@ defmodule FirehoseSimulator.Player do
     player_id = next_player_id()
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
     request_interval_ms = simulation_plan.request_interval_ms || 30_000
-    time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
     simulation_plan_id = Keyword.get(opts, :simulation_plan_id)
 
     event_feeder_opts = [
       player_id: player_id,
       simulation_plan: simulation_plan,
-      time_offset_ms: time_offset_ms,
       request_interval_ms: request_interval_ms,
       scheduler_count: scheduler_count
     ]

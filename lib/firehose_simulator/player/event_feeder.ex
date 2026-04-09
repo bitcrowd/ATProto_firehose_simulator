@@ -31,8 +31,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     GenServer.cast(event_feeder, :start)
   end
 
-  def load_plan(event_feeder, %SimulationPlan{} = simulation_plan, opts \\ []) do
-    GenServer.call(event_feeder, {:load_plan, simulation_plan, opts}, :infinity)
+  def load_plan(event_feeder, %SimulationPlan{} = simulation_plan) do
+    GenServer.call(event_feeder, {:load_plan, simulation_plan}, :infinity)
   end
 
   def status(event_feeder) do
@@ -46,12 +46,11 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     store = Keyword.fetch!(opts, :store)
     request_interval_ms = Keyword.fetch!(opts, :request_interval_ms)
     scheduler_count = Keyword.fetch!(opts, :scheduler_count)
-    time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
 
     :ok = Store.ensure_partition_tables(store, scheduler_count)
     partition_tables = Store.partition_tables(store)
 
-    {sessions, posts, follows} = plan_events(simulation_plan, time_offset_ms)
+    {sessions, posts, follows} = plan_events(simulation_plan)
 
     Logger.info(
       "[EventFeeder] Loaded #{length(sessions)} sessions, #{length(posts)} posts, #{length(follows)} follows"
@@ -87,9 +86,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     {:reply, status, state}
   end
 
-  def handle_call({:load_plan, simulation_plan, opts}, _from, state) do
-    time_offset_ms = Keyword.get(opts, :time_offset_ms, 0)
-    {new_sessions, new_posts, new_follows} = plan_events(simulation_plan, time_offset_ms)
+  def handle_call({:load_plan, simulation_plan}, _from, state) do
+    {new_sessions, new_posts, new_follows} = plan_events(simulation_plan)
 
     sessions = merge_sorted_events(state.sessions, new_sessions, fn {offset, _, _} -> offset end)
     posts = merge_sorted_events(state.posts, new_posts, fn {offset, _} -> offset end)
@@ -340,39 +338,39 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     end
   end
 
-  defp plan_events(%SimulationPlan{} = simulation_plan, time_offset_ms) do
-    sessions = sessions_from_plan(simulation_plan.sessions, time_offset_ms)
-    posts = posts_from_plan(simulation_plan.posts, time_offset_ms)
-    follows = follows_from_plan(simulation_plan.follows, time_offset_ms)
+  defp plan_events(%SimulationPlan{} = simulation_plan) do
+    sessions = sessions_from_plan(simulation_plan.sessions)
+    posts = posts_from_plan(simulation_plan.posts)
+    follows = follows_from_plan(simulation_plan.follows)
     {sessions, posts, follows}
   end
 
-  defp sessions_from_plan(nil, _time_offset_ms), do: []
+  defp sessions_from_plan(nil), do: []
 
-  defp sessions_from_plan(sessions, time_offset_ms) when is_list(sessions) do
+  defp sessions_from_plan(sessions) when is_list(sessions) do
     sessions
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms} ->
-      {offset_ms + time_offset_ms, user_id, duration_ms}
+      {offset_ms, user_id, duration_ms}
     end)
     |> Enum.sort_by(fn {offset, _uid, _dur} -> offset end)
   end
 
-  defp posts_from_plan(nil, _time_offset_ms), do: []
+  defp posts_from_plan(nil), do: []
 
-  defp posts_from_plan(posts, time_offset_ms) when is_list(posts) do
+  defp posts_from_plan(posts) when is_list(posts) do
     posts
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id} ->
-      {offset_ms + time_offset_ms, user_id}
+      {offset_ms, user_id}
     end)
     |> Enum.sort_by(fn {offset, _uid} -> offset end)
   end
 
-  defp follows_from_plan(nil, _time_offset_ms), do: []
+  defp follows_from_plan(nil), do: []
 
-  defp follows_from_plan(follows, time_offset_ms) when is_list(follows) do
+  defp follows_from_plan(follows) when is_list(follows) do
     follows
     |> Enum.map(fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
-      {offset_ms + time_offset_ms, actor_id, subject_id}
+      {offset_ms, actor_id, subject_id}
     end)
     |> Enum.sort_by(fn {offset, _actor_id, _subject_id} -> offset end)
   end
