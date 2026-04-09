@@ -15,6 +15,7 @@ config :firehose_simulator,
 config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
 config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 config :firehose_simulator, :create_startup_userbase?, false
+config :firehose_simulator, :prometheus_exporter_enabled, false
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

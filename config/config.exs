@@ -10,7 +10,9 @@ import Config
 config :firehose_simulator,
   generators: [timestamp_type: :utc_datetime],
   create_startup_userbase?: true,
-  log_file_path: "log/firehose_simulator.log"
+  log_file_path: "log/firehose_simulator.log",
+  prometheus_exporter_enabled: true,
+  prometheus_exporter_port: 9568
 
 # Configure the endpoint
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,

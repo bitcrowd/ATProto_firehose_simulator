@@ -22,6 +22,9 @@ if System.get_env("PHX_SERVER") do
   config :firehose_simulator, PDSWeb.Endpoint, server: true
 end
 
+config :firehose_simulator,
+  prometheus_exporter_port: String.to_integer(System.get_env("PROMETHEUS_PORT", "9568"))
+
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 

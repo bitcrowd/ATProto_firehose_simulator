@@ -171,9 +171,8 @@ Flow in the web UI:
 3. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
 4. `Simulation`: select one available plan and play/stop/reset.
 
-When a running simulation is stopped or reset, the app writes a metrics-over-time
-report JSON file to `tmp/simulation_reports/` and shows the absolute file path in
-the Simulation page under "Recent simulation reports".
+Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be
+visualized in Grafana using the dashboard assets under `infra/`.
 
 Generate a simulation plan from params JSON:
 

@@ -1,0 +1,37 @@
+defmodule FirehoseSimulator.PrometheusExporterTest do
+  use ExUnit.Case, async: false
+
+  import Plug.Test
+
+  alias FirehoseSimulator.Metrics
+  alias FirehoseSimulator.PrometheusExporter
+
+  test "exports metrics in prometheus text format" do
+    :telemetry.execute(
+      [:firehose_simulator, :worker, :query],
+      %{latency_ms: 10, rows: 2},
+      %{status: :ok, player_id: "player-1"}
+    )
+
+    :telemetry.execute(
+      [:firehose_simulator, :worker, :cycle],
+      %{session_count: 1, ok: 1, errors: 0, completed: 0, timeouts: 0, duration_ms: 5},
+      %{partition: 0, player_id: "player-1"}
+    )
+
+    _snapshot = Metrics.snapshot()
+
+    conn = conn(:get, "/metrics")
+    conn = PrometheusExporter.call(conn, PrometheusExporter.init([]))
+    body = conn.resp_body
+
+    assert conn.status == 200
+    assert ["text/plain; charset=utf-8"] = Plug.Conn.get_resp_header(conn, "content-type")
+
+    assert body =~ "firehose_simulator_player_start_total"
+    assert body =~ "firehose_simulator_event_feeder_inject_total"
+    assert body =~ "firehose_simulator_worker_query_by_status{status=\"ok\"}"
+    assert body =~ "firehose_simulator_worker_cycle_by_partition{partition=\"0\"}"
+    assert body =~ "firehose_simulator_worker_query_window_p95_latency_ms"
+  end
+end

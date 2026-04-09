@@ -12,7 +12,6 @@ defmodule FirehoseSimulator.State do
           simulation_plans: %{optional(String.t()) => SimulationPlan.t()},
           selected_simulation_plan_id: String.t() | nil,
           running_players: %{optional(String.t()) => map()},
-          simulation_reports: %{optional(String.t()) => map()},
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -92,27 +91,6 @@ defmodule FirehoseSimulator.State do
   @spec clear_running_players() :: :ok
   def clear_running_players do
     GenServer.call(__MODULE__, :clear_running_players)
-  end
-
-  @spec list_simulation_reports() :: %{optional(String.t()) => map()}
-  def list_simulation_reports do
-    GenServer.call(__MODULE__, :list_simulation_reports)
-  end
-
-  @spec get_simulation_report(String.t()) :: map() | nil
-  def get_simulation_report(player_id) when is_binary(player_id) do
-    GenServer.call(__MODULE__, {:get_simulation_report, player_id})
-  end
-
-  @spec put_simulation_report(String.t(), map()) :: :ok
-  def put_simulation_report(player_id, report_metadata)
-      when is_binary(player_id) and is_map(report_metadata) do
-    GenServer.call(__MODULE__, {:put_simulation_report, player_id, report_metadata})
-  end
-
-  @spec clear_simulation_reports() :: :ok
-  def clear_simulation_reports do
-    GenServer.call(__MODULE__, :clear_simulation_reports)
   end
 
   @spec get_player_ids() :: map()
@@ -239,23 +217,6 @@ defmodule FirehoseSimulator.State do
     {:reply, :ok, %{state | running_players: %{}}}
   end
 
-  def handle_call(:list_simulation_reports, _from, state) do
-    {:reply, state.simulation_reports, state}
-  end
-
-  def handle_call({:get_simulation_report, player_id}, _from, state) do
-    {:reply, Map.get(state.simulation_reports, player_id), state}
-  end
-
-  def handle_call({:put_simulation_report, player_id, report_metadata}, _from, state) do
-    simulation_reports = Map.put(state.simulation_reports, player_id, report_metadata)
-    {:reply, :ok, %{state | simulation_reports: simulation_reports}}
-  end
-
-  def handle_call(:clear_simulation_reports, _from, state) do
-    {:reply, :ok, %{state | simulation_reports: %{}}}
-  end
-
   def handle_call({:put_userbase_result, userbase_uploaded?, userbase_result}, _from, state) do
     {:reply, :ok,
      %{state | userbase_uploaded?: userbase_uploaded?, userbase_result: userbase_result}}
@@ -271,7 +232,6 @@ defmodule FirehoseSimulator.State do
       simulation_plans: %{},
       selected_simulation_plan_id: nil,
       running_players: %{},
-      simulation_reports: %{},
       userbase_uploaded?: false,
       userbase_result: nil
     }
