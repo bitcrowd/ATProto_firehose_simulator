@@ -79,19 +79,15 @@ defmodule FirehoseSimulator.Application do
   end
 
   defp prometheus_exporter_children do
-    if Application.get_env(:firehose_simulator, :prometheus_exporter_enabled, true) do
-      port =
-        Application.get_env(
-          :firehose_simulator,
-          :prometheus_exporter_port,
-          @default_prometheus_port
-        )
+    port =
+      Application.get_env(
+        :firehose_simulator,
+        :prometheus_exporter_port,
+        @default_prometheus_port
+      )
 
-      [
-        {Bandit, plug: FirehoseSimulator.PrometheusExporter, ip: {0, 0, 0, 0}, port: port}
-      ]
-    else
-      []
-    end
+    [
+      {Bandit, plug: FirehoseSimulator.PrometheusExporter, ip: {0, 0, 0, 0}, port: port}
+    ]
   end
 end
