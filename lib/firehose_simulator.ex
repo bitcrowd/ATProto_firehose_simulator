@@ -12,6 +12,8 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.State
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.BaseData.Userbase
+  alias FirehoseSimulator.UserbaseExport
+  alias FirehoseSimulator.UserbaseImport
 
   @default_userbase_filename "priv/simulation/userbase.json"
   # Bulk Creation
@@ -37,6 +39,45 @@ defmodule FirehoseSimulator do
   @spec create_userbase(String.t()) :: {:ok, map()} | {:error, String.t()}
   def create_userbase(path) when is_binary(path) do
     create_userbase(path, database_connection())
+  end
+
+  @spec export_userbase_to_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
+  def export_userbase_to_csv(path) when is_binary(path) do
+    export_userbase_to_csv(path, UserbaseExport.default_export_root())
+  end
+
+  @spec export_userbase_to_csv(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
+  def export_userbase_to_csv(path, export_dir)
+      when is_binary(path) and is_binary(export_dir) do
+    export_userbase_to_csv(path, export_dir, [])
+  end
+
+  @spec export_userbase_to_csv(String.t(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, String.t()}
+  def export_userbase_to_csv(path, export_dir, opts)
+      when is_binary(path) and is_binary(export_dir) and is_list(opts) do
+    with {:ok, userbase} <- load_userbase(path),
+         {:ok, result} <- do_export_userbase_to_csv(userbase, export_dir, opts) do
+      {:ok, result}
+    end
+  end
+
+  @spec import_userbase_from_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
+  def import_userbase_from_csv(meta_path) when is_binary(meta_path) do
+    import_userbase_from_csv(meta_path, database_connection())
+  end
+
+  @spec import_userbase_from_csv(String.t(), DatabaseConnection.t()) ::
+          {:ok, map()} | {:error, String.t()}
+  def import_userbase_from_csv(meta_path, %DatabaseConnection{} = connection)
+      when is_binary(meta_path) do
+    do_import_userbase_from_csv(meta_path, connection)
+  end
+
+  @spec import_userbase_from_csv(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
+  def import_userbase_from_csv(meta_path, connection_string)
+      when is_binary(meta_path) and is_binary(connection_string) do
+    import_userbase_from_csv(meta_path, %DatabaseConnection{connection_string: connection_string})
   end
 
   @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
@@ -136,6 +177,34 @@ defmodule FirehoseSimulator do
       {:error, reason} ->
         Logger.error("failed to create userbase #{userbase.name}: #{reason}")
         {:error, reason}
+    end
+  end
+
+  defp do_export_userbase_to_csv(userbase, export_dir, opts) do
+    Logger.info("exporting userbase #{userbase.name} to csv under #{export_dir}")
+
+    case UserbaseExport.export(userbase, export_dir, opts) do
+      {:ok, result} = ok ->
+        Logger.info("exported userbase \"#{userbase.name}\": #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to export userbase #{userbase.name}: #{reason}")
+        error
+    end
+  end
+
+  defp do_import_userbase_from_csv(meta_path, connection) do
+    Logger.info("importing userbase from csv manifest #{meta_path}")
+
+    case UserbaseImport.import(meta_path, connection) do
+      {:ok, result} = ok ->
+        Logger.info("imported userbase from csv manifest #{meta_path}: #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to import userbase from csv manifest #{meta_path}: #{reason}")
+        error
     end
   end
 

@@ -176,8 +176,7 @@ userbase_path = "priv/simulation/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
 ```
 
-
-Generate a simulation plan from params JSON:
+ Generate a simulation plan from params JSON:
 
 `simulation_plan_params.json` supports an optional top-level `time_unit_duration_ms` field. If omitted, one time unit defaults to `86_400_000` ms (24 hours).
 Within `sessions_params`, `request_interval_ms` controls timeline request cadence for all sessions in the generated plan and defaults to `30_000` ms.
@@ -219,6 +218,26 @@ Use vacuum functions to either delete the full userbase footprint or vacuum post
 ```elixir
 {:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true, vacuum_posts?: true)
 ```
+
+### Userbase
+
+Export a userbase to CSV files plus a manifest:
+
+```elixir
+userbase_path = "priv/simulation/bluesky_userbase.json"
+{:ok, export_result} = FirehoseSimulator.export_userbase_to_csv(userbase_path, "priv/userbases")
+```
+
+Import that exported userbase into Postgres with `COPY`:
+
+```elixir
+db_url = "postgres://postgres:postgres@localhost:5432/dataplane"
+meta_path = export_result.meta_path
+{:ok, _result} = FirehoseSimulator.import_userbase_from_csv(meta_path, db_url)
+```
+
+The import path uses server-side `COPY FROM '/absolute/path.csv'`, so the Postgres server process must be able to read the exported CSV files.
+
 
 ### Simulation plans
 

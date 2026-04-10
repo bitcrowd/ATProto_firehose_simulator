@@ -201,6 +201,56 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
+  describe "export_userbase_to_csv/2" do
+    @tag :tmp_dir
+    test "exports a userbase json through the top-level api", %{tmp_dir: tmp_dir} do
+      userbase_path =
+        write_file!(
+          tmp_dir,
+          "userbase",
+          """
+          {
+            "name": "csv export",
+            "num_users": 4,
+            "max_active_user_id": 4,
+            "follower_density": 1.0
+          }
+          """
+        )
+
+      capture_log(fn ->
+        assert {:ok, result} = FirehoseSimulator.export_userbase_to_csv(userbase_path, tmp_dir)
+        assert File.exists?(result.meta_path)
+        assert File.exists?(result.actor_csv_path)
+        assert File.exists?(result.follow_csv_path)
+      end)
+    end
+  end
+
+  describe "import_userbase_from_csv/2" do
+    test "returns manifest file errors before attempting database work" do
+      connection = %DatabaseConnection{connection_string: "postgres://example"}
+
+      capture_log(fn ->
+        assert {:error, "cannot read userbase meta file at missing-userbase-meta.json"} =
+                 FirehoseSimulator.import_userbase_from_csv(
+                   "missing-userbase-meta.json",
+                   connection
+                 )
+      end)
+    end
+
+    test "accepts a connection string through the top-level api" do
+      capture_log(fn ->
+        assert {:error, "cannot read userbase meta file at missing-userbase-meta.json"} =
+                 FirehoseSimulator.import_userbase_from_csv(
+                   "missing-userbase-meta.json",
+                   "postgres://example"
+                 )
+      end)
+    end
+  end
+
   describe "bulk_create_simulation_plan/2" do
     test "returns connection validation errors before attempting database work" do
       connection = %DatabaseConnection{connection_string: "not-a-url"}

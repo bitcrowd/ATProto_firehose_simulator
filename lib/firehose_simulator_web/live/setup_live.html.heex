@@ -1,49 +1,54 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Setup
-    <:subtitle>Connect to your database and create a userbase from uploaded JSON.</:subtitle>
+    <:subtitle>
+      Connect to your database and either create a userbase or import one from a manifest.
+    </:subtitle>
   </.header>
 
-  <section id="setup-step" class="card bg-base-100 border border-base-300 shadow-sm">
-    <div class="card-body gap-5">
-      <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-circle-stack" class="size-5 text-primary" /> Step 1: Database + userbase
-      </div>
-
-      <.form
-        for={@form}
-        id="setup-form"
-        phx-change="validate"
-        phx-submit="create_userbase"
-        class="space-y-4"
-      >
-        <.input
-          field={@form[:db_connection_string]}
-          id="setup-db-connection-string"
-          type="text"
-          label="DB connection string"
-          required
-          autocomplete="off"
-        />
-
-        <div class="space-y-2">
-          <label for={@uploads.userbase.ref} class="label">Userbase JSON</label>
-          <.live_file_input
-            upload={@uploads.userbase}
-            id="setup-userbase-upload"
-            class="file-input w-full"
-          />
-          <p :if={@uploads.userbase.entries == []} class="text-sm text-base-content/70">
-            Upload one JSON file with userbase configuration.
-          </p>
-          <ul :if={@uploads.userbase.entries != []} class="text-sm text-base-content/70 space-y-1">
-            <li :for={entry <- @uploads.userbase.entries} id={"userbase-entry-#{entry.ref}"}>
-              {entry.client_name}
-            </li>
-          </ul>
+  <section id="setup-forms" class="grid gap-6 lg:grid-cols-2">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-sparkles" class="size-5 text-primary" /> Create userbase from JSON
         </div>
 
-        <div class="flex flex-wrap gap-3">
+        <.form
+          for={@generate_form}
+          id="setup-form"
+          phx-change="validate_generate"
+          phx-submit="create_userbase"
+          class="space-y-4"
+        >
+          <.input
+            field={@generate_form[:db_connection_string]}
+            id="setup-db-connection-string"
+            type="text"
+            label="DB connection string"
+            required
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.userbase.ref} class="label">Userbase JSON</label>
+            <.live_file_input
+              upload={@uploads.userbase}
+              id="setup-userbase-upload"
+              class="file-input w-full"
+            />
+            <p :if={@uploads.userbase.entries == []} class="text-sm text-base-content/70">
+              Upload one JSON file with userbase configuration.
+            </p>
+            <ul
+              :if={@uploads.userbase.entries != []}
+              class="text-sm text-base-content/70 space-y-1"
+            >
+              <li :for={entry <- @uploads.userbase.entries} id={"userbase-entry-#{entry.ref}"}>
+                {entry.client_name}
+              </li>
+            </ul>
+          </div>
+
           <.button id="setup-submit" type="submit" disabled={@creating_userbase?}>
             <span :if={@creating_userbase?} class="inline-flex items-center gap-2">
               <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
@@ -51,20 +56,89 @@
             </span>
             <span :if={!@creating_userbase?}>Create userbase</span>
           </.button>
-          <.button id="to-planning" navigate={~p"/planning"} variant="primary">
-            Go to planning
-          </.button>
-        </div>
-      </.form>
-
-      <div
-        :if={@state.userbase_result}
-        id="setup-result"
-        class="rounded-box border border-success/40 bg-success/10 p-4"
-      >
-        <p class="text-sm font-medium text-success">Latest userbase creation result</p>
-        <pre class="mt-2 text-xs overflow-auto">{inspect(@state.userbase_result, pretty: true)}</pre>
+        </.form>
       </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-arrow-down-tray" class="size-5 text-primary" />
+          Import userbase from manifest
+        </div>
+
+        <.form
+          for={@import_form}
+          id="setup-import-form"
+          phx-change="validate_import"
+          phx-submit="import_userbase"
+          class="space-y-4"
+        >
+          <.input
+            field={@import_form[:db_connection_string]}
+            id="setup-import-db-connection-string"
+            type="text"
+            label="DB connection string"
+            required
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.userbase_meta.ref} class="label">Userbase Meta JSON</label>
+            <.live_file_input
+              upload={@uploads.userbase_meta}
+              id="setup-userbase-meta-upload"
+              class="file-input w-full"
+            />
+            <p :if={@uploads.userbase_meta.entries == []} class="text-sm text-base-content/70">
+              Upload the `userbase_meta.json` file for an exported userbase.
+            </p>
+            <ul
+              :if={@uploads.userbase_meta.entries != []}
+              class="text-sm text-base-content/70 space-y-1"
+            >
+              <li
+                :for={entry <- @uploads.userbase_meta.entries}
+                id={"userbase-meta-entry-#{entry.ref}"}
+              >
+                {entry.client_name}
+              </li>
+            </ul>
+          </div>
+
+          <.button
+            id="setup-import-submit"
+            type="submit"
+            variant="primary"
+            disabled={@importing_userbase?}
+          >
+            <span :if={@importing_userbase?} class="inline-flex items-center gap-2">
+              <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+              Importing userbase...
+            </span>
+            <span :if={!@importing_userbase?}>Import userbase</span>
+          </.button>
+        </.form>
+      </div>
+    </div>
+  </section>
+
+  <section id="setup-actions" class="mt-6 flex flex-wrap gap-3">
+    <.button id="to-planning" navigate={~p"/planning"} variant="primary">
+      Go to planning
+    </.button>
+  </section>
+
+  <section
+    :if={@state.userbase_result}
+    id="setup-result"
+    class="card bg-base-100 border border-base-300 shadow-sm mt-6"
+  >
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <.icon name="hero-check-badge" class="size-5 text-success" /> Latest userbase result
+      </div>
+      <pre class="text-xs overflow-auto rounded-box border border-success/40 bg-success/10 p-4">{inspect(@state.userbase_result, pretty: true)}</pre>
     </div>
   </section>
 </Layouts.app>

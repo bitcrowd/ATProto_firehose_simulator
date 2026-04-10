@@ -177,11 +177,7 @@ defmodule FirehoseSimulator.BulkCreation do
 
     actor_rows =
       Enum.map(user_ids, fn user_id ->
-        %{
-          did: Data.did_for_user_id(user_id),
-          indexedAt: indexed_at,
-          trustedVerifier: false
-        }
+        actor_row(user_id, indexed_at)
       end)
 
     insert_all_in_batches(Actor, actor_rows, on_conflict: :nothing, conflict_target: [:did])
@@ -192,21 +188,7 @@ defmodule FirehoseSimulator.BulkCreation do
 
     follow_rows =
       Enum.map(rows, fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
-        did = Data.did_for_user_id(actor_id)
-        subject_did = Data.did_for_user_id(subject_id)
-        created_at = shifted_timestamp(base_time, offset_ms)
-
-        record =
-          Data.create_record(Data.follow_type(), subject: subject_did, created_at: created_at)
-
-        %{
-          uri: at_uri(did, Data.follow_type()),
-          cid: Data.cid_for_record(record),
-          creator: did,
-          subjectDid: subject_did,
-          createdAt: created_at,
-          indexedAt: indexed_timestamp(base_time, offset_ms)
-        }
+        follow_row(actor_id, subject_id, base_time, offset_ms)
       end)
 
     insert_all_in_batches(Follow, follow_rows, on_conflict: :nothing, conflict_target: [:uri])
@@ -253,6 +235,36 @@ defmodule FirehoseSimulator.BulkCreation do
   defp validate_connection_string("postgres://" <> _), do: :ok
   defp validate_connection_string("postgresql://" <> _), do: :ok
   defp validate_connection_string(_), do: {:error, "Connection string must be a postgres URL"}
+
+  @doc false
+  def actor_row(user_id, indexed_at) when is_integer(user_id) and is_binary(indexed_at) do
+    %{
+      did: Data.did_for_user_id(user_id),
+      indexedAt: indexed_at,
+      trustedVerifier: false
+    }
+  end
+
+  @doc false
+  def follow_row(actor_id, subject_id, base_time, offset_ms)
+      when is_integer(actor_id) and is_integer(subject_id) and is_struct(base_time, DateTime) and
+             is_integer(offset_ms) do
+    did = Data.did_for_user_id(actor_id)
+    subject_did = Data.did_for_user_id(subject_id)
+    created_at = shifted_timestamp(base_time, offset_ms)
+
+    record =
+      Data.create_record(Data.follow_type(), subject: subject_did, created_at: created_at)
+
+    %{
+      uri: at_uri(did, Data.follow_type()),
+      cid: Data.cid_for_record(record),
+      creator: did,
+      subjectDid: subject_did,
+      createdAt: created_at,
+      indexedAt: indexed_timestamp(base_time, offset_ms)
+    }
+  end
 
   defp insert_all_in_batches(_schema, [], _opts), do: :ok
 

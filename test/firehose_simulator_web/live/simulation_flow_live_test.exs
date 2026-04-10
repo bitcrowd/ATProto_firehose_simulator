@@ -27,6 +27,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   test "setup liveview uploads userbase and creates userbase", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/setup")
     assert has_element?(view, "#setup-db-connection-string")
+    assert has_element?(view, "#setup-import-db-connection-string")
 
     upload =
       file_input(view, "#setup-form", :userbase, [
@@ -36,11 +37,29 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     render_upload(upload, "userbase.json")
 
     view
-    |> form("#setup-form", %{"setup" => %{"db_connection_string" => "postgres://example"}})
+    |> form("#setup-form", %{"generate" => %{"db_connection_string" => "postgres://example"}})
     |> render_submit()
 
     assert has_element?(view, "#setup-result")
     assert render(view) =~ "Userbase created successfully."
+  end
+
+  test "setup liveview uploads manifest and imports userbase", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/setup")
+
+    upload =
+      file_input(view, "#setup-import-form", :userbase_meta, [
+        %{name: "userbase_meta.json", content: userbase_meta_json(), type: "application/json"}
+      ])
+
+    render_upload(upload, "userbase_meta.json")
+
+    view
+    |> form("#setup-import-form", %{"import" => %{"db_connection_string" => "postgres://example"}})
+    |> render_submit()
+
+    assert has_element?(view, "#setup-result")
+    assert render(view) =~ "Userbase imported successfully."
   end
 
   test "planning liveview generates and imports plans", %{conn: conn} do
@@ -208,6 +227,14 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       end
     end
 
+    def import_userbase_from_csv(path, connection_string) do
+      if File.exists?(path) and String.starts_with?(connection_string, "postgres://") do
+        {:ok, %{userbase_meta_path: path, db_connection_string: connection_string}}
+      else
+        {:error, "invalid import inputs"}
+      end
+    end
+
     def generate_simulation_plan_from_json(paths) do
       if is_binary(Keyword.get(paths, :simulation_plan_params)) and
            File.exists?(Keyword.fetch!(paths, :simulation_plan_params)) do
@@ -311,6 +338,33 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       "num_users": 100,
       "max_active_user_id": 10,
       "follower_density": 2.0
+    }
+    """
+  end
+
+  defp userbase_meta_json do
+    """
+    {
+      "version": 1,
+      "kind": "userbase",
+      "run_id": "demo-run",
+      "exported_at": "2025-01-01T00:00:00Z",
+      "userbase": {
+        "name": "demo",
+        "num_users": 10,
+        "max_active_user_id": 10,
+        "follower_density": 1.0
+      },
+      "files": {
+        "actor": {
+          "path": "/tmp/actor.csv",
+          "row_count": 10
+        },
+        "follow": {
+          "path": "/tmp/follow.csv",
+          "row_count": 20
+        }
+      }
     }
     """
   end
