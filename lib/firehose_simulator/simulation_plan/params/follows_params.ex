@@ -9,7 +9,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParams do
   alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
 
   @type t :: %__MODULE__{
-          n: pos_integer(),
+          num_users: pos_integer(),
           max_active_user_id: pos_integer(),
           follower_density: float(),
           seed: integer(),
@@ -19,7 +19,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParams do
 
   @primary_key false
   embedded_schema do
-    field(:n, :integer)
+    field(:num_users, :integer)
     field(:max_active_user_id, :integer)
     field(:follower_density, :float, default: 1.0)
     field(:seed, :integer)
@@ -55,9 +55,9 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParams do
 
   def changeset(follows, attrs) do
     follows
-    |> cast(attrs, [:n, :max_active_user_id, :follower_density, :seed, :time_units])
-    |> validate_required([:n, :max_active_user_id, :seed, :time_units])
-    |> validate_number(:n, greater_than: 0)
+    |> cast(attrs, [:num_users, :max_active_user_id, :follower_density, :seed, :time_units])
+    |> validate_required([:num_users, :max_active_user_id, :seed, :time_units])
+    |> validate_number(:num_users, greater_than: 0)
     |> validate_number(:max_active_user_id, greater_than: 0)
     |> validate_number(:follower_density, greater_than: 0)
     |> validate_number(:time_units, greater_than: 0)

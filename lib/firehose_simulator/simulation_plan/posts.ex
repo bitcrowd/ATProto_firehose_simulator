@@ -41,7 +41,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
     posts =
       build_posts(
         config.max_active_user_id,
-        config.n,
+        config.num_users,
         config.follower_density,
         config.time_units,
         config.tiers,
@@ -52,11 +52,18 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
     Enum.map(posts, &post_from_tuple/1)
   end
 
-  defp build_posts(max_active_user_id, n, follower_density, time_units, tiers, unit_duration_ms) do
+  defp build_posts(
+         max_active_user_id,
+         num_users,
+         follower_density,
+         time_units,
+         tiers,
+         unit_duration_ms
+       ) do
     for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id, reduce: [] do
       acc ->
         unit_offset = unit * unit_duration_ms
-        tier = lookup_tier(user_id, n, tiers, follower_density)
+        tier = lookup_tier(user_id, num_users, tiers, follower_density)
 
         new_posts =
           generate_posts(tier.posts_per_time_unit, user_id, unit_offset, unit_duration_ms)
@@ -93,8 +100,8 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
     base_posts ++ extra
   end
 
-  defp lookup_tier(user_id, n, tiers, follower_density) do
-    follower_count = FollowerGraph.follower_count(user_id, n, follower_density)
+  defp lookup_tier(user_id, num_users, tiers, follower_density) do
+    follower_count = FollowerGraph.follower_count(user_id, num_users, follower_density)
 
     Enum.find(tiers, List.last(tiers), fn tier ->
       follower_count <= tier.max_followers

@@ -5,7 +5,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
   alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
 
   @config %FollowsParams{
-    n: 100,
+    num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
     seed: 42,
@@ -29,7 +29,7 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
 
   test "generate/1 uses follower_density for tier matching" do
     config = %FollowsParams{
-      n: 10,
+      num_users: 10,
       max_active_user_id: 2,
       follower_density: 1.0,
       seed: 42,

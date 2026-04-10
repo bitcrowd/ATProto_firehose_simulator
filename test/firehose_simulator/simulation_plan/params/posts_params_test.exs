@@ -8,7 +8,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
       assert {:ok, %PostsParams{} = posts} =
                PostsParams.load("""
                {
-                 "n": 1000000,
+                 "num_users": 1000000,
                  "max_active_user_id": 5000,
                  "follower_density": 2.0,
                  "seed": 42,
@@ -29,7 +29,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
       assert {:ok, %PostsParams{} = posts} =
                PostsParams.load("""
                {
-                 "n": 10,
+                 "num_users": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
@@ -60,7 +60,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
       assert %PostsParams{} =
                PostsParams.load!("""
                {
-                 "n": 10,
+                 "num_users": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
@@ -81,7 +81,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.PostsParamsTest do
           "posts",
           """
           {
-            "n": 10,
+            "num_users": 10,
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,

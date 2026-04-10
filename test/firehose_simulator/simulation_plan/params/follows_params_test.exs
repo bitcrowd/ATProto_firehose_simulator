@@ -8,7 +8,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
       assert {:ok, %FollowsParams{} = follows} =
                FollowsParams.load("""
                {
-                 "n": 1000000,
+                 "num_users": 1000000,
                  "max_active_user_id": 5000,
                  "follower_density": 2.0,
                  "seed": 42,
@@ -29,7 +29,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
       assert {:ok, %FollowsParams{} = follows} =
                FollowsParams.load("""
                {
-                 "n": 10,
+                 "num_users": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
@@ -52,7 +52,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
       assert {:error, message} =
                FollowsParams.load("""
                {
-                 "n": 1000000,
+                 "num_users": 1000000,
                  "max_active_user_id": 5000,
                  "seed": 42,
                  "time_units": 1,
@@ -70,7 +70,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
       assert %FollowsParams{} =
                FollowsParams.load!("""
                {
-                 "n": 10,
+                 "num_users": 10,
                  "max_active_user_id": 5,
                  "seed": 1,
                  "time_units": 1,
@@ -91,7 +91,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.FollowsParamsTest do
           "follows",
           """
           {
-            "n": 10,
+            "num_users": 10,
             "max_active_user_id": 5,
             "seed": 1,
             "time_units": 1,

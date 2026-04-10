@@ -46,7 +46,7 @@ Simulation plans define timed events for posts, follows, and sessions. Plans can
 
 `PostsParams`, `FollowsParams`, and `SessionsParams` each validate:
 
-- `n` (required, integer > 0)
+- `num_users` (required, integer > 0)
 - `max_active_user_id` (required, integer > 0)
 - `follower_density` (optional, float > 0, default `1.0`)
 - `seed` (required integer)

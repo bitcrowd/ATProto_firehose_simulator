@@ -15,7 +15,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           {
             "time_unit_duration_ms": 3600000,
             "posts_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
               "seed": 1,
@@ -25,7 +25,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               ]
             },
             "sessions_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
               "seed": 1,
@@ -36,7 +36,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               ]
             },
             "follows_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
               "seed": 1,
@@ -87,7 +87,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           """
           {
             "posts_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 1,
               "seed": 1,
               "time_units": 1,
@@ -96,7 +96,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               ]
             },
             "sessions_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 1,
               "seed": 1,
               "time_units": 1,
@@ -105,7 +105,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               ]
             },
             "follows_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 1,
               "seed": 1,
               "time_units": 1,

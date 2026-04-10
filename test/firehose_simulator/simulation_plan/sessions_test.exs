@@ -5,7 +5,7 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
   alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
 
   @config %SessionsParams{
-    n: 100,
+    num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
     seed: 42,

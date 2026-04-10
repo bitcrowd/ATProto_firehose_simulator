@@ -10,7 +10,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                {
                  "time_unit_duration_ms": 3600000,
                  "posts_params": {
-                   "n": 10,
+                   "num_users": 10,
                    "max_active_user_id": 5,
                    "seed": 1,
                    "time_units": 1,
@@ -19,7 +19,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                    ]
                  },
                  "sessions_params": {
-                   "n": 10,
+                   "num_users": 10,
                    "max_active_user_id": 5,
                    "seed": 1,
                    "time_units": 1,
@@ -29,7 +29,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                    ]
                  },
                  "follows_params": {
-                   "n": 10,
+                   "num_users": 10,
                    "max_active_user_id": 5,
                    "seed": 1,
                    "time_units": 1,
@@ -41,10 +41,10 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                """)
 
       assert params.time_unit_duration_ms == 3_600_000
-      assert params.posts_params.n == 10
-      assert params.sessions_params.n == 10
+      assert params.posts_params.num_users == 10
+      assert params.sessions_params.num_users == 10
       assert params.sessions_params.request_interval_ms == 15_000
-      assert params.follows_params.n == 10
+      assert params.follows_params.num_users == 10
     end
 
     test "validates time_unit_duration_ms when provided" do

@@ -29,7 +29,7 @@ defmodule FirehoseSimulatorTest do
           """
           {
             "posts_params": {
-              "n": 10,
+              "num_users": 10,
               "max_active_user_id": 5,
               "seed": 1,
               "time_units": 1,
