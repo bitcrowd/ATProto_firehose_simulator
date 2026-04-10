@@ -31,14 +31,12 @@ The player executes simulation plans in real time using per-run process trees wi
 ### `play/2` Options
 
 - `:scheduler_count` (default `System.schedulers_online()`)
-- `:time_offset_ms` (default `0`)
 - `:worker_max_concurrency` (optional positive integer override)
 - `:simulation_plan_id` (optional metadata)
 
 ### Derived Runtime Parameters
 
 - `request_interval_ms` comes from `%SimulationPlan{request_interval_ms}`; default `30_000` if nil.
-- Scheduler worker concurrency defaults to `scheduler_db_pool_size / num_partitions` (minimum 1) when not explicitly set.
 
 ## Runtime Behavior
 
@@ -47,14 +45,43 @@ The player executes simulation plans in real time using per-run process trees wi
 - one `Store`
 - one worker per partition
 - one `EventFeeder`
-3. `EventFeeder` loads plan events, starts a check loop, and injects due sessions/posts/follows by elapsed wall-clock time.
+3. `EventFeeder` loads plan events, starts a check loop, injects due sessions into worker partitions, and emits due posts/follows as firehose commit payloads over PubSub.
 4. Workers continuously scan their ETS partition, run timeline queries concurrently, update session `next_request_at`, and retire expired sessions.
 5. Telemetry is emitted for injection, query, and cycle events.
 6. `stop/*` and `reset/*` terminate per-player supervisors and clean `State` metadata.
 7. `status/1` reports running state, loaded state, active/completed sessions, and feeder queue status.
 
-## Failure Modes
+```mermaid
+flowchart TD
+  A["Client calls FirehoseSimulator.play/2"] --> B["Player.play/2 builds player_id and child specs"]
+  B --> C["DynamicSupervisor starts Scheduler.Supervisor (per player)"]
+  C --> D["Store process"]
+  C --> E["EventFeeder process"]
+  C --> F["Scheduler.Worker processes (1 per partition)"]
 
-- Starting a player can fail with dynamic supervisor child-start errors.
-- Stopping/resetting an unknown player returns `{:error, :not_running}`.
-- Background query errors/timeouts are counted via telemetry and do not crash the whole player tree by default.
+  E --> G["Load simulation plan events"]
+  G --> H["Check loop compares elapsed wall-clock time"]
+  H --> I["Inject due sessions into Store ETS partitions"]
+  I --> J["Emit injection telemetry (sessions_started)"]
+  H --> K["Dispatch due post events"]
+  H --> L["Dispatch due follow events"]
+  K --> M["Build commit payload via Player.Event"]
+  L --> N["Build commit payload via Player.Event"]
+  M --> O["PubSub broadcast to firehose topic"]
+  N --> O
+  O --> P["SubscribeSocket pushes binary events to connected clients"]
+  H --> H
+
+  F --> Q["Worker cycle scans ETS partition"]
+  Q --> R["Run timeline queries concurrently"]
+  R --> S["Update session next_request_at"]
+  S --> T["Retire expired/completed sessions"]
+  T --> U["Emit query and cycle telemetry"]
+  U --> Q
+
+  V["FirehoseSimulator.status/1"] --> W["Read State + feeder/store counters"]
+  W --> X["Return running/loaded/active/completed status"]
+
+  Y["FirehoseSimulator.stop/* or reset/*"] --> Z["Terminate per-player supervisor tree"]
+  Z --> AA["Clear player metadata in State"]
+```
