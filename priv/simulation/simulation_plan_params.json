@@ -1,7 +1,7 @@
 {
-  "time_unit_duration_ms": 86400000,
+  "time_unit_duration_ms": 1200000,
   "posts_params": {
-    "n": 100000,
+    "num_users": 100000,
     "max_active_user_id": 10000,
     "follower_density": 5.0,
     "seed": 43,
@@ -13,7 +13,7 @@
     ]
   },
   "sessions_params": {
-    "n": 100000,
+    "num_users": 100000,
     "max_active_user_id": 10000,
     "follower_density": 5.0,
     "seed": 42,
@@ -26,7 +26,7 @@
     ]
   },
   "follows_params": {
-    "n": 100000,
+    "num_users": 100000,
     "max_active_user_id": 10000,
     "follower_density": 5.0,
     "seed": 44,
