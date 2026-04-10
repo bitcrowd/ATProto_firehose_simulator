@@ -1,4 +1,4 @@
-defmodule FirehoseSimulatorWeb.SubscribeSocket do
+defmodule FirehoseSimulatorWeb.SyncSocket do
   @behaviour Phoenix.Socket.Transport
 
   alias Phoenix.PubSub

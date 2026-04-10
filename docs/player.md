@@ -69,7 +69,7 @@ flowchart TD
   L --> N["Build commit payload via Player.Event"]
   M --> O["PubSub broadcast to firehose topic"]
   N --> O
-  O --> P["SubscribeSocket pushes binary events to connected clients"]
+  O --> P["SyncSocket pushes binary events to connected clients"]
   H --> H
 
   F --> Q["Worker cycle scans ETS partition"]
