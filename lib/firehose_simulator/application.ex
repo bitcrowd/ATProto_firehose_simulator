@@ -24,6 +24,7 @@ defmodule FirehoseSimulator.Application do
         {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
         {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
         {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
+        {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
         FirehoseSimulator.State,
         FirehoseSimulator.Metrics,
         {Bandit,

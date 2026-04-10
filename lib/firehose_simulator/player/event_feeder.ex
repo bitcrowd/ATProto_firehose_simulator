@@ -13,17 +13,10 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   alias Phoenix.PubSub
 
   @check_interval_ms 100
-  @post_batch_concurrency 10
-  @follow_batch_concurrency 10
 
   def start_link(opts) do
-    name = Keyword.get(opts, :name)
-
-    if name do
-      GenServer.start_link(__MODULE__, opts, name: name)
-    else
-      GenServer.start_link(__MODULE__, opts)
-    end
+    name = Keyword.get(opts, :name, __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def start_feeding(event_feeder) do
@@ -65,8 +58,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
        scheduler_count: scheduler_count,
        next_session_id: 1,
        started_at: nil,
-       post_task: nil,
-       follow_task: nil
+       post_tasks: [],
+       follow_tasks: []
      }}
   end
 
@@ -145,47 +138,52 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     {:noreply, state}
   end
 
-  def handle_info({ref, post_results}, %{post_task: ref} = state) when is_reference(ref) do
-    Process.demonitor(ref, [:flush])
+  def handle_info({ref, results}, state) when is_reference(ref) do
+    cond do
+      ref in state.post_tasks ->
+        Process.demonitor(ref, [:flush])
 
-    :telemetry.execute(
-      [:firehose_simulator, :event_feeder, :inject],
-      %{
-        sessions_started: 0,
-        posts_ok: post_results.ok,
-        posts_error: post_results.error,
-        follows_ok: 0,
-        follows_error: 0
-      },
-      telemetry_metadata(state, %{})
-    )
+        :telemetry.execute(
+          [:firehose_simulator, :event_feeder, :inject],
+          %{
+            sessions_started: 0,
+            posts_ok: results.ok,
+            posts_error: results.error,
+            follows_ok: 0,
+            follows_error: 0
+          },
+          telemetry_metadata(state, %{})
+        )
 
-    {:noreply, %{state | post_task: nil}}
-  end
+        {:noreply, %{state | post_tasks: List.delete(state.post_tasks, ref)}}
 
-  def handle_info({ref, follow_results}, %{follow_task: ref} = state) when is_reference(ref) do
-    Process.demonitor(ref, [:flush])
+      ref in state.follow_tasks ->
+        Process.demonitor(ref, [:flush])
 
-    :telemetry.execute(
-      [:firehose_simulator, :event_feeder, :inject],
-      %{
-        sessions_started: 0,
-        posts_ok: 0,
-        posts_error: 0,
-        follows_ok: follow_results.ok,
-        follows_error: follow_results.error
-      },
-      telemetry_metadata(state, %{})
-    )
+        :telemetry.execute(
+          [:firehose_simulator, :event_feeder, :inject],
+          %{
+            sessions_started: 0,
+            posts_ok: 0,
+            posts_error: 0,
+            follows_ok: results.ok,
+            follows_error: results.error
+          },
+          telemetry_metadata(state, %{})
+        )
 
-    {:noreply, %{state | follow_task: nil}}
+        {:noreply, %{state | follow_tasks: List.delete(state.follow_tasks, ref)}}
+
+      true ->
+        {:noreply, state}
+    end
   end
 
   def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
     state =
       cond do
-        state.post_task == ref -> %{state | post_task: nil}
-        state.follow_task == ref -> %{state | follow_task: nil}
+        ref in state.post_tasks -> %{state | post_tasks: List.delete(state.post_tasks, ref)}
+        ref in state.follow_tasks -> %{state | follow_tasks: List.delete(state.follow_tasks, ref)}
         true -> state
       end
 
@@ -195,13 +193,13 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
     state =
       cond do
-        state.post_task == ref ->
+        ref in state.post_tasks ->
           Logger.error("[EventFeeder] post batch task crashed: #{inspect(reason)}")
-          %{state | post_task: nil}
+          %{state | post_tasks: List.delete(state.post_tasks, ref)}
 
-        state.follow_task == ref ->
+        ref in state.follow_tasks ->
           Logger.error("[EventFeeder] follow batch task crashed: #{inspect(reason)}")
-          %{state | follow_task: nil}
+          %{state | follow_tasks: List.delete(state.follow_tasks, ref)}
 
         true ->
           state
@@ -234,10 +232,10 @@ defmodule FirehoseSimulator.Player.EventFeeder do
                                                                           {sid, sc} ->
         session =
           new_session(
-            id: sid,
-            user_id: user_id,
-            duration_ms: duration_ms,
-            request_interval_ms: state.request_interval_ms
+            sid,
+            duration_ms,
+            state.request_interval_ms,
+            user_id
           )
 
         partition = rem(:erlang.phash2(sid), sc)
@@ -250,10 +248,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     {%{state | sessions: remaining, next_session_id: next_id}, length(due)}
   end
 
-  defp maybe_dispatch_posts(%{post_task: task} = state, _elapsed_ms) when task != nil do
-    state
-  end
-
   defp maybe_dispatch_posts(state, elapsed_ms) do
     {due, remaining} =
       Enum.split_while(state.posts, fn {offset, _uid} -> offset <= elapsed_ms end)
@@ -262,37 +256,26 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       %{state | posts: remaining}
     else
       task =
-        Task.async(fn ->
-          due
-          |> Task.async_stream(
-            fn {_offset, user_id} -> {user_id, emit_post_event(user_id)} end,
-            max_concurrency: @post_batch_concurrency,
-            timeout: 30_000,
-            on_timeout: :kill_task
+        Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
+          Enum.map(
+            due,
+            fn {_offset, user_id} -> {user_id, emit_post_event(user_id)} end
           )
           |> Enum.reduce(%{ok: 0, error: 0}, fn
-            {:ok, {_user_id, :ok}}, acc ->
+            {_user_id, :ok}, acc ->
               %{acc | ok: acc.ok + 1}
 
-            {:ok, {user_id, {:error, reason}}}, acc ->
+            {user_id, {:error, reason}}, acc ->
               Logger.warning(
-                "[EventFeeder] create_post failed for user #{user_id}: #{inspect(reason)}"
+                "[EventFeeder] emit post failed for user #{user_id}: #{inspect(reason)}"
               )
 
-              %{acc | error: acc.error + 1}
-
-            {:exit, reason}, acc ->
-              Logger.error("[EventFeeder] create_post task crashed: #{inspect(reason)}")
               %{acc | error: acc.error + 1}
           end)
         end)
 
-      %{state | posts: remaining, post_task: task.ref}
+      %{state | posts: remaining, post_tasks: [task.ref | state.post_tasks]}
     end
-  end
-
-  defp maybe_dispatch_follows(%{follow_task: task} = state, _elapsed_ms) when task != nil do
-    state
   end
 
   defp maybe_dispatch_follows(state, elapsed_ms) do
@@ -305,34 +288,27 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       %{state | follows: remaining}
     else
       task =
-        Task.async(fn ->
-          due
-          |> Task.async_stream(
+        Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
+          Enum.map(
+            due,
             fn {_offset, actor_id, subject_id} ->
               {{actor_id, subject_id}, emit_follow_event(actor_id, subject_id)}
-            end,
-            max_concurrency: @follow_batch_concurrency,
-            timeout: 30_000,
-            on_timeout: :kill_task
+            end
           )
           |> Enum.reduce(%{ok: 0, error: 0}, fn
-            {:ok, {{_actor_id, _subject_id}, :ok}}, acc ->
+            {{_actor_id, _subject_id}, :ok}, acc ->
               %{acc | ok: acc.ok + 1}
 
-            {:ok, {{actor_id, subject_id}, {:error, reason}}}, acc ->
+            {{actor_id, subject_id}, {:error, reason}}, acc ->
               Logger.warning(
-                "[EventFeeder] toggle_follow failed for #{actor_id}->#{subject_id}: #{inspect(reason)}"
+                "[EventFeeder] emit follow failed for #{actor_id}->#{subject_id}: #{inspect(reason)}"
               )
 
-              %{acc | error: acc.error + 1}
-
-            {:exit, reason}, acc ->
-              Logger.error("[EventFeeder] toggle_follow task crashed: #{inspect(reason)}")
               %{acc | error: acc.error + 1}
           end)
         end)
 
-      %{state | follows: remaining, follow_task: task.ref}
+      %{state | follows: remaining, follow_tasks: [task.ref | state.follow_tasks]}
     end
   end
 
@@ -390,9 +366,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       })
 
     PubSub.broadcast(FirehoseSimulator.PubSub, "firehose", payload)
-    :ok
-  rescue
-    error -> {:error, error}
   end
 
   defp emit_follow_event(actor_id, subject_id) do
@@ -405,20 +378,14 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       })
 
     PubSub.broadcast(FirehoseSimulator.PubSub, "firehose", payload)
-    :ok
-  rescue
-    error -> {:error, error}
   end
 
-  defp new_session(opts) do
-    id = Keyword.fetch!(opts, :id)
-    duration_ms = Keyword.fetch!(opts, :duration_ms)
-    interval = Keyword.fetch!(opts, :request_interval_ms)
+  defp new_session(id, duration_ms, interval, user_id) do
     now = System.monotonic_time(:millisecond)
 
     %{
       id: id,
-      user_id: Keyword.get(opts, :user_id, id),
+      user_id: user_id,
       duration_ms: duration_ms,
       request_interval_ms: interval,
       next_request_at: now + rem(id, interval),
