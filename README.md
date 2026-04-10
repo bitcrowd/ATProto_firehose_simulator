@@ -149,38 +149,38 @@ Start the server in IEx:
 iex -S mix phx.server
 ```
 
-In IEx, create your userbase with a DB connection string and userbase JSON file:
+Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be visualized in Grafana using the dashboard assets under `infra/`.
+
+```bash
+cd infra
+docker compose up
+```
+
+Grafana is available at `http:localhost:3000`.
+
+## Web UI
+
+1. `Setup`: configure database connection and create the userbase.
+2. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
+3. `Simulation`: select one available plan and play/stop/reset.
+4. `Vacuum`: run delete userbase and/or vacuum posts actions.
+
+
+## In IEx
+
+Create your userbase with a DB connection string and userbase JSON file:
 
 ```elixir
-db_url = "postgres://postgres:postgres@localhost:5432/atproto_blacksky?options=-csearch_path%3Dbsky"
+db_url = "postgres://postgres:postgres@localhost:5432/dataplane"
 userbase_path = "priv/simulation/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
 ```
 
-You can also run vacuum actions from IEx to either delete the full userbase footprint or vacuum posts:
-
-```elixir
-{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true)
-{:ok, _result} = FirehoseSimulator.vacuum(db_url, vacuum_posts?: true)
-```
-
-Flow in the web UI:
-
-1. `Setup`: configure database connection and create the userbase.
-2. `Vacuum`: run delete userbase and/or vacuum posts actions.
-3. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
-4. `Simulation`: select one available plan and play/stop/reset.
-
-Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be
-visualized in Grafana using the dashboard assets under `infra/`.
 
 Generate a simulation plan from params JSON:
 
-`simulation_plan_params.json` supports an optional top-level
-`"time_unit_duration_ms"` field. If omitted, one time unit defaults to
-`86_400_000` ms (24 hours).
-Within `"sessions_params"`, `"request_interval_ms"` controls timeline request
-cadence for all sessions in the generated plan and defaults to `30_000` ms.
+`simulation_plan_params.json` supports an optional top-level `time_unit_duration_ms` field. If omitted, one time unit defaults to `86_400_000` ms (24 hours).
+Within `sessions_params`, `request_interval_ms` controls timeline request cadence for all sessions in the generated plan and defaults to `30_000` ms.
 
 ```elixir
 {:ok, simulation_plan} =
@@ -189,23 +189,16 @@ cadence for all sessions in the generated plan and defaults to `30_000` ms.
   )
 ```
 
-Export and re-import full simulation plan structs as JSON:
-
-```elixir
-:ok =
-  FirehoseSimulator.export_simulation_plan_to_json(
-    simulation_plan,
-    "/tmp/simulation-plan.json"
-  )
-
-{:ok, imported_plan} =
-  FirehoseSimulator.import_simulation_plan_from_json("/tmp/simulation-plan.json")
-```
 
 Play the plan:
 
 ```elixir
-{:ok, player_id, _result} = FirehoseSimulator.play(imported_plan)
+{:ok, player_id, _result} = FirehoseSimulator.play(simulation_plan)
+```
+
+You can play multiple plans at the same time: 
+```elixir
+{:ok, player_id_2, _result} = FirehoseSimulator.play(simulation_plan)
 ```
 
 Stop and reset a specific player:
@@ -221,6 +214,13 @@ Stop/reset all running players:
 :ok = FirehoseSimulator.stop_all()
 :ok = FirehoseSimulator.reset_all()
 ```
+Use vacuum functions to either delete the full userbase footprint or vacuum posts:
+
+```elixir
+{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true, vacuum_posts?: true)
+```
+
+### Simulation plans
 
 Shift an in-memory simulation plan by a millisecond offset:
 
@@ -232,4 +232,14 @@ Shift an in-memory simulation plan by a millisecond offset:
 
 shifted_simulation_plan = FirehoseSimulator.shift_simulation_plan(simulation_plan, 5_000)
 {:ok, _player_id, _result} = FirehoseSimulator.play(shifted_simulation_plan)
+```
+
+Export and re-import full simulation plan as JSON:
+
+```elixir
+:ok =
+  FirehoseSimulator.export_simulation_plan_to_json(simulation_plan, "simulation-plan.json")
+
+{:ok, imported_plan} =
+  FirehoseSimulator.import_simulation_plan_from_json("simulation-plan.json")
 ```
