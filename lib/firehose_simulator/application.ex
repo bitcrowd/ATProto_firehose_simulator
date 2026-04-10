@@ -54,7 +54,9 @@ defmodule FirehoseSimulator.Application do
   end
 
   defp configure_file_logging do
-    log_file_path = Application.get_env(:firehose_simulator, :log_file_path, @default_log_file)
+    log_file_path =
+      Application.get_env(:firehose_simulator, :log_file_path, @default_log_file)
+      |> timestamped_log_file_path()
 
     with :ok <- File.mkdir_p(Path.dirname(log_file_path)),
          :ok <- ensure_file_handler(log_file_path) do
@@ -82,5 +84,13 @@ defmodule FirehoseSimulator.Application do
       {:error, _reason} = error ->
         error
     end
+  end
+
+  defp timestamped_log_file_path(log_file_path) do
+    timestamp = DateTime.utc_now() |> Calendar.strftime("%Y%m%dT%H%M%SZ")
+    directory = Path.dirname(log_file_path)
+    basename = Path.basename(log_file_path)
+
+    Path.join(directory, "#{timestamp}_#{basename}")
   end
 end
