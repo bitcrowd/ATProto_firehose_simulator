@@ -8,14 +8,8 @@ defmodule FirehoseSimulator.Player.Store do
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    name = Keyword.fetch!(opts, :name)
-    GenServer.start_link(__MODULE__, :ok, name: name)
-  end
-
-  @spec ensure_partition_tables(GenServer.server(), pos_integer()) :: :ok
-  def ensure_partition_tables(store, num_partitions)
-      when is_integer(num_partitions) and num_partitions > 0 do
-    GenServer.call(store, {:ensure_partition_tables, num_partitions})
+    {name, opts} = Keyword.pop!(opts, :name)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   @spec partition_tables(GenServer.server()) :: partition_tables()
@@ -49,7 +43,20 @@ defmodule FirehoseSimulator.Player.Store do
   end
 
   @impl true
-  def init(:ok) do
+  def init(opts) do
+    num_partitions = Keyword.fetch!(opts, :num_partitions)
+
+    partition_tables =
+      for i <- 0..(num_partitions - 1), into: %{} do
+        {i,
+         :ets.new(:sessions, [
+           :set,
+           :public,
+           read_concurrency: true,
+           write_concurrency: true
+         ])}
+      end
+
     completed_table =
       :ets.new(:completed_sessions, [
         :set,
@@ -59,26 +66,10 @@ defmodule FirehoseSimulator.Player.Store do
 
     :ets.insert(completed_table, {:count, 0})
 
-    {:ok, %{completed_table: completed_table, partition_tables: %{}}}
+    {:ok, %{completed_table: completed_table, partition_tables: partition_tables}}
   end
 
   @impl true
-  def handle_call({:ensure_partition_tables, num_partitions}, _from, state) do
-    partition_tables =
-      Enum.reduce(0..(num_partitions - 1), state.partition_tables, fn partition, acc ->
-        Map.put_new_lazy(acc, partition, fn ->
-          :ets.new(:sessions, [
-            :set,
-            :public,
-            read_concurrency: true,
-            write_concurrency: true
-          ])
-        end)
-      end)
-
-    {:reply, :ok, %{state | partition_tables: partition_tables}}
-  end
-
   def handle_call(:partition_tables, _from, state) do
     {:reply, state.partition_tables, state}
   end

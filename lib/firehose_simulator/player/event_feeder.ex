@@ -46,7 +46,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     request_interval_ms = Keyword.fetch!(opts, :request_interval_ms)
     scheduler_count = Keyword.fetch!(opts, :scheduler_count)
 
-    :ok = Store.ensure_partition_tables(store, scheduler_count)
     partition_tables = Store.partition_tables(store)
 
     {sessions, posts, follows} = plan_events(simulation_plan)

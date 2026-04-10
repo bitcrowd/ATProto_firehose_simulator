@@ -6,12 +6,6 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
   1. Scans its ETS partition for sessions due for a get_timeline request
   2. Executes get_timeline in parallel via Task.async_stream
   3. Removes expired sessions
-
-  ## Parallelism
-
-  Since get_timeline is a DB call (I/O bound), each worker spawns tasks to
-  parallelize the queries. The `max_concurrency` is bounded by the DB pool
-  size divided by the number of workers, so we don't exhaust connections.
   """
   use GenServer
 
@@ -36,11 +30,10 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       if is_integer(configured_max_concurrency) and configured_max_concurrency > 0 do
         configured_max_concurrency
       else
-        pool_size = Application.get_env(:firehose_simulator, :scheduler_db_pool_size, 50)
+        pool_size = 50
         max(div(pool_size, num_partitions), 1)
       end
 
-    :ok = Store.ensure_partition_tables(store, num_partitions)
     table = store |> Store.partition_tables() |> Map.fetch!(partition)
     completed_table = Store.completed_table(store)
 

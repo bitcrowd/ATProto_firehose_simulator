@@ -15,7 +15,7 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
     store_name =
       {:via, Registry, {FirehoseSimulator.Player.Registry, {"event-feeder-test", self()}}}
 
-    store = start_supervised!({Store, [name: store_name]})
+    store = start_supervised!({Store, [name: store_name, num_partitions: 1]})
 
     event_feeder =
       start_supervised!(
