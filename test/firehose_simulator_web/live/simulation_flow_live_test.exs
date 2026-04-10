@@ -288,7 +288,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
            delete_userbase?: delete_userbase?,
            vacuum_posts?: vacuum_posts?,
            deleted: %{actors: 10, posts: 20, follows: 30},
-           vacuum: %{table: "bsky.post", mode: "full"}
+           vacuum: %{
+             tables: ["bsky.post", "bsky.record", "bsky.feed_item"],
+             mode: "full"
+           }
          }}
       else
         {:error, "invalid vacuum inputs"}

@@ -44,9 +44,20 @@ defmodule FirehoseSimulator.BulkCreation.Vacuum do
   defp maybe_vacuum_posts(false), do: {:ok, nil}
 
   defp maybe_vacuum_posts(true) do
-    case DynamicRepo.query("VACUUM FULL bsky.post", [], timeout: :infinity) do
-      {:ok, _result} -> {:ok, %{table: "bsky.post", mode: "full"}}
-      {:error, reason} -> {:error, format_db_error(reason)}
+    tables = ["bsky.post", "bsky.record", "bsky.feed_item"]
+
+    Enum.reduce_while(tables, {:ok, []}, fn table, {:ok, vacuumed_tables} ->
+      case DynamicRepo.query("VACUUM FULL #{table}", [], timeout: :infinity) do
+        {:ok, _result} -> {:cont, {:ok, [table | vacuumed_tables]}}
+        {:error, reason} -> {:halt, {:error, format_db_error(reason)}}
+      end
+    end)
+    |> case do
+      {:ok, vacuumed_tables} ->
+        {:ok, %{tables: Enum.reverse(vacuumed_tables), mode: "full"}}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
