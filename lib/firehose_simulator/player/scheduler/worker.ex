@@ -123,7 +123,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
 
                 other ->
                   Logger.warning(
-                    "[Worker #{state.partition}] unexpected AppView timeline response: #{inspect(other)}"
+                    "[Worker #{state.partition}] unexpected timeline response: #{inspect(other)}"
                   )
 
                   []
