@@ -596,7 +596,7 @@
             "uid": "affq5fvep7mrke"
           },
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_query_count",
+          "expr": "firehose_simulator_active_sessions",
           "instant": false,
           "legendFormat": "Active Sessions",
           "range": true,

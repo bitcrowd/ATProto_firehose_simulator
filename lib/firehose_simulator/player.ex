@@ -168,6 +168,23 @@ defmodule FirehoseSimulator.Player do
     }
   end
 
+  @spec active_sessions_total() :: non_neg_integer()
+  def active_sessions_total do
+    active_sessions_by_player()
+    |> Map.values()
+    |> Enum.sum()
+  end
+
+  @spec active_sessions_by_player() :: %{optional(String.t()) => non_neg_integer()}
+  def active_sessions_by_player do
+    State.list_running_players()
+    |> Map.keys()
+    |> Enum.map(fn player_id ->
+      {player_id, safe_store_count(via(player_id, :store), :active)}
+    end)
+    |> Map.new()
+  end
+
   defp scheduler_pid(player_id) do
     lookup(player_id, :scheduler_supervisor)
   end
