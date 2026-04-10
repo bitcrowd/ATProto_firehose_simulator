@@ -4,6 +4,7 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.Player.Store
+  alias FirehoseSimulator.Metrics
 
   setup do
     Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, "firehose")
@@ -37,5 +38,19 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
 
     assert_receive [_, _], 1_000
     assert_receive [_, _], 1_000
+
+    # wait for async task telemetry to be ingested
+    Process.sleep(50)
+    snapshot = Metrics.snapshot()
+
+    assert snapshot.event_feeder_posts_dispatch_count >= 1
+    assert snapshot.event_feeder_posts_dispatched >= 1
+    assert snapshot.event_feeder_posts_complete_count >= 1
+    assert snapshot.event_feeder_posts_ok >= 1
+
+    assert snapshot.event_feeder_follows_dispatch_count >= 1
+    assert snapshot.event_feeder_follows_dispatched >= 1
+    assert snapshot.event_feeder_follows_complete_count >= 1
+    assert snapshot.event_feeder_follows_ok >= 1
   end
 end

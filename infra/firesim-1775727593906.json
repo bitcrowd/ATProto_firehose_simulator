@@ -80,20 +80,7 @@
           },
           "unit": "rowspm"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Post duration"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "ms"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -119,8 +106,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_posts_ok_total[1m]) + rate(firehose_simulator_event_feeder_posts_error_total[1m])",
-          "legendFormat": "Posts Planned",
+          "expr": "rate(firehose_simulator_event_feeder_posts_dispatched_total[1m])",
+          "legendFormat": "Posts dispatched",
           "range": true,
           "refId": "A"
         },
@@ -154,11 +141,11 @@
             "uid": "affq5fvep7mrke"
           },
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_worker_query_latency_ms_total[1m]) / rate(firehose_simulator_worker_query_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_posts_complete_total[1m])",
           "instant": false,
-          "legendFormat": "Post duration",
+          "legendFormat": "Post batches complete",
           "range": true,
-          "refId": "D"
+          "refId": "E"
         }
       ],
       "title": "Posts",
@@ -250,24 +237,31 @@
       "targets": [
         {
           "editorMode": "code",
+          "expr": "rate(firehose_simulator_event_feeder_follows_dispatched_total[1m])",
+          "legendFormat": "Follows dispatched",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
           "expr": "rate(firehose_simulator_event_feeder_follows_ok_total[1m])",
           "legendFormat": "Follows ok",
           "range": true,
-          "refId": "A"
+          "refId": "B"
         },
         {
           "editorMode": "code",
           "expr": "rate(firehose_simulator_event_feeder_follows_error_total[1m])",
           "legendFormat": "Follows error",
           "range": true,
-          "refId": "B"
+          "refId": "C"
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_follows_ok_total[1m]) + rate(firehose_simulator_event_feeder_follows_error_total[1m])",
-          "legendFormat": "Follows total",
+          "expr": "rate(firehose_simulator_event_feeder_follows_complete_total[1m])",
+          "legendFormat": "Follow batches complete",
           "range": true,
-          "refId": "C"
+          "refId": "D"
         }
       ],
       "title": "Follows",
@@ -361,30 +355,6 @@
                 "value": "none"
               }
             ]
-          },
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Post Duration"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": true,
-                  "viz": true
-                }
-              }
-            ]
           }
         ]
       },
@@ -444,18 +414,6 @@
           "legendFormat": "p99 get_timeline",
           "range": true,
           "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "affq5fvep7mrke"
-          },
-          "editorMode": "code",
-          "expr": "rate(firehose_simulator_worker_cycle_duration_ms_total[1m]) / rate(firehose_simulator_worker_cycle_total[1m])",
-          "instant": false,
-          "legendFormat": "Post Duration",
-          "range": true,
-          "refId": "H"
         },
         {
           "datasource": {

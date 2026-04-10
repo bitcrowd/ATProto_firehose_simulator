@@ -30,12 +30,42 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
           "firehose_simulator_event_feeder_sessions_started_total",
           snapshot.event_feeder_sessions_started
         ),
+        "# TYPE firehose_simulator_event_feeder_posts_dispatch_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_posts_dispatch_total",
+          snapshot.event_feeder_posts_dispatch_count
+        ),
+        "# TYPE firehose_simulator_event_feeder_posts_dispatched_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_posts_dispatched_total",
+          snapshot.event_feeder_posts_dispatched
+        ),
+        "# TYPE firehose_simulator_event_feeder_posts_complete_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_posts_complete_total",
+          snapshot.event_feeder_posts_complete_count
+        ),
         "# TYPE firehose_simulator_event_feeder_posts_ok_total counter\n",
         metric("firehose_simulator_event_feeder_posts_ok_total", snapshot.event_feeder_posts_ok),
         "# TYPE firehose_simulator_event_feeder_posts_error_total counter\n",
         metric(
           "firehose_simulator_event_feeder_posts_error_total",
           snapshot.event_feeder_posts_error
+        ),
+        "# TYPE firehose_simulator_event_feeder_follows_dispatch_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_follows_dispatch_total",
+          snapshot.event_feeder_follows_dispatch_count
+        ),
+        "# TYPE firehose_simulator_event_feeder_follows_dispatched_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_follows_dispatched_total",
+          snapshot.event_feeder_follows_dispatched
+        ),
+        "# TYPE firehose_simulator_event_feeder_follows_complete_total counter\n",
+        metric(
+          "firehose_simulator_event_feeder_follows_complete_total",
+          snapshot.event_feeder_follows_complete_count
         ),
         "# TYPE firehose_simulator_event_feeder_follows_ok_total counter\n",
         metric(

@@ -20,9 +20,17 @@ Metrics provide runtime observability for plan loading and live playback activit
 
 ## Telemetry and Metric Parameters
 
+Detailed emitted telemetry event inventory and event-to-metric mapping:
+
+- `docs/telemetry-events.md`
+
 ### Telemetry Events Consumed
 
 - `[:firehose_simulator, :event_feeder, :inject]`
+- `[:firehose_simulator, :event_feeder, :posts, :dispatch]`
+- `[:firehose_simulator, :event_feeder, :posts, :complete]`
+- `[:firehose_simulator, :event_feeder, :follows, :dispatch]`
+- `[:firehose_simulator, :event_feeder, :follows, :complete]`
 - `[:firehose_simulator, :worker, :query]`
 - `[:firehose_simulator, :worker, :cycle]`
 
@@ -30,7 +38,8 @@ Metrics provide runtime observability for plan loading and live playback activit
 
 - JSON load count
 - Player start/stop/reset counts
-- Event feeder injection totals (sessions/posts/follows, ok/error)
+- Event feeder session injection totals
+- Event feeder post/follow dispatch and completion totals
 - Worker query totals (count, rows, latency)
 - Worker cycle totals (count, session_count, ok/errors/completed/timeouts, duration)
 

@@ -61,13 +61,19 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       # Firehose Simulator Metrics
       counter("firehose_simulator.event_feeder.inject.count"),
       sum("firehose_simulator.event_feeder.inject.sessions_started"),
-      sum("firehose_simulator.event_feeder.inject.posts_ok"),
-      sum("firehose_simulator.event_feeder.inject.posts_error"),
-      sum("firehose_simulator.event_feeder.inject.follows_ok"),
-      sum("firehose_simulator.event_feeder.inject.follows_error"),
       summary("firehose_simulator.event_feeder.inject.elapsed_ms",
         unit: {:millisecond, :millisecond}
       ),
+      counter("firehose_simulator.event_feeder.posts.dispatch.count"),
+      sum("firehose_simulator.event_feeder.posts.dispatch.events_dispatched"),
+      counter("firehose_simulator.event_feeder.posts.complete.count"),
+      sum("firehose_simulator.event_feeder.posts.complete.ok"),
+      sum("firehose_simulator.event_feeder.posts.complete.error"),
+      counter("firehose_simulator.event_feeder.follows.dispatch.count"),
+      sum("firehose_simulator.event_feeder.follows.dispatch.events_dispatched"),
+      counter("firehose_simulator.event_feeder.follows.complete.count"),
+      sum("firehose_simulator.event_feeder.follows.complete.ok"),
+      sum("firehose_simulator.event_feeder.follows.complete.error"),
       counter("firehose_simulator.worker.query.count",
         tags: [:status],
         tag_values: &worker_query_tag_values/1

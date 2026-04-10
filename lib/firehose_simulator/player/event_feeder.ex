@@ -123,13 +123,7 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     if sessions_started > 0 do
       :telemetry.execute(
         [:firehose_simulator, :event_feeder, :inject],
-        %{
-          sessions_started: sessions_started,
-          posts_ok: 0,
-          posts_error: 0,
-          follows_ok: 0,
-          follows_error: 0
-        },
+        %{sessions_started: sessions_started},
         telemetry_metadata(state, %{elapsed_ms: elapsed_ms})
       )
     end
@@ -144,14 +138,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
         Process.demonitor(ref, [:flush])
 
         :telemetry.execute(
-          [:firehose_simulator, :event_feeder, :inject],
-          %{
-            sessions_started: 0,
-            posts_ok: results.ok,
-            posts_error: results.error,
-            follows_ok: 0,
-            follows_error: 0
-          },
+          [:firehose_simulator, :event_feeder, :posts, :complete],
+          %{ok: results.ok, error: results.error},
           telemetry_metadata(state, %{})
         )
 
@@ -161,14 +149,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
         Process.demonitor(ref, [:flush])
 
         :telemetry.execute(
-          [:firehose_simulator, :event_feeder, :inject],
-          %{
-            sessions_started: 0,
-            posts_ok: 0,
-            posts_error: 0,
-            follows_ok: results.ok,
-            follows_error: results.error
-          },
+          [:firehose_simulator, :event_feeder, :follows, :complete],
+          %{ok: results.ok, error: results.error},
           telemetry_metadata(state, %{})
         )
 
@@ -255,6 +237,12 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     if due == [] do
       %{state | posts: remaining}
     else
+      :telemetry.execute(
+        [:firehose_simulator, :event_feeder, :posts, :dispatch],
+        %{events_dispatched: length(due)},
+        telemetry_metadata(state, %{elapsed_ms: elapsed_ms})
+      )
+
       task =
         Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
           Enum.map(
@@ -287,6 +275,12 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     if due == [] do
       %{state | follows: remaining}
     else
+      :telemetry.execute(
+        [:firehose_simulator, :event_feeder, :follows, :dispatch],
+        %{events_dispatched: length(due)},
+        telemetry_metadata(state, %{elapsed_ms: elapsed_ms})
+      )
+
       task =
         Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
           Enum.map(

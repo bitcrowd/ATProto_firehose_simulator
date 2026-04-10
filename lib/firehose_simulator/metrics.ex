@@ -8,6 +8,10 @@ defmodule FirehoseSimulator.Metrics do
   @handler_id "firehose-simulator-metrics"
   @telemetry_events [
     [:firehose_simulator, :event_feeder, :inject],
+    [:firehose_simulator, :event_feeder, :posts, :dispatch],
+    [:firehose_simulator, :event_feeder, :posts, :complete],
+    [:firehose_simulator, :event_feeder, :follows, :dispatch],
+    [:firehose_simulator, :event_feeder, :follows, :complete],
     [:firehose_simulator, :worker, :query],
     [:firehose_simulator, :worker, :cycle]
   ]
@@ -102,13 +106,63 @@ defmodule FirehoseSimulator.Metrics do
       state
       |> Map.update!(:event_feeder_inject_count, &(&1 + 1))
       |> add_measurement(:event_feeder_sessions_started, measurements, :sessions_started)
-      |> add_measurement(:event_feeder_posts_ok, measurements, :posts_ok)
-      |> add_measurement(:event_feeder_posts_error, measurements, :posts_error)
-      |> add_measurement(:event_feeder_follows_ok, measurements, :follows_ok)
-      |> add_measurement(:event_feeder_follows_error, measurements, :follows_error)
 
     Logger.info(
       "[metrics] event_feeder.inject count=#{next_state.event_feeder_inject_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_event_feeder_posts_dispatch, measurements, metadata}, state) do
+    next_state =
+      state
+      |> Map.update!(:event_feeder_posts_dispatch_count, &(&1 + 1))
+      |> add_measurement(:event_feeder_posts_dispatched, measurements, :events_dispatched)
+
+    Logger.info(
+      "[metrics] event_feeder.posts.dispatch count=#{next_state.event_feeder_posts_dispatch_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_event_feeder_posts_complete, measurements, metadata}, state) do
+    next_state =
+      state
+      |> Map.update!(:event_feeder_posts_complete_count, &(&1 + 1))
+      |> add_measurement(:event_feeder_posts_ok, measurements, :ok)
+      |> add_measurement(:event_feeder_posts_error, measurements, :error)
+
+    Logger.info(
+      "[metrics] event_feeder.posts.complete count=#{next_state.event_feeder_posts_complete_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_event_feeder_follows_dispatch, measurements, metadata}, state) do
+    next_state =
+      state
+      |> Map.update!(:event_feeder_follows_dispatch_count, &(&1 + 1))
+      |> add_measurement(:event_feeder_follows_dispatched, measurements, :events_dispatched)
+
+    Logger.info(
+      "[metrics] event_feeder.follows.dispatch count=#{next_state.event_feeder_follows_dispatch_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_event_feeder_follows_complete, measurements, metadata}, state) do
+    next_state =
+      state
+      |> Map.update!(:event_feeder_follows_complete_count, &(&1 + 1))
+      |> add_measurement(:event_feeder_follows_ok, measurements, :ok)
+      |> add_measurement(:event_feeder_follows_error, measurements, :error)
+
+    Logger.info(
+      "[metrics] event_feeder.follows.complete count=#{next_state.event_feeder_follows_complete_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
     {:noreply, next_state}
@@ -172,6 +226,48 @@ defmodule FirehoseSimulator.Metrics do
     GenServer.cast(__MODULE__, {:telemetry_event_feeder_inject, measurements, metadata})
   end
 
+  def handle_telemetry(
+        [:firehose_simulator, :event_feeder, :posts, :dispatch],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_event_feeder_posts_dispatch, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :event_feeder, :posts, :complete],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_event_feeder_posts_complete, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :event_feeder, :follows, :dispatch],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(
+      __MODULE__,
+      {:telemetry_event_feeder_follows_dispatch, measurements, metadata}
+    )
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :event_feeder, :follows, :complete],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(
+      __MODULE__,
+      {:telemetry_event_feeder_follows_complete, measurements, metadata}
+    )
+  end
+
   def handle_telemetry([:firehose_simulator, :worker, :query], measurements, metadata, _config) do
     GenServer.cast(__MODULE__, {:telemetry_worker_query, measurements, metadata})
   end
@@ -196,8 +292,14 @@ defmodule FirehoseSimulator.Metrics do
       player_reset: 0,
       event_feeder_inject_count: 0,
       event_feeder_sessions_started: 0,
+      event_feeder_posts_dispatch_count: 0,
+      event_feeder_posts_dispatched: 0,
+      event_feeder_posts_complete_count: 0,
       event_feeder_posts_ok: 0,
       event_feeder_posts_error: 0,
+      event_feeder_follows_dispatch_count: 0,
+      event_feeder_follows_dispatched: 0,
+      event_feeder_follows_complete_count: 0,
       event_feeder_follows_ok: 0,
       event_feeder_follows_error: 0,
       worker_query_total_count: 0,

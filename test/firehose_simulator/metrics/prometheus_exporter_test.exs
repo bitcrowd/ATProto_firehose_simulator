@@ -8,6 +8,30 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
 
   test "exports metrics in prometheus text format" do
     :telemetry.execute(
+      [:firehose_simulator, :event_feeder, :posts, :dispatch],
+      %{events_dispatched: 2},
+      %{player_id: "player-1", elapsed_ms: 10}
+    )
+
+    :telemetry.execute(
+      [:firehose_simulator, :event_feeder, :posts, :complete],
+      %{ok: 2, error: 1},
+      %{player_id: "player-1"}
+    )
+
+    :telemetry.execute(
+      [:firehose_simulator, :event_feeder, :follows, :dispatch],
+      %{events_dispatched: 3},
+      %{player_id: "player-1", elapsed_ms: 10}
+    )
+
+    :telemetry.execute(
+      [:firehose_simulator, :event_feeder, :follows, :complete],
+      %{ok: 3, error: 0},
+      %{player_id: "player-1"}
+    )
+
+    :telemetry.execute(
       [:firehose_simulator, :worker, :query],
       %{latency_ms: 10, rows: 2},
       %{status: :ok, player_id: "player-1"}
@@ -30,6 +54,10 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
 
     assert body =~ "firehose_simulator_player_start_total"
     assert body =~ "firehose_simulator_event_feeder_inject_total"
+    assert body =~ "firehose_simulator_event_feeder_posts_dispatch_total"
+    assert body =~ "firehose_simulator_event_feeder_posts_complete_total"
+    assert body =~ "firehose_simulator_event_feeder_follows_dispatch_total"
+    assert body =~ "firehose_simulator_event_feeder_follows_complete_total"
     assert body =~ "firehose_simulator_worker_query_by_status{status=\"ok\"}"
     assert body =~ "firehose_simulator_worker_cycle_by_partition{partition=\"0\"}"
     assert body =~ "firehose_simulator_worker_query_window_p95_latency_ms"
