@@ -3,10 +3,11 @@ defmodule FirehoseSimulator.State do
 
   use GenServer
 
+  alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.SimulationPlan
 
   @type state :: %{
-          db_connection_string: String.t(),
+          db_connection_string: String.t() | nil,
           simulation_plans: %{optional(String.t()) => SimulationPlan.t()},
           selected_simulation_plan_id: String.t() | nil,
           running_players: %{optional(String.t()) => map()},
@@ -24,7 +25,7 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, :get_state)
   end
 
-  @spec get_db_connection_string() :: String.t()
+  @spec get_db_connection_string() :: String.t() | nil
   def get_db_connection_string do
     GenServer.call(__MODULE__, :get_db_connection_string)
   end
@@ -226,7 +227,7 @@ defmodule FirehoseSimulator.State do
 
   defp default_state do
     %{
-      db_connection_string: nil,
+      db_connection_string: DatabaseConnection.default().connection_string,
       simulation_plans: %{},
       selected_simulation_plan_id: nil,
       running_players: %{},

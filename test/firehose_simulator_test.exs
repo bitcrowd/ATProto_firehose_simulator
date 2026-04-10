@@ -181,6 +181,24 @@ defmodule FirehoseSimulatorTest do
                  FirehoseSimulator.create_userbase("missing-userbase.json", "postgres://example")
       end)
     end
+
+    test "state defaults db connection string from DATABASE_URL" do
+      previous_database_url = System.get_env("DATABASE_URL")
+      test_database_url = "postgres://postgres:postgres@localhost:5432/state_default_test"
+
+      on_exit(fn ->
+        restore_env("DATABASE_URL", previous_database_url)
+        :ok = FirehoseSimulator.State.reset_all()
+      end)
+
+      System.put_env("DATABASE_URL", test_database_url)
+      assert :ok = FirehoseSimulator.State.reset_all()
+
+      assert %DatabaseConnection{connection_string: ^test_database_url} =
+               DatabaseConnection.default()
+
+      assert test_database_url == FirehoseSimulator.State.get_db_connection_string()
+    end
   end
 
   describe "bulk_create_simulation_plan/2" do
@@ -268,4 +286,7 @@ defmodule FirehoseSimulatorTest do
     File.write!(path, content)
     path
   end
+
+  defp restore_env(var, nil), do: System.delete_env(var)
+  defp restore_env(var, value), do: System.put_env(var, value)
 end

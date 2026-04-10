@@ -14,8 +14,6 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.BaseData.Userbase
 
   @default_userbase_filename "priv/simulation/userbase.json"
-  @default_connection_string "postgres://postgres:postgres@localhost:5432/dataplane"
-
   # Bulk Creation
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do
@@ -96,10 +94,10 @@ defmodule FirehoseSimulator do
   end
 
   defp database_connection do
-    %DatabaseConnection{
-      connection_string:
-        state_connection_string() || System.get_env("DATABASE_URL") || @default_connection_string
-    }
+    case state_connection_string() do
+      nil -> DatabaseConnection.default()
+      connection_string -> %DatabaseConnection{connection_string: connection_string}
+    end
   end
 
   defp state_connection_string do
