@@ -1,7 +1,7 @@
 defmodule FirehoseSimulator.Player.EventFeederTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.Player.Store
   alias FirehoseSimulator.Metrics
@@ -22,7 +22,7 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
       start_supervised!(
         {EventFeeder,
          [
-           simulation_plan: %SimulationPlan{
+           scenario: %Scenario{
              sessions: nil,
              posts: [%{offset_ms: 0, user_id: 1}],
              follows: [%{offset_ms: 0, actor_id: 2, subject_id: 1}]

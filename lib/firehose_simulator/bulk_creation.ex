@@ -7,7 +7,7 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.BulkCreation.Record
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.DatabaseConnection
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
   alias Aether.ATProto.TID
@@ -38,11 +38,11 @@ defmodule FirehoseSimulator.BulkCreation do
     end
   end
 
-  def create_simulation_plan(%SimulationPlan{} = simulation_plan, %DatabaseConnection{
+  def create_scenario(%Scenario{} = scenario, %DatabaseConnection{
         connection_string: connection_string
       }) do
     with :ok <- connect(connection_string),
-         {:ok, result} <- insert_simulation_plan(repo_name(connection_string), simulation_plan) do
+         {:ok, result} <- insert_scenario(repo_name(connection_string), scenario) do
       {:ok, result}
     end
   end
@@ -121,11 +121,11 @@ defmodule FirehoseSimulator.BulkCreation do
     end)
   end
 
-  defp insert_simulation_plan(repo_name, %SimulationPlan{} = simulation_plan) do
+  defp insert_scenario(repo_name, %Scenario{} = scenario) do
     with_dynamic_repo(repo_name, fn ->
-      posts = events_from_plan(simulation_plan.posts)
-      follows = events_from_plan(simulation_plan.follows)
-      sessions = events_from_plan(simulation_plan.sessions)
+      posts = events_from_scenario(scenario.posts)
+      follows = events_from_scenario(scenario.follows)
+      sessions = events_from_scenario(scenario.sessions)
 
       actor_ids =
         actor_ids_from_posts(posts) ++
@@ -215,8 +215,8 @@ defmodule FirehoseSimulator.BulkCreation do
     }
   end
 
-  defp events_from_plan(nil), do: []
-  defp events_from_plan(events) when is_list(events), do: events
+  defp events_from_scenario(nil), do: []
+  defp events_from_scenario(events) when is_list(events), do: events
 
   defp actor_ids_from_posts(posts) do
     Enum.map(posts, fn %{user_id: user_id} -> user_id end)

@@ -7,7 +7,7 @@ This project is organized around five core components that define how simulation
 At a high level, the system works in this order:
 
 1. Define base data for a simulated user population.
-2. Generate or import a simulation plan.
+2. Generate or import a scenario.
 3. Run the plan through the player.
 4. Observe simulation behavior through metrics exposed to Prometheus and Grafana.
 
@@ -19,25 +19,25 @@ This includes userbase parameters such as user counts and follower density, alon
 
 Details: [Base Data](./architecture/base-data.md)
 
-## 2. Simulation Plans
+## 2. Scenarios
 
-The simulation plan component defines what should happen over time during a run. It turns higher-level parameter inputs into concrete timed events for posts, follows, and sessions.
+The scenarios component defines what should happen over time during a run. It turns higher-level parameter inputs into concrete timed events for posts, follows, and sessions.
 
-This layer supports generating plans from simulation-plan parameter JSON, importing full simulation plans from JSON, and exporting plans so they can be reused later.
+This layer supports generating plans from scenario parameter JSON, importing full scenarios from JSON, and exporting plans so they can be reused later.
 
-Details: [Simulation Plans](./architecture/simulation-plans.md)
+Details: [Scenarios](./architecture/scenarios.md)
 
 ## 3. Bulk Creation
 
 The bulk creation component materializes data directly into the target database. Its purpose is to seed the backing system with users, follows, posts, records, and related data without requiring live playback.
 
-This layer can create a database userbase from base-data inputs, or it can take a simulation plan and insert the resulting data directly into the database.
+This layer can create a database userbase from base-data inputs, or it can take a scenario and insert the resulting data directly into the database.
 
 Details: [Bulk Creation](./architecture/bulk-creation.md)
 
 ## 4. Player
 
-The player is the runtime execution engine for simulation plans. It accepts a plan, starts a simulation run, and coordinates timed playback of sessions, posts, and follows.
+The player is the runtime execution engine for scenarios. It accepts a plan, starts a simulation run, and coordinates timed playback of sessions, posts, and follows.
 
 This component is responsible for starting, stopping, and resetting simulation runs, and supports multiple concurrent players.
 

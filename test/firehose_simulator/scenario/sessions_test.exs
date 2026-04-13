@@ -1,15 +1,15 @@
-defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
+defmodule FirehoseSimulator.Scenario.SessionsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan.Sessions
-  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
+  alias FirehoseSimulator.Scenario.Sessions
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
 
   @config %SessionsParams{
     num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
     tiers: [
-      %FirehoseSimulator.SimulationPlan.Params.SessionTier{
+      %FirehoseSimulator.Scenario.Params.SessionTier{
         max_followers: 1_000,
         session_minutes: 10
       }
@@ -27,8 +27,8 @@ defmodule FirehoseSimulator.SimulationPlan.SessionsTest do
 
   test "lookup_tier/4 honors follower_density when matching tiers" do
     tiers = [
-      %FirehoseSimulator.SimulationPlan.Params.SessionTier{max_followers: 6, session_minutes: 5},
-      %FirehoseSimulator.SimulationPlan.Params.SessionTier{
+      %FirehoseSimulator.Scenario.Params.SessionTier{max_followers: 6, session_minutes: 5},
+      %FirehoseSimulator.Scenario.Params.SessionTier{
         max_followers: 100,
         session_minutes: 10
       }

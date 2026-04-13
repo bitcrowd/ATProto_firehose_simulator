@@ -5,7 +5,7 @@ defmodule FirehoseSimulator.BaseData.Userbase do
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
+  alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
 
   @type t :: %__MODULE__{
           name: String.t(),

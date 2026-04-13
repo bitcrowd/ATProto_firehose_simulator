@@ -1,14 +1,14 @@
-defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams do
+defmodule FirehoseSimulator.Scenario.Params.ScenarioParams do
   @moduledoc false
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader
-  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
-  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
-  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
+  alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
+  alias FirehoseSimulator.Scenario.Params.FollowsParams
+  alias FirehoseSimulator.Scenario.Params.PostsParams
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
 
   @type t :: %__MODULE__{
           seed: integer() | nil,
@@ -31,19 +31,19 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams do
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load(json) when is_binary(json) do
-    JsonEmbeddedLoader.load(json, "simulation plan params", %__MODULE__{}, &changeset/2)
+    JsonEmbeddedLoader.load(json, "scenario params", %__MODULE__{}, &changeset/2)
   end
 
   @spec load!(String.t()) :: t()
   def load!(json) when is_binary(json) do
-    JsonEmbeddedLoader.load!(json, "simulation plan params", %__MODULE__{}, &changeset/2)
+    JsonEmbeddedLoader.load!(json, "scenario params", %__MODULE__{}, &changeset/2)
   end
 
   @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load_file(path) when is_binary(path) do
     case File.read(path) do
       {:ok, json} -> load(json)
-      {:error, _reason} -> {:error, "cannot read simulation plan params file at #{path}"}
+      {:error, _reason} -> {:error, "cannot read scenario params file at #{path}"}
     end
   end
 

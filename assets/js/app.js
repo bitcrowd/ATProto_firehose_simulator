@@ -25,14 +25,14 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/firehose_simulator"
 import topbar from "../vendor/topbar"
 
-const SaveSimulationPlanHook = {
+const SaveScenarioHook = {
   mounted() {
-    this.handleEvent("save_simulation_plan_json", payload => this.saveFile(payload))
+    this.handleEvent("save_scenario_json", payload => this.saveFile(payload))
   },
 
   async saveFile({filename, content}) {
     const resolvedFilename =
-      typeof filename === "string" && filename.length > 0 ? filename : "simulation-plan.json"
+      typeof filename === "string" && filename.length > 0 ? filename : "scenario.json"
     const resolvedContent = typeof content === "string" ? content : "{}"
     const blob = new Blob([resolvedContent], {type: "application/json"})
 
@@ -55,7 +55,7 @@ const SaveSimulationPlanHook = {
         if (error && error.name === "AbortError") {
           return
         }
-        console.error("failed to save simulation plan via file picker", error)
+        console.error("failed to save scenario via file picker", error)
       }
     }
 
@@ -74,7 +74,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, SaveSimulationPlan: SaveSimulationPlanHook},
+  hooks: {...colocatedHooks, SaveScenario: SaveScenarioHook},
 })
 
 // Show progress bar on live navigation and form submits

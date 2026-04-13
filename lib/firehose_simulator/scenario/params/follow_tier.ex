@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.Params.FollowTier do
+defmodule FirehoseSimulator.Scenario.Params.FollowTier do
   @moduledoc false
 
   use Ecto.Schema

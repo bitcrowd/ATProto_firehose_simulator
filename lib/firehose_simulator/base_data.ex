@@ -3,7 +3,7 @@ defmodule FirehoseSimulator.BaseData do
   Context for base simulation data.
 
   This area owns userbase validation/loading and deterministic follower graph
-  generation used by simulation-plan and bulk-creation workflows.
+  generation used by scenario and bulk-creation workflows.
   """
 
   alias FirehoseSimulator.BaseData.FollowerGraph

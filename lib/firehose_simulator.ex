@@ -12,7 +12,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.State
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.BaseData.Userbase
 
   @default_userbase_filename "priv/simulation/userbase.json"
@@ -80,26 +80,26 @@ defmodule FirehoseSimulator do
     import_userbase_from_csv(meta_path, %DatabaseConnection{connection_string: connection_string})
   end
 
-  @spec bulk_create_simulation_plan(SimulationPlan.t()) :: {:ok, map()} | {:error, String.t()}
-  def bulk_create_simulation_plan(%SimulationPlan{} = simulation_plan) do
-    bulk_create_simulation_plan(simulation_plan, database_connection())
+  @spec bulk_create_scenario(Scenario.t()) :: {:ok, map()} | {:error, String.t()}
+  def bulk_create_scenario(%Scenario{} = scenario) do
+    bulk_create_scenario(scenario, database_connection())
   end
 
-  @spec bulk_create_simulation_plan(SimulationPlan.t(), DatabaseConnection.t()) ::
+  @spec bulk_create_scenario(Scenario.t(), DatabaseConnection.t()) ::
           {:ok, map()} | {:error, String.t()}
-  def bulk_create_simulation_plan(
-        %SimulationPlan{} = simulation_plan,
+  def bulk_create_scenario(
+        %Scenario{} = scenario,
         %DatabaseConnection{} = connection
       ) do
-    Logger.info("creating simulation plan data in database")
+    Logger.info("creating scenario data in database")
 
-    case BulkCreation.create_simulation_plan(simulation_plan, connection) do
+    case BulkCreation.create_scenario(scenario, connection) do
       {:ok, result} = ok ->
-        Logger.info("created simulation plan data: #{inspect(result)}")
+        Logger.info("created scenario data: #{inspect(result)}")
         ok
 
       {:error, reason} = error ->
-        Logger.error("failed to create simulation plan data: #{reason}")
+        Logger.error("failed to create scenario data: #{reason}")
         error
     end
   end
@@ -208,63 +208,63 @@ defmodule FirehoseSimulator do
     end
   end
 
-  # Simulation Plan
+  # Scenario
 
-  @spec generate_simulation_plan_from_json(String.t()) ::
-          {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def generate_simulation_plan_from_json(path) when is_binary(path) do
-    generate_simulation_plan_from_json(simulation_plan_params: path)
+  @spec generate_scenario_from_json(String.t()) ::
+          {:ok, Scenario.t()} | {:error, String.t()}
+  def generate_scenario_from_json(path) when is_binary(path) do
+    generate_scenario_from_json(scenario_params: path)
   end
 
-  @spec generate_simulation_plan_from_json(keyword(String.t())) ::
-          {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def generate_simulation_plan_from_json(opts) do
-    Logger.info("generating simulation plan from params json file: #{inspect(opts)}")
+  @spec generate_scenario_from_json(keyword(String.t())) ::
+          {:ok, Scenario.t()} | {:error, String.t()}
+  def generate_scenario_from_json(opts) do
+    Logger.info("generating scenario from params json file: #{inspect(opts)}")
 
-    case SimulationPlan.generate_from_json(opts) do
-      {:ok, plan} ->
-        Logger.info("generated simulation plan sections")
-        {:ok, plan}
+    case Scenario.generate_from_json(opts) do
+      {:ok, scenario} ->
+        Logger.info("generated scenario sections")
+        {:ok, scenario}
 
       {:error, reason} ->
-        Logger.error("failed to generate simulation plan from json: #{reason}")
+        Logger.error("failed to generate scenario from json: #{reason}")
         {:error, reason}
     end
   end
 
-  @spec import_simulation_plan_from_json(String.t()) ::
-          {:ok, SimulationPlan.t()} | {:error, String.t()}
-  def import_simulation_plan_from_json(path) when is_binary(path) do
-    Logger.info("importing simulation plan from json file: #{path}")
-    SimulationPlan.from_json_file(path)
+  @spec import_scenario_from_json(String.t()) ::
+          {:ok, Scenario.t()} | {:error, String.t()}
+  def import_scenario_from_json(path) when is_binary(path) do
+    Logger.info("importing scenario from json file: #{path}")
+    Scenario.from_json_file(path)
   end
 
-  @spec export_simulation_plan_to_json(SimulationPlan.t(), String.t()) ::
+  @spec export_scenario_to_json(Scenario.t(), String.t()) ::
           :ok | {:error, String.t()}
-  def export_simulation_plan_to_json(%SimulationPlan{} = simulation_plan, path)
+  def export_scenario_to_json(%Scenario{} = scenario, path)
       when is_binary(path) do
-    with {:ok, json} <- SimulationPlan.to_json(simulation_plan),
+    with {:ok, json} <- Scenario.to_json(scenario),
          :ok <- File.write(path, json) do
       :ok
     else
       {:error, reason} when is_binary(reason) -> {:error, reason}
-      {:error, reason} -> {:error, "failed to write simulation plan json: #{inspect(reason)}"}
+      {:error, reason} -> {:error, "failed to write scenario json: #{inspect(reason)}"}
     end
   end
 
-  @spec shift_simulation_plan(SimulationPlan.t(), integer()) :: SimulationPlan.t()
-  def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms)
+  @spec shift_scenario(Scenario.t(), integer()) :: Scenario.t()
+  def shift_scenario(%Scenario{} = scenario, offset_ms)
       when is_integer(offset_ms) do
-    SimulationPlan.shift(simulation_plan, offset_ms)
+    Scenario.shift(scenario, offset_ms)
   end
 
   # Player
 
-  @spec play(SimulationPlan.t(), keyword()) :: {:ok, String.t(), map()} | {:error, term()}
-  def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
+  @spec play(Scenario.t(), keyword()) :: {:ok, String.t(), map()} | {:error, term()}
+  def play(%Scenario{} = scenario, opts \\ []) do
     Logger.info("starting simulation playback")
 
-    case Player.play(simulation_plan, opts) do
+    case Player.play(scenario, opts) do
       {:ok, _player_id, _result} = ok ->
         Logger.info("simulation playback started")
         ok
@@ -275,19 +275,19 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec play_with_offset(SimulationPlan.t(), integer()) ::
+  @spec play_with_offset(Scenario.t(), integer()) ::
           {:ok, String.t(), map()} | {:error, term()}
-  def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms)
+  def play_with_offset(%Scenario{} = scenario, offset_ms)
       when is_integer(offset_ms) do
-    play_with_offset(simulation_plan, offset_ms, [])
+    play_with_offset(scenario, offset_ms, [])
   end
 
-  @spec play_with_offset(SimulationPlan.t(), integer(), keyword()) ::
+  @spec play_with_offset(Scenario.t(), integer(), keyword()) ::
           {:ok, String.t(), map()} | {:error, term()}
-  def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms, opts)
+  def play_with_offset(%Scenario{} = scenario, offset_ms, opts)
       when is_integer(offset_ms) and is_list(opts) do
-    simulation_plan
-    |> shift_simulation_plan(offset_ms)
+    scenario
+    |> shift_scenario(offset_ms)
     |> play(opts)
   end
 

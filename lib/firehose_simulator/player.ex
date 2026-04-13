@@ -2,7 +2,7 @@ defmodule FirehoseSimulator.Player do
   @moduledoc """
   Context for player.
 
-  Player takes a simulation plan and runs it.
+  Player takes a scenario and runs it.
   """
 
   require Logger
@@ -10,7 +10,7 @@ defmodule FirehoseSimulator.Player do
   alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.PlayerSupervisor
   alias FirehoseSimulator.Player.Scheduler.Supervisor, as: SchedulerSupervisor
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.State
   alias FirehoseSimulator.Player.Store
@@ -19,17 +19,17 @@ defmodule FirehoseSimulator.Player do
 
   @type play_result :: {:ok, String.t(), map()} | {:error, term()}
 
-  @spec play(SimulationPlan.t(), keyword()) :: play_result()
-  def play(%SimulationPlan{} = simulation_plan, opts \\ []) do
+  @spec play(Scenario.t(), keyword()) :: play_result()
+  def play(%Scenario{} = scenario, opts \\ []) do
     player_id = next_player_id()
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
-    request_interval_ms = simulation_plan.request_interval_ms || 30_000
+    request_interval_ms = scenario.request_interval_ms || 30_000
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
-    simulation_plan_id = Keyword.get(opts, :simulation_plan_id)
+    scenario_id = Keyword.get(opts, :scenario_id)
 
     event_feeder_opts = [
       player_id: player_id,
-      simulation_plan: simulation_plan,
+      scenario: scenario,
       request_interval_ms: request_interval_ms,
       scheduler_count: scheduler_count
     ]
@@ -62,7 +62,7 @@ defmodule FirehoseSimulator.Player do
 
         metadata = %{
           player_id: player_id,
-          simulation_plan_id: simulation_plan_id,
+          scenario_id: scenario_id,
           request_interval_ms: request_interval_ms,
           schedulers: scheduler_count,
           supervisor: supervisor_pid,

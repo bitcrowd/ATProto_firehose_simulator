@@ -161,7 +161,7 @@ Grafana is available at `http:localhost:3000`.
 ## Web UI
 
 1. `Setup`: configure database connection and create the userbase.
-2. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
+2. `Planning`: generate plans from params JSON or import plans from scenario JSON files.
 3. `Simulation`: select one available plan and play/stop/reset.
 4. `Vacuum`: run cleanup actions for userbase and/or post tables.
 
@@ -176,15 +176,15 @@ userbase_path = "priv/simulation/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
 ```
 
- Generate a simulation plan from params JSON:
+ Generate a scenario from params JSON:
 
-`simulation_plan_params.json` supports an optional top-level `time_unit_duration_ms` field. If omitted, one time unit defaults to `86_400_000` ms (24 hours).
+`scenario_params.json` supports an optional top-level `time_unit_duration_ms` field. If omitted, one time unit defaults to `86_400_000` ms (24 hours).
 Within `sessions_params`, `request_interval_ms` controls timeline request cadence for all sessions in the generated plan and defaults to `30_000` ms.
 
 ```elixir
-{:ok, simulation_plan} =
-  FirehoseSimulator.generate_simulation_plan_from_json(
-    simulation_plan_params: "priv/simulation/simulation_plan_params.json"
+{:ok, scenario} =
+  FirehoseSimulator.generate_scenario_from_json(
+    scenario_params: "priv/simulation/scenario_params.json"
   )
 ```
 
@@ -192,12 +192,12 @@ Within `sessions_params`, `request_interval_ms` controls timeline request cadenc
 Play the plan:
 
 ```elixir
-{:ok, player_id, _result} = FirehoseSimulator.play(simulation_plan)
+{:ok, player_id, _result} = FirehoseSimulator.play(scenario)
 ```
 
 You can play multiple plans at the same time: 
 ```elixir
-{:ok, player_id_2, _result} = FirehoseSimulator.play(simulation_plan)
+{:ok, player_id_2, _result} = FirehoseSimulator.play(scenario)
 ```
 
 Stop and reset a specific player:
@@ -239,26 +239,26 @@ meta_path = export_result.meta_path
 The import path uses server-side `COPY FROM '/absolute/path.csv'`, so the Postgres server process must be able to read the exported CSV files.
 
 
-### Simulation plans
+### Scenarios
 
-Shift an in-memory simulation plan by a millisecond offset:
+Shift an in-memory scenario by a millisecond offset:
 
 ```elixir
-{:ok, simulation_plan} =
-  FirehoseSimulator.generate_simulation_plan_from_json(
-    simulation_plan_params: "priv/simulation/simulation_plan_params.json"
+{:ok, scenario} =
+  FirehoseSimulator.generate_scenario_from_json(
+    scenario_params: "priv/simulation/scenario_params.json"
   )
 
-shifted_simulation_plan = FirehoseSimulator.shift_simulation_plan(simulation_plan, 5_000)
-{:ok, _player_id, _result} = FirehoseSimulator.play(shifted_simulation_plan)
+shifted_scenario = FirehoseSimulator.shift_scenario(scenario, 5_000)
+{:ok, _player_id, _result} = FirehoseSimulator.play(shifted_scenario)
 ```
 
-Export and re-import full simulation plan as JSON:
+Export and re-import full scenario as JSON:
 
 ```elixir
 :ok =
-  FirehoseSimulator.export_simulation_plan_to_json(simulation_plan, "simulation-plan.json")
+  FirehoseSimulator.export_scenario_to_json(scenario, "scenario.json")
 
 {:ok, imported_plan} =
-  FirehoseSimulator.import_simulation_plan_from_json("simulation-plan.json")
+  FirehoseSimulator.import_scenario_from_json("scenario.json")
 ```

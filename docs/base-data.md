@@ -6,10 +6,9 @@ Base data defines the initial simulated population used by both bulk creation an
 
 ## Modules
 
-- `FirehoseSimulator.SimulationPlan.Userbase`
 - `FirehoseSimulator`
 - `FirehoseSimulator.BulkCreation`
-- `FirehoseSimulator.SimulationPlan.FollowerGraph`
+- `FirehoseSimulator.Scenario.FollowerGraph`
 
 ## Public Entry Points
 
@@ -18,13 +17,12 @@ Base data defines the initial simulated population used by both bulk creation an
 - `FirehoseSimulator.create_userbase/2`
 - `FirehoseSimulator.export_userbase_to_csv/1,2,3`
 - `FirehoseSimulator.import_userbase_from_csv/1,2`
-- `FirehoseSimulator.SimulationPlan.Userbase.load_file/1`
 
 ## Parameters
 
 ### Userbase JSON
 
-`FirehoseSimulator.SimulationPlan.Userbase` validates:
+`FirehoseSimulator.BaseData.Userbase` validates:
 
 - `name` (required, non-empty string)
 - `num_users` (required, integer > 0)

@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.Sessions do
+defmodule FirehoseSimulator.Scenario.Sessions do
   @moduledoc """
   Generates a deterministic in-memory session plan from a follower graph configuration.
 
@@ -9,11 +9,11 @@ defmodule FirehoseSimulator.SimulationPlan.Sessions do
 
   ## Example
 
-      FirehoseSimulator.SimulationPlan.Sessions.generate(%SessionsParams{...})
+      FirehoseSimulator.Scenario.Sessions.generate(%SessionsParams{...})
   """
 
   alias FirehoseSimulator.BaseData.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.Params.SessionsParams
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
 
   @default_unit_duration_ms 86_400_000
 

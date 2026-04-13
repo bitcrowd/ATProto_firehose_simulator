@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.Posts do
+defmodule FirehoseSimulator.Scenario.Posts do
   @moduledoc """
   Generates a deterministic in-memory posts plan from a follower graph configuration.
 
@@ -7,11 +7,11 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
 
   ## Example
 
-      FirehoseSimulator.SimulationPlan.Posts.generate(%PostsParams{...})
+      FirehoseSimulator.Scenario.Posts.generate(%PostsParams{...})
   """
 
   alias FirehoseSimulator.BaseData.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
+  alias FirehoseSimulator.Scenario.Params.PostsParams
 
   @default_unit_duration_ms 86_400_000
 

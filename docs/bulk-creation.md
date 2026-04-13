@@ -20,21 +20,21 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 
 ## Public Entry Points
 
-- `FirehoseSimulator.bulk_create_simulation_plan/1`
-- `FirehoseSimulator.bulk_create_simulation_plan/2`
+- `FirehoseSimulator.bulk_create_scenario/1`
+- `FirehoseSimulator.bulk_create_scenario/2`
 - `FirehoseSimulator.create_userbase/0,1,2`
 - `FirehoseSimulator.export_userbase_to_csv/1,2,3`
 - `FirehoseSimulator.import_userbase_from_csv/1,2`
 - `FirehoseSimulator.vacuum/0,1,2`
-- `FirehoseSimulator.BulkCreation.create_simulation_plan/2`
+- `FirehoseSimulator.BulkCreation.create_scenario/2`
 - `FirehoseSimulator.BulkCreation.create_userbase/2`
 
 ## Parameters
 
 ### Required Inputs
 
-- `%FirehoseSimulator.SimulationPlan{}` for simulation-plan bulk loads.
-- `%FirehoseSimulator.SimulationPlan.Userbase{}` for userbase-only loads.
+- `%FirehoseSimulator.Scenario{}` for scenario bulk loads.
+- `%FirehoseSimulator.BaseData.Userbase{}` for userbase-only loads.
 - `%FirehoseSimulator.DatabaseConnection{connection_string: ...}` (or string wrapper via top-level API).
 
 ### Connection Constraints

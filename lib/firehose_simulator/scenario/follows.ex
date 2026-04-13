@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.Follows do
+defmodule FirehoseSimulator.Scenario.Follows do
   @moduledoc """
   Generates a deterministic in-memory follows plan from a follower graph configuration.
 
@@ -7,11 +7,11 @@ defmodule FirehoseSimulator.SimulationPlan.Follows do
 
   ## Example
 
-      FirehoseSimulator.SimulationPlan.Follows.generate(%FollowsParams{...})
+      FirehoseSimulator.Scenario.Follows.generate(%FollowsParams{...})
   """
 
   alias FirehoseSimulator.BaseData.FollowerGraph
-  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
+  alias FirehoseSimulator.Scenario.Params.FollowsParams
 
   @default_unit_duration_ms 86_400_000
 

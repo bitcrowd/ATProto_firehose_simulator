@@ -1,26 +1,26 @@
-defmodule FirehoseSimulator.SimulationPlan.JSON do
+defmodule FirehoseSimulator.Scenario.JSON do
   @moduledoc false
 
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
 
   @default_request_interval_ms 30_000
 
-  @spec encode(SimulationPlan.t()) :: {:ok, String.t()} | {:error, String.t()}
-  def encode(%SimulationPlan{} = simulation_plan) do
+  @spec encode(Scenario.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def encode(%Scenario{} = scenario) do
     payload = %{
-      posts: simulation_plan.posts,
-      sessions: simulation_plan.sessions,
-      follows: simulation_plan.follows,
-      request_interval_ms: simulation_plan.request_interval_ms
+      posts: scenario.posts,
+      sessions: scenario.sessions,
+      follows: scenario.follows,
+      request_interval_ms: scenario.request_interval_ms
     }
 
     case Jason.encode(payload) do
       {:ok, json} -> {:ok, json}
-      {:error, reason} -> {:error, "failed to encode simulation plan json: #{inspect(reason)}"}
+      {:error, reason} -> {:error, "failed to encode scenario json: #{inspect(reason)}"}
     end
   end
 
-  @spec decode(String.t()) :: {:ok, SimulationPlan.t()} | {:error, String.t()}
+  @spec decode(String.t()) :: {:ok, Scenario.t()} | {:error, String.t()}
   def decode(json) when is_binary(json) do
     with {:ok, attrs} <- decode_object(json),
          {:ok, posts} <- decode_posts(Map.get(attrs, "posts")),
@@ -28,7 +28,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
          {:ok, follows} <- decode_follows(Map.get(attrs, "follows")),
          {:ok, request_interval_ms} <- decode_request_interval_ms(attrs) do
       {:ok,
-       %SimulationPlan{
+       %Scenario{
          posts: posts,
          sessions: sessions,
          follows: follows,
@@ -40,8 +40,8 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
   defp decode_object(json) do
     case Jason.decode(json) do
       {:ok, %{} = attrs} -> {:ok, attrs}
-      {:ok, _other} -> {:error, "invalid simulation plan json: expected json object"}
-      {:error, _reason} -> {:error, "invalid simulation plan json"}
+      {:ok, _other} -> {:error, "invalid scenario json: expected json object"}
+      {:error, _reason} -> {:error, "invalid scenario json"}
     end
   end
 

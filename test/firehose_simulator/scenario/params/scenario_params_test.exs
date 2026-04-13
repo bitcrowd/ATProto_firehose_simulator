@@ -1,12 +1,12 @@
-defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
+defmodule FirehoseSimulator.Scenario.Params.ScenarioParamsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams
+  alias FirehoseSimulator.Scenario.Params.ScenarioParams
 
   describe "load/1" do
     test "returns a struct for valid unified json" do
-      assert {:ok, %SimulationPlanParams{} = params} =
-               SimulationPlanParams.load("""
+      assert {:ok, %ScenarioParams{} = params} =
+               ScenarioParams.load("""
                {
                  "seed": 1,
                  "time_units": 1,
@@ -47,20 +47,20 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
 
     test "validates required top-level fields" do
       assert {:error, message} =
-               SimulationPlanParams.load("""
+               ScenarioParams.load("""
                {
                  "time_unit_duration_ms": 3600000
                }
                """)
 
-      assert String.contains?(message, "invalid simulation plan params config:")
+      assert String.contains?(message, "invalid scenario params config:")
       assert String.contains?(message, "seed")
       assert String.contains?(message, "time_units")
     end
 
     test "validates time_unit_duration_ms when provided" do
       assert {:error, message} =
-               SimulationPlanParams.load("""
+               ScenarioParams.load("""
                {
                  "seed": 1,
                  "time_units": 1,
@@ -68,13 +68,13 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                }
                """)
 
-      assert String.contains?(message, "invalid simulation plan params config:")
+      assert String.contains?(message, "invalid scenario params config:")
       assert String.contains?(message, "time_unit_duration_ms")
     end
 
     test "supports optional sections" do
-      assert {:ok, %SimulationPlanParams{} = params} =
-               SimulationPlanParams.load("""
+      assert {:ok, %ScenarioParams{} = params} =
+               ScenarioParams.load("""
                {
                  "seed": 1,
                  "time_units": 1
@@ -93,15 +93,15 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
   describe "load_file/1" do
     @tag :tmp_dir
     test "reads unified json from disk", %{tmp_dir: tmp_dir} do
-      path = write_file!(tmp_dir, "simulation-plan-params", ~s({"seed":1,"time_units":1}))
-      assert {:ok, %SimulationPlanParams{}} = SimulationPlanParams.load_file(path)
+      path = write_file!(tmp_dir, "scenario-params", ~s({"seed":1,"time_units":1}))
+      assert {:ok, %ScenarioParams{}} = ScenarioParams.load_file(path)
     end
 
     test "returns an error with file path when file does not exist" do
-      path = "missing-simulation-plan-params.json"
-      error_msg = "cannot read simulation plan params file at #{path}"
+      path = "missing-scenario-params.json"
+      error_msg = "cannot read scenario params file at #{path}"
 
-      assert {:error, ^error_msg} = SimulationPlanParams.load_file(path)
+      assert {:error, ^error_msg} = ScenarioParams.load_file(path)
     end
   end
 

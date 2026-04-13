@@ -18,28 +18,33 @@
         class="space-y-4"
       >
         <div class="space-y-2">
-          <p class="text-sm font-medium">Select simulation plan</p>
-          <div id="simulation-plan-list" class="space-y-2">
-            <p :if={@plans == []} id="simulation-plans-empty" class="text-sm text-base-content/70">
-              No simulation plans available. Generate or import one in Planning.
+          <p class="text-sm font-medium">Select scenario</p>
+          <div id="simulation-scenario-list" class="space-y-2">
+            <p
+              :if={@scenarios == []}
+              id="simulation-scenarios-empty"
+              class="text-sm text-base-content/70"
+            >
+              No scenarios available. Generate or import one in Planning.
             </p>
 
             <button
-              :for={plan <- @plans}
-              id={"simulation-select-#{plan.id}"}
+              :for={scenario <- @scenarios}
+              id={"simulation-select-#{scenario.id}"}
               type="button"
-              phx-click="select_plan"
-              phx-value-plan_id={plan.id}
+              phx-click="select_scenario"
+              phx-value-scenario_id={scenario.id}
               class={[
                 "w-full rounded-box border px-3 py-2 text-left transition-colors",
-                @selected_plan_id == plan.id && "border-primary/70 bg-primary/10",
-                @selected_plan_id != plan.id && "border-base-300 hover:border-base-content/40"
+                @selected_scenario_id == scenario.id && "border-primary/70 bg-primary/10",
+                @selected_scenario_id != scenario.id &&
+                  "border-base-300 hover:border-base-content/40"
               ]}
             >
-              <p class="text-sm font-semibold">{plan.id}</p>
-              <.simulation_plan_summary
-                id={"simulation-plan-summary-#{plan.id}"}
-                simulation_plan={plan.simulation_plan}
+              <p class="text-sm font-semibold">{scenario.id}</p>
+              <.scenario_summary
+                id={"simulation-scenario-summary-#{scenario.id}"}
+                scenario={scenario.scenario}
                 class="mt-1 text-xs text-base-content/70"
               />
             </button>
@@ -62,10 +67,10 @@
           <.button
             id="play-button"
             type="submit"
-            disabled={!@selected_plan_id}
+            disabled={!@selected_scenario_id}
             variant="primary"
           >
-            Play selected plan
+            Play selected scenario
           </.button>
         </div>
       </.form>

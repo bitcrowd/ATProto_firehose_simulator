@@ -1,7 +1,7 @@
-defmodule FirehoseSimulator.SimulationPlanTest do
+defmodule FirehoseSimulator.ScenarioTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
 
   describe "generate_from_json/1" do
     @tag :tmp_dir
@@ -10,7 +10,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
       params_path =
         write_file!(
           tmp_dir,
-          "simulation-plan-params",
+          "scenario-params",
           """
           {
             "seed": 1,
@@ -46,13 +46,13 @@ defmodule FirehoseSimulator.SimulationPlanTest do
         )
 
       assert {:ok,
-              %SimulationPlan{
+              %Scenario{
                 posts: posts,
                 sessions: sessions,
                 follows: follows,
                 request_interval_ms: request_interval_ms
               }} =
-               SimulationPlan.generate_from_json(simulation_plan_params: params_path)
+               Scenario.generate_from_json(scenario_params: params_path)
 
       assert length(sessions) == 5
       assert is_list(posts)
@@ -65,13 +65,13 @@ defmodule FirehoseSimulator.SimulationPlanTest do
 
     test "returns nil for sections without a path" do
       assert {:ok,
-              %SimulationPlan{
+              %Scenario{
                 posts: nil,
                 sessions: nil,
                 follows: nil,
                 request_interval_ms: 30_000
               }} =
-               SimulationPlan.generate_from_json([])
+               Scenario.generate_from_json([])
     end
 
     @tag :tmp_dir
@@ -79,7 +79,7 @@ defmodule FirehoseSimulator.SimulationPlanTest do
       params_path =
         write_file!(
           tmp_dir,
-          "simulation-plan-params-default-duration",
+          "scenario-params-default-duration",
           """
           {
             "seed": 1,
@@ -110,13 +110,13 @@ defmodule FirehoseSimulator.SimulationPlanTest do
         )
 
       assert {:ok,
-              %SimulationPlan{
+              %Scenario{
                 posts: posts,
                 sessions: sessions,
                 follows: follows,
                 request_interval_ms: request_interval_ms
               }} =
-               SimulationPlan.generate_from_json(simulation_plan_params: params_path)
+               Scenario.generate_from_json(scenario_params: params_path)
 
       assert request_interval_ms == 30_000
       assert Enum.all?(sessions, &(&1.offset_ms < 86_400_000))
@@ -126,17 +126,17 @@ defmodule FirehoseSimulator.SimulationPlanTest do
   end
 
   describe "to_json/1 and from_json/1" do
-    test "round-trips a full simulation plan struct" do
-      simulation_plan = %SimulationPlan{
+    test "round-trips a full scenario struct" do
+      scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
         request_interval_ms: 45_000
       }
 
-      assert {:ok, json} = SimulationPlan.to_json(simulation_plan)
-      assert {:ok, decoded} = SimulationPlan.from_json(json)
-      assert decoded == simulation_plan
+      assert {:ok, json} = Scenario.to_json(scenario)
+      assert {:ok, decoded} = Scenario.from_json(json)
+      assert decoded == scenario
     end
 
     test "defaults request_interval_ms when decoding legacy json without it" do
@@ -148,21 +148,21 @@ defmodule FirehoseSimulator.SimulationPlanTest do
       }
       """
 
-      assert {:ok, decoded} = SimulationPlan.from_json(legacy_json)
+      assert {:ok, decoded} = Scenario.from_json(legacy_json)
       assert decoded.request_interval_ms == 30_000
     end
   end
 
   describe "shift/2" do
     test "shifts offsets for all plan sections" do
-      simulation_plan = %SimulationPlan{
+      scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
         request_interval_ms: 15_000
       }
 
-      shifted = SimulationPlan.shift(simulation_plan, 250)
+      shifted = Scenario.shift(scenario, 250)
 
       assert shifted.posts == [%{offset_ms: 260, user_id: 1}]
       assert shifted.sessions == [%{offset_ms: 270, user_id: 2, duration_ms: 30_000}]
@@ -171,10 +171,10 @@ defmodule FirehoseSimulator.SimulationPlanTest do
     end
 
     test "keeps nil sections unchanged" do
-      simulation_plan = %SimulationPlan{posts: nil, sessions: nil, follows: nil}
+      scenario = %Scenario{posts: nil, sessions: nil, follows: nil}
 
-      assert %SimulationPlan{posts: nil, sessions: nil, follows: nil} =
-               SimulationPlan.shift(simulation_plan, 123)
+      assert %Scenario{posts: nil, sessions: nil, follows: nil} =
+               Scenario.shift(scenario, 123)
     end
   end
 

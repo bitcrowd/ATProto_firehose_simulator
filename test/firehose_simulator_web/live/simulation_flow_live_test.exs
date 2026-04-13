@@ -3,7 +3,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
 
   setup do
@@ -62,38 +62,38 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert render(view) =~ "Userbase imported successfully."
   end
 
-  test "planning liveview generates and imports plans", %{conn: conn} do
+  test "planning liveview generates and imports scenarios", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/planning")
 
     params_upload =
-      file_input(view, "#planning-generate-form", :simulation_plan_params_json, [
+      file_input(view, "#planning-generate-form", :scenario_params_json, [
         %{
-          name: "simulation_plan_params.json",
-          content: simulation_plan_params_json(),
+          name: "scenario_params.json",
+          content: scenario_params_json(),
           type: "application/json"
         }
       ])
 
-    render_upload(params_upload, "simulation_plan_params.json")
+    render_upload(params_upload, "scenario_params.json")
 
     view
-    |> form("#planning-generate-form", %{"generate" => %{"plan_name" => "generated-a"}})
+    |> form("#planning-generate-form", %{"generate" => %{"scenario_name" => "generated-a"}})
     |> render_submit()
 
-    generated_plan_id =
-      State.list_simulation_plans()
+    generated_scenario_id =
+      State.list_scenarios()
       |> Map.keys()
       |> Enum.find(&String.starts_with?(&1, "generated-a"))
 
-    assert generated_plan_id
-    assert has_element?(view, "#plan-row-#{generated_plan_id}")
+    assert generated_scenario_id
+    assert has_element?(view, "#scenario-row-#{generated_scenario_id}")
 
     view
-    |> element("#export-plan-#{generated_plan_id}")
+    |> element("#export-scenario-#{generated_scenario_id}")
     |> render_click()
 
-    assert_push_event(view, "save_simulation_plan_json", %{filename: filename, content: content})
-    assert filename == "#{generated_plan_id}.json"
+    assert_push_event(view, "save_scenario_json", %{filename: filename, content: content})
+    assert filename == "#{generated_scenario_id}.json"
 
     assert {:ok,
             %{
@@ -107,10 +107,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert request_interval_ms == 30_000
 
     import_upload =
-      file_input(view, "#planning-import-form", :simulation_plan_json, [
+      file_input(view, "#planning-import-form", :scenario_json, [
         %{
           name: "import-plan.json",
-          content: simulation_plan_json(),
+          content: scenario_json(),
           type: "application/json"
         }
       ])
@@ -118,16 +118,16 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     render_upload(import_upload, "import-plan.json")
 
     view
-    |> form("#planning-import-form", %{"import" => %{"plan_name" => "imported-b"}})
+    |> form("#planning-import-form", %{"import" => %{"scenario_name" => "imported-b"}})
     |> render_submit()
 
-    imported_plan_id =
-      State.list_simulation_plans()
+    imported_scenario_id =
+      State.list_scenarios()
       |> Map.keys()
       |> Enum.find(&String.starts_with?(&1, "imported-b"))
 
-    assert imported_plan_id
-    assert has_element?(view, "#plan-row-#{imported_plan_id}")
+    assert imported_scenario_id
+    assert has_element?(view, "#scenario-row-#{imported_scenario_id}")
   end
 
   test "vacuum liveview runs selected vacuum actions", %{conn: conn} do
@@ -150,9 +150,9 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert render(view) =~ "Vacuum actions completed."
   end
 
-  test "simulation liveview selects plan and controls playback", %{conn: conn} do
+  test "simulation liveview selects scenario and controls playback", %{conn: conn} do
     :ok =
-      State.put_simulation_plan("plan-1", %SimulationPlan{
+      State.put_scenario("plan-1", %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: nil,
         follows: nil
@@ -161,7 +161,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     {:ok, view, _html} = live(conn, ~p"/simulation")
 
     refute has_element?(view, "#play-button[disabled]")
-    assert has_element?(view, "#simulation-plan-summary-plan-1")
+    assert has_element?(view, "#simulation-scenario-summary-plan-1")
 
     view
     |> element("#simulation-select-plan-1")
@@ -235,56 +235,56 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       end
     end
 
-    def generate_simulation_plan_from_json(paths) do
-      if is_binary(Keyword.get(paths, :simulation_plan_params)) and
-           File.exists?(Keyword.fetch!(paths, :simulation_plan_params)) do
-        {:ok, %SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}], sessions: nil, follows: nil}}
+    def generate_scenario_from_json(paths) do
+      if is_binary(Keyword.get(paths, :scenario_params)) and
+           File.exists?(Keyword.fetch!(paths, :scenario_params)) do
+        {:ok, %Scenario{posts: [%{offset_ms: 10, user_id: 1}], sessions: nil, follows: nil}}
       else
-        {:error, "invalid simulation plan paths"}
+        {:error, "invalid scenario paths"}
       end
     end
 
-    def import_simulation_plan_from_json(path) do
+    def import_scenario_from_json(path) do
       if File.exists?(path) do
         {:ok,
-         %SimulationPlan{
+         %Scenario{
            posts: [%{offset_ms: 20, user_id: 2}],
            sessions: [%{offset_ms: 25, user_id: 2, duration_ms: 30_000}],
            follows: nil
          }}
       else
-        {:error, "invalid simulation plan path"}
+        {:error, "invalid scenario path"}
       end
     end
 
-    def shift_simulation_plan(%SimulationPlan{} = simulation_plan, offset_ms) do
-      FirehoseSimulator.shift_simulation_plan(simulation_plan, offset_ms)
+    def shift_scenario(%Scenario{} = scenario, offset_ms) do
+      FirehoseSimulator.shift_scenario(scenario, offset_ms)
     end
 
-    def play(%SimulationPlan{} = simulation_plan), do: play(simulation_plan, [])
+    def play(%Scenario{} = scenario), do: play(scenario, [])
 
-    def play_with_offset(%SimulationPlan{} = simulation_plan, offset_ms)
+    def play_with_offset(%Scenario{} = scenario, offset_ms)
         when is_integer(offset_ms) do
-      simulation_plan
-      |> FirehoseSimulator.shift_simulation_plan(offset_ms)
+      scenario
+      |> FirehoseSimulator.shift_scenario(offset_ms)
       |> play()
     end
 
-    def play(%SimulationPlan{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
+    def play(%Scenario{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
       player_id = next_fake_player_id()
       metadata = %{player_id: player_id, started?: true}
       :ok = State.put_running_player(player_id, metadata)
       {:ok, player_id, metadata}
     end
 
-    def play(%SimulationPlan{posts: [%{offset_ms: 10, user_id: 1}]}, _opts) do
+    def play(%Scenario{posts: [%{offset_ms: 10, user_id: 1}]}, _opts) do
       player_id = next_fake_player_id()
       metadata = %{player_id: player_id, started?: true}
       :ok = State.put_running_player(player_id, metadata)
       {:ok, player_id, metadata}
     end
 
-    def play(%SimulationPlan{}, _opts), do: {:error, :invalid_shift}
+    def play(%Scenario{}, _opts), do: {:error, :invalid_shift}
 
     def stop(player_id) do
       :ok = State.delete_running_player(player_id)
@@ -371,7 +371,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     """
   end
 
-  defp simulation_plan_params_json do
+  defp scenario_params_json do
     """
     {
       "seed": 1,
@@ -405,7 +405,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     """
   end
 
-  defp simulation_plan_json do
+  defp scenario_json do
     """
     {
       "posts": [

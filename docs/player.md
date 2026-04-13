@@ -2,14 +2,14 @@
 
 ## Purpose
 
-The player executes simulation plans in real time using per-run process trees with isolated scheduling and state.
+The player executes scenarios in real time using per-run process trees with isolated scheduling and state.
 
 ## Modules
 
 - `FirehoseSimulator.Player`
 - `FirehoseSimulator.Scheduler.Supervisor`
 - `FirehoseSimulator.Scheduler.Worker`
-- `FirehoseSimulator.SimulationPlan.EventFeeder`
+- `FirehoseSimulator.Scenario.EventFeeder`
 - `FirehoseSimulator.Store`
 - `FirehoseSimulator.Session`
 - `FirehoseSimulator.State`
@@ -24,7 +24,7 @@ The player executes simulation plans in real time using per-run process trees wi
 - `FirehoseSimulator.reset/0`
 - `FirehoseSimulator.reset/1`
 - `FirehoseSimulator.status/1`
-- `FirehoseSimulator.shift_simulation_plan/2`
+- `FirehoseSimulator.shift_scenario/2`
 
 ## Parameters
 
@@ -32,11 +32,11 @@ The player executes simulation plans in real time using per-run process trees wi
 
 - `:scheduler_count` (default `System.schedulers_online()`)
 - `:worker_max_concurrency` (optional positive integer override)
-- `:simulation_plan_id` (optional metadata)
+- `:scenario_id` (optional metadata)
 
 ### Derived Runtime Parameters
 
-- `request_interval_ms` comes from `%SimulationPlan{request_interval_ms}`; default `30_000` if nil.
+- `request_interval_ms` comes from `%Scenario{request_interval_ms}`; default `30_000` if nil.
 
 ## Runtime Behavior
 
@@ -59,7 +59,7 @@ flowchart TD
   C --> E["EventFeeder process"]
   C --> F["Scheduler.Worker processes (1 per partition)"]
 
-  E --> G["Load simulation plan events"]
+  E --> G["Load scenario events"]
   G --> H["Check loop compares elapsed wall-clock time"]
   H --> I["Inject due sessions into Store ETS partitions"]
   I --> J["Emit injection telemetry (sessions_started)"]

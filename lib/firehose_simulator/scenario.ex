@@ -1,14 +1,14 @@
-defmodule FirehoseSimulator.SimulationPlan do
+defmodule FirehoseSimulator.Scenario do
   @moduledoc false
 
   require Logger
 
   alias FirehoseSimulator.Metrics
-  alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.JSON
-  alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Sessions
-  alias FirehoseSimulator.SimulationPlan.Params.SimulationPlanParams
+  alias FirehoseSimulator.Scenario.Follows
+  alias FirehoseSimulator.Scenario.JSON
+  alias FirehoseSimulator.Scenario.Posts
+  alias FirehoseSimulator.Scenario.Sessions
+  alias FirehoseSimulator.Scenario.Params.ScenarioParams
 
   @default_time_unit_duration_ms 86_400_000
   @default_request_interval_ms 30_000
@@ -25,15 +25,15 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json(path) when is_binary(path) do
-    generate_from_json(simulation_plan_params: path)
+    generate_from_json(scenario_params: path)
   end
 
   @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json(opts) when is_list(opts) do
     params_path =
-      Keyword.get(opts, :simulation_plan_params) || Keyword.get(opts, :params)
+      Keyword.get(opts, :scenario_params) || Keyword.get(opts, :params)
 
-    with {:ok, params} <- load_simulation_plan_params(params_path) do
+    with {:ok, params} <- load_scenario_params(params_path) do
       seed = seed(params)
       time_units = time_units(params)
       unit_duration_ms = time_unit_duration_ms(params)
@@ -60,51 +60,51 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   @spec from_json_file(String.t()) :: {:ok, t()} | {:error, String.t()}
   def from_json_file(path) when is_binary(path) do
-    Logger.info("loading simulation plan json file: #{path}")
-    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "simulation_plan"})
+    Logger.info("loading scenario json file: #{path}")
+    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "scenario"})
 
     with {:ok, json} <- File.read(path),
-         {:ok, simulation_plan} <- from_json(json) do
-      {:ok, simulation_plan}
+         {:ok, scenario} <- from_json(json) do
+      {:ok, scenario}
     else
-      {:error, :enoent} -> {:error, "cannot read simulation plan json at #{path}"}
+      {:error, :enoent} -> {:error, "cannot read scenario json at #{path}"}
       {:error, reason} when is_binary(reason) -> {:error, reason}
-      {:error, reason} -> {:error, "failed to load simulation plan json: #{inspect(reason)}"}
+      {:error, reason} -> {:error, "failed to load scenario json: #{inspect(reason)}"}
     end
   end
 
   @spec to_json(t()) :: {:ok, String.t()} | {:error, String.t()}
-  def to_json(%__MODULE__{} = simulation_plan) do
-    JSON.encode(simulation_plan)
+  def to_json(%__MODULE__{} = scenario) do
+    JSON.encode(scenario)
   end
 
   @spec shift(t(), integer()) :: t()
-  def shift(%__MODULE__{} = simulation_plan, offset_ms) when is_integer(offset_ms) do
+  def shift(%__MODULE__{} = scenario, offset_ms) when is_integer(offset_ms) do
     %__MODULE__{
-      posts: shift_events(simulation_plan.posts, offset_ms),
-      sessions: shift_events(simulation_plan.sessions, offset_ms),
-      follows: shift_events(simulation_plan.follows, offset_ms),
-      request_interval_ms: simulation_plan.request_interval_ms
+      posts: shift_events(scenario.posts, offset_ms),
+      sessions: shift_events(scenario.sessions, offset_ms),
+      follows: shift_events(scenario.follows, offset_ms),
+      request_interval_ms: scenario.request_interval_ms
     }
   end
 
-  defp load_simulation_plan_params(nil), do: {:ok, %SimulationPlanParams{}}
+  defp load_scenario_params(nil), do: {:ok, %ScenarioParams{}}
 
-  defp load_simulation_plan_params(path) when is_binary(path) do
-    Logger.info("loading simulation plan params json file: #{path}")
-    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "simulation_plan_params"})
+  defp load_scenario_params(path) when is_binary(path) do
+    Logger.info("loading scenario params json file: #{path}")
+    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "scenario_params"})
 
-    case SimulationPlanParams.load_file(path) do
+    case ScenarioParams.load_file(path) do
       {:ok, params} -> {:ok, params}
       {:error, _reason} = error -> error
     end
   end
 
-  defp load_simulation_plan_params(_path),
-    do: {:error, "simulation_plan_params path must be a string"}
+  defp load_scenario_params(_path),
+    do: {:error, "scenario_params path must be a string"}
 
   defp build_posts(
-         %SimulationPlanParams{posts_params: nil},
+         %ScenarioParams{posts_params: nil},
          _seed,
          _time_units,
          _time_unit_duration_ms
@@ -112,7 +112,7 @@ defmodule FirehoseSimulator.SimulationPlan do
        do: {:ok, nil}
 
   defp build_posts(
-         %SimulationPlanParams{posts_params: posts_params},
+         %ScenarioParams{posts_params: posts_params},
          seed,
          time_units,
          time_unit_duration_ms
@@ -121,7 +121,7 @@ defmodule FirehoseSimulator.SimulationPlan do
   end
 
   defp build_sessions(
-         %SimulationPlanParams{sessions_params: nil},
+         %ScenarioParams{sessions_params: nil},
          _seed,
          _time_units,
          _time_unit_duration_ms
@@ -129,7 +129,7 @@ defmodule FirehoseSimulator.SimulationPlan do
        do: {:ok, nil}
 
   defp build_sessions(
-         %SimulationPlanParams{sessions_params: sessions_params},
+         %ScenarioParams{sessions_params: sessions_params},
          seed,
          time_units,
          time_unit_duration_ms
@@ -138,7 +138,7 @@ defmodule FirehoseSimulator.SimulationPlan do
   end
 
   defp build_follows(
-         %SimulationPlanParams{follows_params: nil},
+         %ScenarioParams{follows_params: nil},
          _seed,
          _time_units,
          _time_unit_duration_ms
@@ -146,7 +146,7 @@ defmodule FirehoseSimulator.SimulationPlan do
        do: {:ok, nil}
 
   defp build_follows(
-         %SimulationPlanParams{follows_params: follows_params},
+         %ScenarioParams{follows_params: follows_params},
          seed,
          time_units,
          time_unit_duration_ms
@@ -154,24 +154,24 @@ defmodule FirehoseSimulator.SimulationPlan do
     {:ok, Follows.generate(follows_params, seed, time_units, time_unit_duration_ms)}
   end
 
-  defp seed(%SimulationPlanParams{seed: seed}), do: seed
+  defp seed(%ScenarioParams{seed: seed}), do: seed
 
-  defp time_units(%SimulationPlanParams{time_units: time_units}), do: time_units
+  defp time_units(%ScenarioParams{time_units: time_units}), do: time_units
 
-  defp time_unit_duration_ms(%SimulationPlanParams{time_unit_duration_ms: nil}),
+  defp time_unit_duration_ms(%ScenarioParams{time_unit_duration_ms: nil}),
     do: @default_time_unit_duration_ms
 
-  defp time_unit_duration_ms(%SimulationPlanParams{time_unit_duration_ms: value}), do: value
+  defp time_unit_duration_ms(%ScenarioParams{time_unit_duration_ms: value}), do: value
 
-  defp request_interval_ms(%SimulationPlanParams{sessions_params: nil}),
+  defp request_interval_ms(%ScenarioParams{sessions_params: nil}),
     do: @default_request_interval_ms
 
-  defp request_interval_ms(%SimulationPlanParams{
+  defp request_interval_ms(%ScenarioParams{
          sessions_params: %{request_interval_ms: nil}
        }),
        do: @default_request_interval_ms
 
-  defp request_interval_ms(%SimulationPlanParams{
+  defp request_interval_ms(%ScenarioParams{
          sessions_params: %{request_interval_ms: request_interval_ms}
        }),
        do: request_interval_ms

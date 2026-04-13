@@ -1,6 +1,6 @@
 defmodule FirehoseSimulator.Player.EventFeeder do
   @moduledoc """
-  GenServer that injects events from a `%FirehoseSimulator.SimulationPlan{}` over wallclock time.
+  GenServer that injects events from a `%FirehoseSimulator.Scenario{}` over wallclock time.
   """
   use GenServer
 
@@ -8,7 +8,7 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Player.Event
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.Player.Store
   alias Phoenix.PubSub
 
@@ -23,8 +23,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     GenServer.cast(event_feeder, :start)
   end
 
-  def load_plan(event_feeder, %SimulationPlan{} = simulation_plan) do
-    GenServer.call(event_feeder, {:load_plan, simulation_plan}, :infinity)
+  def load_scenario(event_feeder, %Scenario{} = scenario) do
+    GenServer.call(event_feeder, {:load_scenario, scenario}, :infinity)
   end
 
   def status(event_feeder) do
@@ -34,14 +34,14 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   @impl true
   def init(opts) do
     player_id = Keyword.get(opts, :player_id)
-    simulation_plan = Keyword.fetch!(opts, :simulation_plan)
+    scenario = Keyword.fetch!(opts, :scenario)
     store = Keyword.fetch!(opts, :store)
     request_interval_ms = Keyword.fetch!(opts, :request_interval_ms)
     scheduler_count = Keyword.fetch!(opts, :scheduler_count)
 
     partition_tables = Store.partition_tables(store)
 
-    {sessions, posts, follows} = plan_events(simulation_plan)
+    {sessions, posts, follows} = scenario_events(scenario)
 
     Logger.info(
       "[EventFeeder] Loaded #{length(sessions)} sessions, #{length(posts)} posts, #{length(follows)} follows"
@@ -77,8 +77,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     {:reply, status, state}
   end
 
-  def handle_call({:load_plan, simulation_plan}, _from, state) do
-    {new_sessions, new_posts, new_follows} = plan_events(simulation_plan)
+  def handle_call({:load_scenario, scenario}, _from, state) do
+    {new_sessions, new_posts, new_follows} = scenario_events(scenario)
 
     sessions = merge_sorted_events(state.sessions, new_sessions, fn {offset, _, _} -> offset end)
     posts = merge_sorted_events(state.posts, new_posts, fn {offset, _} -> offset end)
@@ -306,16 +306,16 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     end
   end
 
-  defp plan_events(%SimulationPlan{} = simulation_plan) do
-    sessions = sessions_from_plan(simulation_plan.sessions)
-    posts = posts_from_plan(simulation_plan.posts)
-    follows = follows_from_plan(simulation_plan.follows)
+  defp scenario_events(%Scenario{} = scenario) do
+    sessions = sessions_from_scenario(scenario.sessions)
+    posts = posts_from_scenario(scenario.posts)
+    follows = follows_from_scenario(scenario.follows)
     {sessions, posts, follows}
   end
 
-  defp sessions_from_plan(nil), do: []
+  defp sessions_from_scenario(nil), do: []
 
-  defp sessions_from_plan(sessions) when is_list(sessions) do
+  defp sessions_from_scenario(sessions) when is_list(sessions) do
     sessions
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms} ->
       {offset_ms, user_id, duration_ms}
@@ -323,9 +323,9 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     |> Enum.sort_by(fn {offset, _uid, _dur} -> offset end)
   end
 
-  defp posts_from_plan(nil), do: []
+  defp posts_from_scenario(nil), do: []
 
-  defp posts_from_plan(posts) when is_list(posts) do
+  defp posts_from_scenario(posts) when is_list(posts) do
     posts
     |> Enum.map(fn %{offset_ms: offset_ms, user_id: user_id} ->
       {offset_ms, user_id}
@@ -333,9 +333,9 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     |> Enum.sort_by(fn {offset, _uid} -> offset end)
   end
 
-  defp follows_from_plan(nil), do: []
+  defp follows_from_scenario(nil), do: []
 
-  defp follows_from_plan(follows) when is_list(follows) do
+  defp follows_from_scenario(follows) when is_list(follows) do
     follows
     |> Enum.map(fn %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id} ->
       {offset_ms, actor_id, subject_id}

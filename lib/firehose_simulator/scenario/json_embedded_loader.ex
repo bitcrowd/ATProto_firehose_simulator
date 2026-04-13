@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.SimulationPlan.JsonEmbeddedLoader do
+defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
   @moduledoc false
 
   import Ecto.Changeset, only: [apply_action: 2, traverse_errors: 2]

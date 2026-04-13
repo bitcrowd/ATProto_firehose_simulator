@@ -81,7 +81,7 @@ defmodule FirehoseSimulatorWeb do
       import Phoenix.HTML
       # Core UI components
       import FirehoseSimulatorWeb.CoreComponents
-      import FirehoseSimulatorWeb.SimulationPlanComponents
+      import FirehoseSimulatorWeb.ScenarioComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

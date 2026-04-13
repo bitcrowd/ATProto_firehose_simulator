@@ -1,15 +1,15 @@
-defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
+defmodule FirehoseSimulator.Scenario.FollowsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan.Follows
-  alias FirehoseSimulator.SimulationPlan.Params.FollowsParams
+  alias FirehoseSimulator.Scenario.Follows
+  alias FirehoseSimulator.Scenario.Params.FollowsParams
 
   @config %FollowsParams{
     num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
     tiers: [
-      %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+      %FirehoseSimulator.Scenario.Params.FollowTier{
         max_followers: 1_000,
         follows_per_time_unit: 1.0
       }
@@ -31,11 +31,11 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
       max_active_user_id: 2,
       follower_density: 1.0,
       tiers: [
-        %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+        %FirehoseSimulator.Scenario.Params.FollowTier{
           max_followers: 6,
           follows_per_time_unit: 0.0
         },
-        %FirehoseSimulator.SimulationPlan.Params.FollowTier{
+        %FirehoseSimulator.Scenario.Params.FollowTier{
           max_followers: 100,
           follows_per_time_unit: 1.0
         }

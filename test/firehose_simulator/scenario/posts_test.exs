@@ -1,15 +1,15 @@
-defmodule FirehoseSimulator.SimulationPlan.PostsTest do
+defmodule FirehoseSimulator.Scenario.PostsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.SimulationPlan.Posts
-  alias FirehoseSimulator.SimulationPlan.Params.PostsParams
+  alias FirehoseSimulator.Scenario.Posts
+  alias FirehoseSimulator.Scenario.Params.PostsParams
 
   @config %PostsParams{
     num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
     tiers: [
-      %FirehoseSimulator.SimulationPlan.Params.PostTier{
+      %FirehoseSimulator.Scenario.Params.PostTier{
         max_followers: 1_000,
         posts_per_time_unit: 1.0
       }
@@ -30,11 +30,11 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
       max_active_user_id: 2,
       follower_density: 1.0,
       tiers: [
-        %FirehoseSimulator.SimulationPlan.Params.PostTier{
+        %FirehoseSimulator.Scenario.Params.PostTier{
           max_followers: 6,
           posts_per_time_unit: 0.0
         },
-        %FirehoseSimulator.SimulationPlan.Params.PostTier{
+        %FirehoseSimulator.Scenario.Params.PostTier{
           max_followers: 100,
           posts_per_time_unit: 1.0
         }

@@ -5,7 +5,7 @@ defmodule FirehoseSimulatorTest do
 
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
 
   setup do
     :ok = FirehoseSimulator.stop_all()
@@ -19,13 +19,13 @@ defmodule FirehoseSimulatorTest do
     :ok
   end
 
-  describe "generate_simulation_plan_from_json/1" do
+  describe "generate_scenario_from_json/1" do
     @tag :tmp_dir
-    test "loads simulation plan params json through the top-level api", %{tmp_dir: tmp_dir} do
+    test "loads scenario params json through the top-level api", %{tmp_dir: tmp_dir} do
       params_path =
         write_file!(
           tmp_dir,
-          "simulation-plan-params",
+          "scenario-params",
           """
           {
             "seed": 1,
@@ -44,25 +44,22 @@ defmodule FirehoseSimulatorTest do
       capture_log(fn ->
         send(
           self(),
-          {:result,
-           FirehoseSimulator.generate_simulation_plan_from_json(
-             simulation_plan_params: params_path
-           )}
+          {:result, FirehoseSimulator.generate_scenario_from_json(scenario_params: params_path)}
         )
       end)
 
-      assert_receive {:result, {:ok, %SimulationPlan{posts: posts}}}
+      assert_receive {:result, {:ok, %Scenario{posts: posts}}}
       assert is_list(posts)
     end
   end
 
-  describe "import_simulation_plan_from_json/1 + export_simulation_plan_to_json/2" do
+  describe "import_scenario_from_json/1 + export_scenario_to_json/2" do
     @tag :tmp_dir
-    test "imports and exports full simulation plan json", %{tmp_dir: tmp_dir} do
+    test "imports and exports full scenario json", %{tmp_dir: tmp_dir} do
       input_path =
         write_file!(
           tmp_dir,
-          "simulation-plan",
+          "scenario",
           """
           {
             "posts": [{"offset_ms": 10, "user_id": 1}],
@@ -72,17 +69,17 @@ defmodule FirehoseSimulatorTest do
           """
         )
 
-      assert {:ok, %SimulationPlan{} = simulation_plan} =
-               FirehoseSimulator.import_simulation_plan_from_json(input_path)
+      assert {:ok, %Scenario{} = scenario} =
+               FirehoseSimulator.import_scenario_from_json(input_path)
 
       output_path = Path.join(tmp_dir, "exported-plan.json")
-      assert :ok = FirehoseSimulator.export_simulation_plan_to_json(simulation_plan, output_path)
+      assert :ok = FirehoseSimulator.export_scenario_to_json(scenario, output_path)
       assert File.exists?(output_path)
 
-      assert {:ok, %SimulationPlan{} = reloaded} =
-               FirehoseSimulator.import_simulation_plan_from_json(output_path)
+      assert {:ok, %Scenario{} = reloaded} =
+               FirehoseSimulator.import_scenario_from_json(output_path)
 
-      assert reloaded == simulation_plan
+      assert reloaded == scenario
     end
   end
 
@@ -96,11 +93,11 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "starts playing and returns a player id" do
-      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
+      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
 
       capture_log(fn ->
         assert {:ok, player_id, %{started?: true}} =
-                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+                 FirehoseSimulator.play(scenario, scheduler_count: 1)
 
         assert is_binary(player_id)
       end)
@@ -114,14 +111,14 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "allows concurrent players for the same plan and stops them independently" do
-      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
+      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
 
       capture_log(fn ->
         assert {:ok, player_1, _meta_1} =
-                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+                 FirehoseSimulator.play(scenario, scheduler_count: 1)
 
         assert {:ok, player_2, _meta_2} =
-                 FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+                 FirehoseSimulator.play(scenario, scheduler_count: 1)
 
         refute player_1 == player_2
 
@@ -143,7 +140,7 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "shifts the plan before starting playback" do
-      simulation_plan = %SimulationPlan{
+      scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: nil,
         follows: nil
@@ -151,7 +148,7 @@ defmodule FirehoseSimulatorTest do
 
       capture_log(fn ->
         assert {:ok, player_id, %{started?: true}} =
-                 FirehoseSimulator.play_with_offset(simulation_plan, 250, scheduler_count: 1)
+                 FirehoseSimulator.play_with_offset(scenario, 250, scheduler_count: 1)
 
         assert is_binary(player_id)
       end)
@@ -251,11 +248,11 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "bulk_create_simulation_plan/2" do
+  describe "bulk_create_scenario/2" do
     test "returns connection validation errors before attempting database work" do
       connection = %DatabaseConnection{connection_string: "not-a-url"}
 
-      simulation_plan = %SimulationPlan{
+      scenario = %Scenario{
         posts: [%{offset_ms: 25, user_id: 1}],
         sessions: nil,
         follows: nil
@@ -263,7 +260,7 @@ defmodule FirehoseSimulatorTest do
 
       capture_log(fn ->
         assert {:error, "Connection string must be a postgres URL"} =
-                 FirehoseSimulator.bulk_create_simulation_plan(simulation_plan, connection)
+                 FirehoseSimulator.bulk_create_scenario(scenario, connection)
       end)
     end
   end
@@ -286,13 +283,13 @@ defmodule FirehoseSimulatorTest do
 
   describe "reset/1 and reset/0" do
     test "resets an individual player and keeps others running" do
-      simulation_plan = %SimulationPlan{sessions: nil, posts: nil, follows: nil}
+      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
 
       assert {:ok, player_1, _meta_1} =
-               FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+               FirehoseSimulator.play(scenario, scheduler_count: 1)
 
       assert {:ok, player_2, _meta_2} =
-               FirehoseSimulator.play(simulation_plan, scheduler_count: 1)
+               FirehoseSimulator.play(scenario, scheduler_count: 1)
 
       assert :ok = FirehoseSimulator.reset(player_1)
 
@@ -306,16 +303,16 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "shift_simulation_plan/2" do
+  describe "shift_scenario/2" do
     test "shifts offsets for all plan sections" do
-      simulation_plan = %SimulationPlan{
+      scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
         request_interval_ms: 15_000
       }
 
-      shifted = FirehoseSimulator.shift_simulation_plan(simulation_plan, 250)
+      shifted = FirehoseSimulator.shift_scenario(scenario, 250)
 
       assert shifted.posts == [%{offset_ms: 260, user_id: 1}]
       assert shifted.sessions == [%{offset_ms: 270, user_id: 2, duration_ms: 30_000}]
@@ -324,10 +321,10 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "keeps nil sections unchanged" do
-      simulation_plan = %SimulationPlan{posts: nil, sessions: nil, follows: nil}
+      scenario = %Scenario{posts: nil, sessions: nil, follows: nil}
 
-      assert %SimulationPlan{posts: nil, sessions: nil, follows: nil} =
-               FirehoseSimulator.shift_simulation_plan(simulation_plan, 123)
+      assert %Scenario{posts: nil, sessions: nil, follows: nil} =
+               FirehoseSimulator.shift_scenario(scenario, 123)
     end
   end
 

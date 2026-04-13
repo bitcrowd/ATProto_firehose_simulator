@@ -4,7 +4,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   require Logger
 
   alias FirehoseSimulator.Metrics
-  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
 
   @impl true
@@ -13,16 +13,16 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       socket
       |> assign(:current_path, ~p"/planning")
       |> assign(:current_scope, nil)
-      |> assign(:generate_form, to_form(%{"plan_name" => ""}, as: :generate))
-      |> assign(:import_form, to_form(%{"plan_name" => ""}, as: :import))
+      |> assign(:generate_form, to_form(%{"scenario_name" => ""}, as: :generate))
+      |> assign(:import_form, to_form(%{"scenario_name" => ""}, as: :import))
       |> assign(:last_action, nil)
-      |> assign_plans()
-      |> allow_upload(:simulation_plan_params_json,
+      |> assign_scenarios()
+      |> allow_upload(:scenario_params_json,
         accept: ~w(.json),
         max_entries: 1,
         auto_upload: true
       )
-      |> allow_upload(:simulation_plan_json,
+      |> allow_upload(:scenario_json,
         accept: ~w(.json),
         max_entries: 1,
         auto_upload: true
@@ -46,82 +46,80 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   def handle_event("validate_import", _params, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("generate_plan", %{"generate" => params}, socket) do
+  def handle_event("generate_scenario", %{"generate" => params}, socket) do
     socket = assign(socket, :generate_form, to_form(params, as: :generate))
 
     with :ok <-
-           ensure_upload_completed(socket, :simulation_plan_params_json, "simulation plan params"),
-         {:ok, params_path, filename} <- consume_json_upload(socket, :simulation_plan_params_json),
-         {:ok, simulation_plan} <-
-           simulator_module().generate_simulation_plan_from_json(
-             simulation_plan_params: params_path
-           ) do
-      plan_id = build_plan_id(params["plan_name"], filename)
-      :ok = State.put_simulation_plan(plan_id, simulation_plan)
+           ensure_upload_completed(socket, :scenario_params_json, "scenario params"),
+         {:ok, params_path, filename} <- consume_json_upload(socket, :scenario_params_json),
+         {:ok, scenario} <-
+           simulator_module().generate_scenario_from_json(scenario_params: params_path) do
+      scenario_id = build_scenario_id(params["scenario_name"], filename)
+      :ok = State.put_scenario(scenario_id, scenario)
 
       {:noreply,
        socket
-       |> assign(:last_action, "Generated plan #{plan_id}.")
-       |> assign(:generate_form, to_form(%{"plan_name" => ""}, as: :generate))
-       |> assign_plans()
-       |> put_flash(:info, "Simulation plan generated.")}
+       |> assign(:last_action, "Generated scenario #{scenario_id}.")
+       |> assign(:generate_form, to_form(%{"scenario_name" => ""}, as: :generate))
+       |> assign_scenarios()
+       |> put_flash(:info, "Scenario generated.")}
     else
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to generate plan: #{inspect(reason)}")}
+        {:noreply, put_flash(socket, :error, "Failed to generate scenario: #{inspect(reason)}")}
     end
   end
 
   @impl true
-  def handle_event("import_plan", %{"import" => params}, socket) do
+  def handle_event("import_scenario", %{"import" => params}, socket) do
     socket = assign(socket, :import_form, to_form(params, as: :import))
 
-    with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
-         {:ok, simulation_plan_path, filename} <-
-           consume_json_upload(socket, :simulation_plan_json),
-         {:ok, simulation_plan} <-
-           simulator_module().import_simulation_plan_from_json(simulation_plan_path) do
-      plan_id = build_plan_id(params["plan_name"], filename)
-      :ok = State.put_simulation_plan(plan_id, simulation_plan)
+    with :ok <- ensure_upload_completed(socket, :scenario_json, "scenario"),
+         {:ok, scenario_path, filename} <-
+           consume_json_upload(socket, :scenario_json),
+         {:ok, scenario} <-
+           simulator_module().import_scenario_from_json(scenario_path) do
+      scenario_id = build_scenario_id(params["scenario_name"], filename)
+      :ok = State.put_scenario(scenario_id, scenario)
 
       {:noreply,
        socket
-       |> assign(:last_action, "Imported plan #{plan_id}.")
-       |> assign(:import_form, to_form(%{"plan_name" => ""}, as: :import))
-       |> assign_plans()
-       |> put_flash(:info, "Simulation plan imported.")}
+       |> assign(:last_action, "Imported scenario #{scenario_id}.")
+       |> assign(:import_form, to_form(%{"scenario_name" => ""}, as: :import))
+       |> assign_scenarios()
+       |> put_flash(:info, "Scenario imported.")}
     else
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to import plan: #{inspect(reason)}")}
+        {:noreply, put_flash(socket, :error, "Failed to import scenario: #{inspect(reason)}")}
     end
   end
 
   @impl true
-  def handle_event("delete_plan", %{"plan_id" => plan_id}, socket) do
-    :ok = State.delete_simulation_plan(plan_id)
+  def handle_event("delete_scenario", %{"scenario_id" => scenario_id}, socket) do
+    :ok = State.delete_scenario(scenario_id)
 
     {:noreply,
      socket
-     |> assign(:last_action, "Deleted plan #{plan_id}.")
-     |> assign_plans()
-     |> put_flash(:info, "Simulation plan deleted.")}
+     |> assign(:last_action, "Deleted scenario #{scenario_id}.")
+     |> assign_scenarios()
+     |> put_flash(:info, "Scenario deleted.")}
   end
 
   @impl true
-  def handle_event("export_plan", %{"plan_id" => plan_id}, socket) do
-    with {:ok, simulation_plan} <- fetch_plan(plan_id),
-         {:ok, json} <- SimulationPlan.to_json(simulation_plan) do
-      filename = export_filename(plan_id)
+  def handle_event("export_scenario", %{"scenario_id" => scenario_id}, socket) do
+    with {:ok, scenario} <- fetch_scenario(scenario_id),
+         {:ok, json} <- Scenario.to_json(scenario) do
+      filename = export_filename(scenario_id)
 
       socket =
-        push_event(socket, "save_simulation_plan_json", %{filename: filename, content: json})
+        push_event(socket, "save_scenario_json", %{filename: filename, content: json})
 
       {:noreply,
        socket
-       |> assign(:last_action, "Exported plan #{plan_id}.")
-       |> put_flash(:info, "Simulation plan exported.")}
+       |> assign(:last_action, "Exported scenario #{scenario_id}.")
+       |> put_flash(:info, "Scenario exported.")}
     else
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to export plan: #{inspect(reason)}")}
+        {:noreply, put_flash(socket, :error, "Failed to export scenario: #{inspect(reason)}")}
     end
   end
 
@@ -165,7 +163,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   defp copy_upload_to_tmp(source_path, entry) do
     extension = Path.extname(entry.client_name)
-    tmp_name = "firehose-plan-#{upload_token()}#{extension}"
+    tmp_name = "firehose-scenario-#{upload_token()}#{extension}"
     tmp_path = Path.join(System.tmp_dir!(), tmp_name)
     File.cp!(source_path, tmp_path)
     tmp_path
@@ -175,31 +173,31 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     System.unique_integer([:positive, :monotonic])
   end
 
-  defp assign_plans(socket) do
-    plans =
-      State.list_simulation_plans()
-      |> Enum.map(fn {id, simulation_plan} ->
+  defp assign_scenarios(socket) do
+    scenarios =
+      State.list_scenarios()
+      |> Enum.map(fn {id, scenario} ->
         %{
           id: id,
-          simulation_plan: simulation_plan
+          scenario: scenario
         }
       end)
       |> Enum.sort_by(& &1.id, :desc)
 
     socket
-    |> assign(:plans, plans)
+    |> assign(:scenarios, scenarios)
   end
 
-  defp fetch_plan(plan_id) when is_binary(plan_id) do
-    case State.list_simulation_plans() do
-      %{^plan_id => %SimulationPlan{} = simulation_plan} -> {:ok, simulation_plan}
-      _other -> {:error, "Simulation plan #{plan_id} not found"}
+  defp fetch_scenario(scenario_id) when is_binary(scenario_id) do
+    case State.list_scenarios() do
+      %{^scenario_id => %Scenario{} = scenario} -> {:ok, scenario}
+      _other -> {:error, "Scenario #{scenario_id} not found"}
     end
   end
 
-  defp build_plan_id(plan_name, filename) do
+  defp build_scenario_id(scenario_name, filename) do
     base =
-      case String.trim(plan_name || "") do
+      case String.trim(scenario_name || "") do
         "" -> filename |> Path.rootname() |> String.trim()
         trimmed -> trimmed
       end
@@ -210,21 +208,21 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       |> String.replace(~r/[^a-z0-9]+/u, "-")
       |> String.trim("-")
       |> case do
-        "" -> "plan"
+        "" -> "scenario"
         value -> value
       end
 
     "#{slug}-#{upload_token()}"
   end
 
-  defp export_filename(plan_id) do
+  defp export_filename(scenario_id) do
     sanitized =
-      plan_id
+      scenario_id
       |> String.downcase()
       |> String.replace(~r/[^a-z0-9_-]+/u, "-")
       |> String.trim("-")
       |> case do
-        "" -> "simulation-plan"
+        "" -> "scenario"
         value -> value
       end
 
@@ -235,7 +233,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
   end
 
-  defp json_file_kind(:simulation_plan_params_json), do: "simulation_plan_params"
-  defp json_file_kind(:simulation_plan_json), do: "simulation_plan"
+  defp json_file_kind(:scenario_params_json), do: "scenario_params"
+  defp json_file_kind(:scenario_json), do: "scenario"
   defp json_file_kind(_upload_name), do: "unknown"
 end

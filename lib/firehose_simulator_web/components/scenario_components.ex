@@ -1,18 +1,18 @@
-defmodule FirehoseSimulatorWeb.SimulationPlanComponents do
+defmodule FirehoseSimulatorWeb.ScenarioComponents do
   @moduledoc false
 
   use Phoenix.Component
 
-  attr :simulation_plan, :map, required: true
+  attr :scenario, :map, required: true
   attr :id, :string, default: nil
   attr :class, :string, default: nil
 
-  def simulation_plan_summary(assigns) do
+  def scenario_summary(assigns) do
     assigns =
       assigns
-      |> assign(:posts_count, section_count(assigns.simulation_plan.posts))
-      |> assign(:sessions_count, section_count(assigns.simulation_plan.sessions))
-      |> assign(:follows_count, section_count(assigns.simulation_plan.follows))
+      |> assign(:posts_count, section_count(assigns.scenario.posts))
+      |> assign(:sessions_count, section_count(assigns.scenario.sessions))
+      |> assign(:follows_count, section_count(assigns.scenario.follows))
 
     ~H"""
     <p id={@id} class={@class}>
