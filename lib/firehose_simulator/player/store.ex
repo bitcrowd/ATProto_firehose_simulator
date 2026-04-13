@@ -5,6 +5,7 @@ defmodule FirehoseSimulator.Player.Store do
   use GenServer
 
   @type partition_tables :: %{optional(non_neg_integer()) => :ets.tid()}
+  @type session_row :: {term(), integer(), integer(), map()}
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
@@ -40,6 +41,38 @@ defmodule FirehoseSimulator.Player.Store do
   @spec count_completed(GenServer.server()) :: non_neg_integer()
   def count_completed(store) do
     GenServer.call(store, :count_completed)
+  end
+
+  @spec put_session(:ets.tid(), map()) :: true
+  def put_session(table, session) when is_map(session) do
+    :ets.insert(table, session_row(session))
+  end
+
+  @spec expire_sessions(:ets.tid(), :ets.tid(), integer()) :: non_neg_integer()
+  def expire_sessions(table, completed_table, now) do
+    spec = [{{:_, :_, :"$1", :_}, [{:"=<", :"$1", now}], [true]}]
+    deleted = :ets.select_delete(table, spec)
+
+    if deleted > 0 do
+      :ets.update_counter(completed_table, :count, {2, deleted}, {:count, 0})
+    end
+
+    deleted
+  end
+
+  @spec select_due(:ets.tid(), integer(), pos_integer()) ::
+          {list({term(), map()}), term()} | :"$end_of_table"
+  def select_due(table, now, limit) do
+    spec = [{{:"$1", :"$2", :_, :"$3"}, [{:"=<", :"$2", now}], [{{:"$1", :"$3"}}]}]
+    :ets.select(table, spec, limit)
+  end
+
+  @spec active_count(:ets.tid()) :: non_neg_integer()
+  def active_count(table) do
+    case :ets.info(table, :size) do
+      size when is_integer(size) -> size
+      _other -> 0
+    end
   end
 
   @impl true
@@ -92,7 +125,7 @@ defmodule FirehoseSimulator.Player.Store do
   def handle_call(:count_active, _from, state) do
     total =
       Enum.reduce(state.partition_tables, 0, fn {_partition, table}, acc ->
-        acc + :ets.info(table, :size)
+        acc + active_count(table)
       end)
 
     {:reply, total, state}
@@ -106,5 +139,9 @@ defmodule FirehoseSimulator.Player.Store do
       end
 
     {:reply, count, state}
+  end
+
+  defp session_row(session) do
+    {session.id, session.next_request_at, session.expires_at, session}
   end
 end

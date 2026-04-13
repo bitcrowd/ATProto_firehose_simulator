@@ -222,7 +222,7 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
         partition = rem(:erlang.phash2(sid), sc)
         table = Map.fetch!(state.partition_tables, partition)
-        :ets.insert(table, {sid, session})
+        Store.put_session(table, session)
 
         {sid + 1, sc}
       end)

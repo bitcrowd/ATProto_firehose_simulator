@@ -44,7 +44,8 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       store: store,
       table: table,
       completed_table: completed_table,
-      max_concurrency: max_concurrency
+      max_concurrency: max_concurrency,
+      batch_size: max_concurrency
     }
 
     Logger.info("[Worker #{partition}] Started (max_concurrency=#{max_concurrency})")
@@ -81,123 +82,114 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
   def run_cycle(state) do
     start_time = System.monotonic_time(:millisecond)
     now = start_time
-
     table = state.table
 
-    sessions = safe_tab2list(table)
+    expired_count = Store.expire_sessions(table, state.completed_table, now)
+    session_count = Store.active_count(table)
 
-    session_count = length(sessions)
-    done_counter = :counters.new(1, [:atomics])
+    due_sessions =
+      case Store.select_due(table, now, state.batch_size) do
+        :"$end_of_table" -> []
+        {sessions, _continuation} -> sessions
+      end
 
     query_results =
-      sessions
-      |> Stream.flat_map(fn {id, session} ->
-        cond do
-          now >= session.expires_at ->
-            :ets.delete(table, id)
-            :ets.update_counter(state.completed_table, :count, {2, 1}, {:count, 0})
-            :counters.add(done_counter, 1, 1)
-            []
+      if due_sessions == [] do
+        %{ok: 0, timeout: 0, error: 0}
+      else
+        due_sessions
+        |> Task.async_stream(
+          fn {_id, session} ->
+            t0 = System.monotonic_time(:millisecond)
 
-          now >= session.next_request_at ->
-            [{id, session}]
+            try do
+              did = Data.did_for_user_id(session.user_id)
 
-          true ->
-            []
-        end
-      end)
-      |> Task.async_stream(
-        fn {id, session} ->
-          t0 = System.monotonic_time(:millisecond)
+              results =
+                case Dataplane.get_timeline(did, 20, "") do
+                  %{"items" => items} when is_list(items) ->
+                    items
 
-          try do
-            did = Data.did_for_user_id(session.user_id)
+                  {:error, error} ->
+                    Logger.error("[Worker #{state.partition}] error: #{inspect(error)}")
 
-            results =
-              case Dataplane.get_timeline(did, 20) do
-                %{"items" => items} when is_list(items) ->
-                  items
+                  other ->
+                    Logger.warning(
+                      "[Worker #{state.partition}] unexpected timeline response: #{inspect(other)}"
+                    )
 
-                {:error, reason} ->
-                  throw({:error, reason})
+                    []
+                end
 
-                other ->
-                  Logger.warning(
-                    "[Worker #{state.partition}] unexpected timeline response: #{inspect(other)}"
-                  )
+              latency = System.monotonic_time(:millisecond) - t0
 
-                  []
-              end
+              :telemetry.execute(
+                [:firehose_simulator, :worker, :query],
+                %{latency_ms: latency, rows: length(results)},
+                %{status: :ok, player_id: state.player_id}
+              )
 
-            latency = System.monotonic_time(:millisecond) - t0
+              updated = %{session | next_request_at: now + session.request_interval_ms}
+              Store.put_session(table, updated)
+              {:ok, length(results)}
+            catch
+              :exit, reason ->
+                latency = System.monotonic_time(:millisecond) - t0
 
+                :telemetry.execute(
+                  [:firehose_simulator, :worker, :query],
+                  %{latency_ms: latency, rows: 0},
+                  %{status: :exit, reason: inspect(reason), player_id: state.player_id}
+                )
+
+                {:error, {:exit, reason}}
+
+              kind, reason ->
+                latency = System.monotonic_time(:millisecond) - t0
+
+                :telemetry.execute(
+                  [:firehose_simulator, :worker, :query],
+                  %{latency_ms: latency, rows: 0},
+                  %{status: :error, reason: inspect(reason), player_id: state.player_id}
+                )
+
+                {:error, {kind, reason}}
+            end
+          end,
+          max_concurrency: state.max_concurrency,
+          timeout: 30_000,
+          on_timeout: :kill_task
+        )
+        |> Enum.reduce(%{ok: 0, timeout: 0, error: 0}, fn
+          {:ok, {:ok, _rows}}, acc ->
+            %{acc | ok: acc.ok + 1}
+
+          {:ok, {:error, _}}, acc ->
+            %{acc | error: acc.error + 1}
+
+          {:exit, :timeout}, acc ->
             :telemetry.execute(
               [:firehose_simulator, :worker, :query],
-              %{latency_ms: latency, rows: length(results)},
-              %{status: :ok, player_id: state.player_id}
+              %{latency_ms: 30_000, rows: 0},
+              %{status: :timeout, player_id: state.player_id}
             )
 
-            updated = %{session | next_request_at: now + session.request_interval_ms}
-            :ets.insert(table, {id, updated})
-            {:ok, length(results)}
-          catch
-            :exit, reason ->
-              latency = System.monotonic_time(:millisecond) - t0
+            %{acc | timeout: acc.timeout + 1}
 
-              :telemetry.execute(
-                [:firehose_simulator, :worker, :query],
-                %{latency_ms: latency, rows: 0},
-                %{status: :exit, reason: inspect(reason), player_id: state.player_id}
-              )
+          _, acc ->
+            %{acc | error: acc.error + 1}
+        end)
+      end
 
-              {:error, {:exit, reason}}
-
-            kind, reason ->
-              latency = System.monotonic_time(:millisecond) - t0
-
-              :telemetry.execute(
-                [:firehose_simulator, :worker, :query],
-                %{latency_ms: latency, rows: 0},
-                %{status: :error, reason: inspect(reason), player_id: state.player_id}
-              )
-
-              {:error, {kind, reason}}
-          end
-        end,
-        max_concurrency: state.max_concurrency,
-        timeout: 30_000,
-        on_timeout: :kill_task
-      )
-      |> Enum.reduce(%{ok: 0, timeout: 0, error: 0}, fn
-        {:ok, {:ok, _rows}}, acc ->
-          %{acc | ok: acc.ok + 1}
-
-        {:ok, {:error, _}}, acc ->
-          %{acc | error: acc.error + 1}
-
-        {:exit, :timeout}, acc ->
-          :telemetry.execute(
-            [:firehose_simulator, :worker, :query],
-            %{latency_ms: 30_000, rows: 0},
-            %{status: :timeout, player_id: state.player_id}
-          )
-
-          %{acc | timeout: acc.timeout + 1}
-
-        _, acc ->
-          %{acc | error: acc.error + 1}
-      end)
-
-    done_count = :counters.get(done_counter, 1)
     elapsed = System.monotonic_time(:millisecond) - start_time
     queries_dispatched = query_results.ok + query_results.error + query_results.timeout
 
-    if queries_dispatched > 0 or done_count > 0 do
+    if queries_dispatched > 0 or expired_count > 0 do
       measurements = %{
         session_count: session_count,
         ok: query_results.ok,
         errors: query_results.error,
-        completed: done_count,
+        completed: expired_count,
         timeouts: query_results.timeout
       }
 
@@ -213,15 +205,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       )
     end
 
-    had_work = queries_dispatched > 0 or done_count > 0
+    had_work = queries_dispatched > 0 or expired_count > 0
     {had_work, query_results}
-  end
-
-  defp safe_tab2list(table) do
-    try do
-      :ets.tab2list(table)
-    catch
-      :error, :badarg -> []
-    end
   end
 end
