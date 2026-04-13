@@ -1,7 +1,7 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Vacuum
-    <:subtitle>Run userbase deletion and/or post vacuum actions.</:subtitle>
+    <:subtitle>Run table cleanup actions for userbase and post data.</:subtitle>
   </.header>
 
   <section id="vacuum-maintenance" class="card bg-base-100 border border-base-300 shadow-sm">
@@ -31,13 +31,13 @@
             field={@form[:delete_userbase]}
             id="vacuum-delete-userbase"
             type="checkbox"
-            label="Delete userbase and all posts/follows"
+            label="Delete userbase tables (TRUNCATE bsky.follow, bsky.actor)"
           />
           <.input
-            field={@form[:vacuum_posts]}
-            id="vacuum-vacuum-posts"
+            field={@form[:delete_posts]}
+            id="vacuum-delete-posts"
             type="checkbox"
-            label="Vacuum post-related tables (VACUUM FULL bsky.post, bsky.record, bsky.feed_item)"
+            label="Delete post tables (TRUNCATE bsky.feed_item, bsky.record, bsky.post)"
           />
         </div>
 

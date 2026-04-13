@@ -5,21 +5,21 @@ defmodule FirehoseSimulator.BulkCreation.Vacuum do
   @spec run(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def run(connection_string, opts) when is_binary(connection_string) and is_list(opts) do
     delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
-    vacuum_posts? = Keyword.get(opts, :vacuum_posts?, false)
+    delete_posts? = Keyword.get(opts, :delete_posts?, false)
 
-    with :ok <- validate_requested_actions(delete_userbase?, vacuum_posts?),
+    with :ok <- validate_requested_actions(delete_userbase?, delete_posts?),
          :ok <- BulkCreation.connect(connection_string) do
       repo_name = BulkCreation.repo_name(connection_string)
 
       with_dynamic_repo(repo_name, fn ->
-        with {:ok, deleted} <- maybe_delete_userbase(delete_userbase?),
-             {:ok, vacuum} <- maybe_vacuum_posts(vacuum_posts?) do
+        with {:ok, deleted_userbase} <- maybe_delete_userbase(delete_userbase?),
+             {:ok, deleted_posts} <- maybe_delete_posts(delete_posts?) do
           {:ok,
            %{
              delete_userbase?: delete_userbase?,
-             vacuum_posts?: vacuum_posts?,
-             deleted: deleted,
-             vacuum: vacuum
+             delete_posts?: delete_posts?,
+             deleted_userbase: deleted_userbase,
+             deleted_posts: deleted_posts
            }}
         end
       end)
@@ -29,41 +29,39 @@ defmodule FirehoseSimulator.BulkCreation.Vacuum do
   defp validate_requested_actions(false, false),
     do: {:error, "Select at least one vacuum action"}
 
-  defp validate_requested_actions(_delete_userbase?, _vacuum_posts?), do: :ok
+  defp validate_requested_actions(_delete_userbase?, _delete_posts?), do: :ok
 
   defp maybe_delete_userbase(false), do: {:ok, nil}
 
   defp maybe_delete_userbase(true) do
-    with {:ok, follows_deleted} <- delete_table("bsky.follow"),
-         {:ok, posts_deleted} <- delete_table("bsky.post"),
-         {:ok, actors_deleted} <- delete_table("bsky.actor") do
-      {:ok, %{actors: actors_deleted, posts: posts_deleted, follows: follows_deleted}}
-    end
+    truncate_tables(["bsky.follow", "bsky.actor"])
   end
 
-  defp maybe_vacuum_posts(false), do: {:ok, nil}
+  defp maybe_delete_posts(false), do: {:ok, nil}
 
-  defp maybe_vacuum_posts(true) do
-    tables = ["bsky.post", "bsky.record", "bsky.feed_item"]
+  defp maybe_delete_posts(true) do
+    truncate_tables(["bsky.feed_item", "bsky.record", "bsky.post"])
+  end
 
-    Enum.reduce_while(tables, {:ok, []}, fn table, {:ok, vacuumed_tables} ->
-      case DynamicRepo.query("VACUUM FULL #{table}", [], timeout: :infinity) do
-        {:ok, _result} -> {:cont, {:ok, [table | vacuumed_tables]}}
-        {:error, reason} -> {:halt, {:error, format_db_error(reason)}}
+  defp truncate_tables(tables) when is_list(tables) do
+    Enum.reduce_while(tables, {:ok, []}, fn table, {:ok, truncated_tables} ->
+      case truncate_table(table) do
+        {:ok, _result} -> {:cont, {:ok, [table | truncated_tables]}}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
     |> case do
-      {:ok, vacuumed_tables} ->
-        {:ok, %{tables: Enum.reverse(vacuumed_tables), mode: "full"}}
+      {:ok, truncated_tables} ->
+        {:ok, %{tables: Enum.reverse(truncated_tables)}}
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp delete_table(table_name) do
-    case DynamicRepo.query("DELETE FROM #{table_name}") do
-      {:ok, %{num_rows: num_rows}} -> {:ok, num_rows}
+  defp truncate_table(table_name) do
+    case DynamicRepo.query("TRUNCATE TABLE #{table_name}", [], timeout: :infinity) do
+      {:ok, result} -> {:ok, result}
       {:error, reason} -> {:error, format_db_error(reason)}
     end
   end

@@ -141,7 +141,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       "vacuum" => %{
         "db_connection_string" => "postgres://example",
         "delete_userbase" => "true",
-        "vacuum_posts" => "true"
+        "delete_posts" => "true"
       }
     })
     |> render_submit()
@@ -306,19 +306,21 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     def vacuum(connection_string, opts) when is_binary(connection_string) do
       delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
-      vacuum_posts? = Keyword.get(opts, :vacuum_posts?, false)
+      delete_posts? = Keyword.get(opts, :delete_posts?, false)
 
       if String.starts_with?(connection_string, "postgres://") and
-           (delete_userbase? or vacuum_posts?) do
+           (delete_userbase? or delete_posts?) do
         {:ok,
          %{
            delete_userbase?: delete_userbase?,
-           vacuum_posts?: vacuum_posts?,
-           deleted: %{actors: 10, posts: 20, follows: 30},
-           vacuum: %{
-             tables: ["bsky.post", "bsky.record", "bsky.feed_item"],
-             mode: "full"
-           }
+           delete_posts?: delete_posts?,
+           deleted_userbase:
+             if(delete_userbase?, do: %{tables: ["bsky.follow", "bsky.actor"]}, else: nil),
+           deleted_posts:
+             if(delete_posts?,
+               do: %{tables: ["bsky.feed_item", "bsky.record", "bsky.post"]},
+               else: nil
+             )
          }}
       else
         {:error, "invalid vacuum inputs"}

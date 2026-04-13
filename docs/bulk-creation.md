@@ -85,6 +85,6 @@ Bulk operations return summary maps, including counts such as:
 
 - Invalid connection string format returns `{:error, ...}`.
 - Repo connect failures return `{:error, ...}`.
-- DB write errors return `{:error, reason}` from insertion steps.
+- DB write/truncate errors return `{:error, reason}` from insertion or cleanup steps.
 - Invalid manifest files or unreadable CSVs return `{:error, reason}` before `COPY` runs.
 - `COPY` permission or file access failures are surfaced directly from Postgres.

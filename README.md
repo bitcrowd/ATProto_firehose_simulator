@@ -163,7 +163,7 @@ Grafana is available at `http:localhost:3000`.
 1. `Setup`: configure database connection and create the userbase.
 2. `Planning`: generate plans from params JSON or import plans from simulation plan JSON files.
 3. `Simulation`: select one available plan and play/stop/reset.
-4. `Vacuum`: run delete userbase and/or vacuum posts actions.
+4. `Vacuum`: run cleanup actions for userbase and/or post tables.
 
 
 ## In IEx
@@ -213,10 +213,10 @@ Stop/reset all running players:
 :ok = FirehoseSimulator.stop_all()
 :ok = FirehoseSimulator.reset_all()
 ```
-Use vacuum functions to either delete the full userbase footprint or vacuum posts:
+Use vacuum functions to truncate userbase and/or post tables:
 
 ```elixir
-{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true, vacuum_posts?: true)
+{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true, delete_posts?: true)
 ```
 
 ### Userbase

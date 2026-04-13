@@ -28,10 +28,10 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
     socket = assign(socket, :form, to_form(params, as: :vacuum))
     connection_string = String.trim(params["db_connection_string"] || "")
     delete_userbase? = truthy_param?(params["delete_userbase"])
-    vacuum_posts? = truthy_param?(params["vacuum_posts"])
+    delete_posts? = truthy_param?(params["delete_posts"])
 
     with :ok <- validate_connection_string(connection_string),
-         :ok <- validate_actions(delete_userbase?, vacuum_posts?),
+         :ok <- validate_actions(delete_userbase?, delete_posts?),
          :ok <- State.put_db_connection_string(connection_string) do
       {:noreply,
        socket
@@ -40,7 +40,7 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
          simulator_module().vacuum(
            connection_string,
            delete_userbase?: delete_userbase?,
-           vacuum_posts?: vacuum_posts?
+           delete_posts?: delete_posts?
          )
        end)}
     else
@@ -80,7 +80,7 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
       %{
         "db_connection_string" => connection_string,
         "delete_userbase" => false,
-        "vacuum_posts" => false
+        "delete_posts" => false
       },
       as: :vacuum
     )
@@ -92,7 +92,7 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
   defp validate_actions(false, false),
     do: {:error, "Select at least one vacuum action"}
 
-  defp validate_actions(_delete_userbase?, _vacuum_posts?), do: :ok
+  defp validate_actions(_delete_userbase?, _delete_posts?), do: :ok
 
   defp truthy_param?(value) when value in [true, "true", "on", "1"], do: true
   defp truthy_param?(_value), do: false
