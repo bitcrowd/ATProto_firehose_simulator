@@ -29,6 +29,7 @@ defmodule FirehoseSimulator.ScenarioTest do
               "max_active_user_id": 5,
               "follower_density": 2.0,
               "request_interval_ms": 25000,
+              "timeline_limit": 40,
               "tiers": [
                 {"max_followers": 1000, "session_minutes": 240}
               ]
@@ -50,7 +51,8 @@ defmodule FirehoseSimulator.ScenarioTest do
                 posts: posts,
                 sessions: sessions,
                 follows: follows,
-                request_interval_ms: request_interval_ms
+                request_interval_ms: request_interval_ms,
+                timeline_limit: timeline_limit
               }} =
                Scenario.generate_from_json(scenario_params: params_path)
 
@@ -58,6 +60,7 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert is_list(posts)
       assert is_list(follows)
       assert request_interval_ms == 25_000
+      assert timeline_limit == 40
       assert Enum.all?(sessions, &(&1.offset_ms < 3_600_000))
       assert Enum.all?(posts, &(&1.offset_ms < 3_600_000))
       assert Enum.all?(follows, &(&1.offset_ms < 3_600_000))
@@ -69,7 +72,8 @@ defmodule FirehoseSimulator.ScenarioTest do
                 posts: nil,
                 sessions: nil,
                 follows: nil,
-                request_interval_ms: 30_000
+                request_interval_ms: 30_000,
+                timeline_limit: 20
               }} =
                Scenario.generate_from_json([])
     end
@@ -114,11 +118,13 @@ defmodule FirehoseSimulator.ScenarioTest do
                 posts: posts,
                 sessions: sessions,
                 follows: follows,
-                request_interval_ms: request_interval_ms
+                request_interval_ms: request_interval_ms,
+                timeline_limit: timeline_limit
               }} =
                Scenario.generate_from_json(scenario_params: params_path)
 
       assert request_interval_ms == 30_000
+      assert timeline_limit == 20
       assert Enum.all?(sessions, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(posts, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(follows, &(&1.offset_ms < 86_400_000))
@@ -131,7 +137,8 @@ defmodule FirehoseSimulator.ScenarioTest do
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
-        request_interval_ms: 45_000
+        request_interval_ms: 45_000,
+        timeline_limit: 35
       }
 
       assert {:ok, json} = Scenario.to_json(scenario)
@@ -139,7 +146,7 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert decoded == scenario
     end
 
-    test "defaults request_interval_ms when decoding legacy json without it" do
+    test "defaults request_interval_ms and timeline_limit when decoding legacy json without them" do
       legacy_json = """
       {
         "posts": [{"offset_ms": 10, "user_id": 1}],
@@ -150,6 +157,7 @@ defmodule FirehoseSimulator.ScenarioTest do
 
       assert {:ok, decoded} = Scenario.from_json(legacy_json)
       assert decoded.request_interval_ms == 30_000
+      assert decoded.timeline_limit == 20
     end
   end
 
@@ -159,7 +167,8 @@ defmodule FirehoseSimulator.ScenarioTest do
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
-        request_interval_ms: 15_000
+        request_interval_ms: 15_000,
+        timeline_limit: 12
       }
 
       shifted = Scenario.shift(scenario, 250)
@@ -168,6 +177,7 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert shifted.sessions == [%{offset_ms: 270, user_id: 2, duration_ms: 30_000}]
       assert shifted.follows == [%{offset_ms: 280, actor_id: 2, subject_id: 1}]
       assert shifted.request_interval_ms == 15_000
+      assert shifted.timeline_limit == 12
     end
 
     test "keeps nil sections unchanged" do

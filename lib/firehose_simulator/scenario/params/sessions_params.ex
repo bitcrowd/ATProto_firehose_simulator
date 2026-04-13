@@ -13,6 +13,7 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
           max_active_user_id: pos_integer(),
           follower_density: float(),
           request_interval_ms: pos_integer(),
+          timeline_limit: pos_integer(),
           tiers: [SessionTier.t()]
         }
 
@@ -22,6 +23,7 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
     field(:max_active_user_id, :integer)
     field(:follower_density, :float, default: 1.0)
     field(:request_interval_ms, :integer, default: 30_000)
+    field(:timeline_limit, :integer, default: 20)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
 
@@ -57,13 +59,15 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
       :num_users,
       :max_active_user_id,
       :follower_density,
-      :request_interval_ms
+      :request_interval_ms,
+      :timeline_limit
     ])
     |> validate_required([:num_users, :max_active_user_id])
     |> validate_number(:num_users, greater_than: 0)
     |> validate_number(:max_active_user_id, greater_than: 0)
     |> validate_number(:follower_density, greater_than: 0)
     |> validate_number(:request_interval_ms, greater_than: 0)
+    |> validate_number(:timeline_limit, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
     |> validate_length(:tiers, min: 1)
   end

@@ -4,6 +4,7 @@ defmodule FirehoseSimulator.Scenario.JSON do
   alias FirehoseSimulator.Scenario
 
   @default_request_interval_ms 30_000
+  @default_timeline_limit 20
 
   @spec encode(Scenario.t()) :: {:ok, String.t()} | {:error, String.t()}
   def encode(%Scenario{} = scenario) do
@@ -11,7 +12,8 @@ defmodule FirehoseSimulator.Scenario.JSON do
       posts: scenario.posts,
       sessions: scenario.sessions,
       follows: scenario.follows,
-      request_interval_ms: scenario.request_interval_ms
+      request_interval_ms: scenario.request_interval_ms,
+      timeline_limit: scenario.timeline_limit
     }
 
     case Jason.encode(payload) do
@@ -26,13 +28,15 @@ defmodule FirehoseSimulator.Scenario.JSON do
          {:ok, posts} <- decode_posts(Map.get(attrs, "posts")),
          {:ok, sessions} <- decode_sessions(Map.get(attrs, "sessions")),
          {:ok, follows} <- decode_follows(Map.get(attrs, "follows")),
-         {:ok, request_interval_ms} <- decode_request_interval_ms(attrs) do
+         {:ok, request_interval_ms} <- decode_request_interval_ms(attrs),
+         {:ok, timeline_limit} <- decode_timeline_limit(attrs) do
       {:ok,
        %Scenario{
          posts: posts,
          sessions: sessions,
          follows: follows,
-         request_interval_ms: request_interval_ms
+         request_interval_ms: request_interval_ms,
+         timeline_limit: timeline_limit
        }}
     end
   end
@@ -64,6 +68,19 @@ defmodule FirehoseSimulator.Scenario.JSON do
 
       _invalid ->
         {:error, "invalid request_interval_ms: must be a positive integer"}
+    end
+  end
+
+  defp decode_timeline_limit(attrs) when is_map(attrs) do
+    case Map.get(attrs, "timeline_limit") do
+      nil ->
+        {:ok, @default_timeline_limit}
+
+      value when is_integer(value) and value > 0 ->
+        {:ok, value}
+
+      _invalid ->
+        {:error, "invalid timeline_limit: must be a positive integer"}
     end
   end
 

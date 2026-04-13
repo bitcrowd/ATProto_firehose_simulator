@@ -24,6 +24,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
     store = Keyword.fetch!(opts, :store)
     partition = Keyword.fetch!(opts, :partition)
     num_partitions = Keyword.fetch!(opts, :num_partitions)
+    timeline_limit = Keyword.fetch!(opts, :timeline_limit)
     configured_max_concurrency = Keyword.get(opts, :max_concurrency)
 
     max_concurrency =
@@ -45,7 +46,8 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       table: table,
       completed_table: completed_table,
       max_concurrency: max_concurrency,
-      batch_size: max_concurrency
+      batch_size: max_concurrency,
+      timeline_limit: timeline_limit
     }
 
     Logger.info("[Worker #{partition}] Started (max_concurrency=#{max_concurrency})")
@@ -106,7 +108,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
               did = Data.did_for_user_id(session.user_id)
 
               results =
-                case Dataplane.get_timeline(did, 20, "") do
+                case Dataplane.get_timeline(did, state.timeline_limit) do
                   %{"items" => items} when is_list(items) ->
                     items
 

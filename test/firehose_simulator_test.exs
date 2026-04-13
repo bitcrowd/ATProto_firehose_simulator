@@ -92,13 +92,21 @@ defmodule FirehoseSimulatorTest do
     end
 
     test "starts playing and returns a player id" do
-      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
+      scenario = %Scenario{
+        sessions: nil,
+        posts: nil,
+        follows: nil,
+        request_interval_ms: 15_000,
+        timeline_limit: 42
+      }
 
       capture_log(fn ->
-        assert {:ok, player_id, %{started?: true}} =
+        assert {:ok, player_id, %{started?: true} = metadata} =
                  FirehoseSimulator.play(scenario, scheduler_count: 1)
 
         assert is_binary(player_id)
+        assert metadata.request_interval_ms == 15_000
+        assert metadata.timeline_limit == 42
       end)
 
       running_players = FirehoseSimulator.State.list_running_players()
@@ -241,7 +249,8 @@ defmodule FirehoseSimulatorTest do
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
-        request_interval_ms: 15_000
+        request_interval_ms: 15_000,
+        timeline_limit: 12
       }
 
       shifted = FirehoseSimulator.shift_scenario(scenario, 250)
@@ -250,6 +259,7 @@ defmodule FirehoseSimulatorTest do
       assert shifted.sessions == [%{offset_ms: 270, user_id: 2, duration_ms: 30_000}]
       assert shifted.follows == [%{offset_ms: 280, actor_id: 2, subject_id: 1}]
       assert shifted.request_interval_ms == 15_000
+      assert shifted.timeline_limit == 12
     end
 
     test "keeps nil sections unchanged" do

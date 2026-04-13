@@ -24,6 +24,7 @@ defmodule FirehoseSimulator.Player do
     player_id = next_player_id()
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
     request_interval_ms = scenario.request_interval_ms || 30_000
+    timeline_limit = scenario.timeline_limit || 20
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
     scenario_id = Keyword.get(opts, :scenario_id)
 
@@ -31,6 +32,7 @@ defmodule FirehoseSimulator.Player do
       player_id: player_id,
       scenario: scenario,
       request_interval_ms: request_interval_ms,
+      timeline_limit: timeline_limit,
       scheduler_count: scheduler_count
     ]
 
@@ -64,6 +66,7 @@ defmodule FirehoseSimulator.Player do
           player_id: player_id,
           scenario_id: scenario_id,
           request_interval_ms: request_interval_ms,
+          timeline_limit: timeline_limit,
           schedulers: scheduler_count,
           supervisor: supervisor_pid,
           started?: true,

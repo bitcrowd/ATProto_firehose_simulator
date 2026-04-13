@@ -12,15 +12,23 @@ defmodule FirehoseSimulator.Scenario do
 
   @default_time_unit_duration_ms 86_400_000
   @default_request_interval_ms 30_000
+  @default_timeline_limit 20
 
   @enforce_keys [:posts, :sessions, :follows]
-  defstruct [:posts, :sessions, :follows, request_interval_ms: @default_request_interval_ms]
+  defstruct [
+    :posts,
+    :sessions,
+    :follows,
+    request_interval_ms: @default_request_interval_ms,
+    timeline_limit: @default_timeline_limit
+  ]
 
   @type t :: %__MODULE__{
           posts: Posts.t() | nil,
           sessions: Sessions.t() | nil,
           follows: Follows.t() | nil,
-          request_interval_ms: pos_integer()
+          request_interval_ms: pos_integer(),
+          timeline_limit: pos_integer()
         }
 
   @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
@@ -38,6 +46,7 @@ defmodule FirehoseSimulator.Scenario do
       time_units = time_units(params)
       unit_duration_ms = time_unit_duration_ms(params)
       request_interval_ms = request_interval_ms(params)
+      timeline_limit = timeline_limit(params)
 
       with {:ok, posts} <- build_posts(params, seed, time_units, unit_duration_ms),
            {:ok, sessions} <- build_sessions(params, seed, time_units, unit_duration_ms),
@@ -47,7 +56,8 @@ defmodule FirehoseSimulator.Scenario do
            posts: posts,
            sessions: sessions,
            follows: follows,
-           request_interval_ms: request_interval_ms
+           request_interval_ms: request_interval_ms,
+           timeline_limit: timeline_limit
          }}
       end
     end
@@ -84,7 +94,8 @@ defmodule FirehoseSimulator.Scenario do
       posts: shift_events(scenario.posts, offset_ms),
       sessions: shift_events(scenario.sessions, offset_ms),
       follows: shift_events(scenario.follows, offset_ms),
-      request_interval_ms: scenario.request_interval_ms
+      request_interval_ms: scenario.request_interval_ms,
+      timeline_limit: scenario.timeline_limit
     }
   end
 
@@ -175,6 +186,19 @@ defmodule FirehoseSimulator.Scenario do
          sessions_params: %{request_interval_ms: request_interval_ms}
        }),
        do: request_interval_ms
+
+  defp timeline_limit(%ScenarioParams{sessions_params: nil}),
+    do: @default_timeline_limit
+
+  defp timeline_limit(%ScenarioParams{
+         sessions_params: %{timeline_limit: nil}
+       }),
+       do: @default_timeline_limit
+
+  defp timeline_limit(%ScenarioParams{
+         sessions_params: %{timeline_limit: timeline_limit}
+       }),
+       do: timeline_limit
 
   defp shift_events(nil, _offset_ms), do: nil
 

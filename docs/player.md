@@ -37,6 +37,7 @@ The player executes scenarios in real time using per-run process trees with isol
 ### Derived Runtime Parameters
 
 - `request_interval_ms` comes from `%Scenario{request_interval_ms}`; default `30_000` if nil.
+- `timeline_limit` comes from `%SimulationPlan{timeline_limit}`; default `20` if nil.
 
 ## Runtime Behavior
 

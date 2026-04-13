@@ -59,9 +59,6 @@ userbase_path = "priv/simulation/userbase.json"
 
  Generate a scenario from params JSON:
 
-`scenario_params.json` supports an optional top-level `time_unit_duration_ms` field. If omitted, one time unit defaults to `86_400_000` ms (24 hours).
-Within `sessions_params`, `request_interval_ms` controls timeline request cadence for all sessions in the generated plan and defaults to `30_000` ms.
-
 ```elixir
 {:ok, scenario} =
   FirehoseSimulator.generate_scenario_from_json(

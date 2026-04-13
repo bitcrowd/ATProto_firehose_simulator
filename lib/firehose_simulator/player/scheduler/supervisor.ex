@@ -22,6 +22,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Supervisor do
     scheduler_count = Keyword.get(opts, :scheduler_count, System.schedulers_online())
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency, 1)
     event_feeder_opts = Keyword.get(opts, :event_feeder_opts)
+    timeline_limit = Keyword.fetch!(event_feeder_opts, :timeline_limit)
 
     num_partitions = max(scheduler_count, worker_max_concurrency)
 
@@ -37,6 +38,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Supervisor do
              partition: partition,
              num_partitions: scheduler_count,
              store: store_name,
+             timeline_limit: timeline_limit,
              max_concurrency: worker_max_concurrency
            ]},
           id: {FirehoseSimulator.Player.Scheduler.Worker, player_id, partition}

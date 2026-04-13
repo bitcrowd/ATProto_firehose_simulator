@@ -48,7 +48,8 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
       table: table,
       completed_table: completed_table,
       max_concurrency: 1,
-      batch_size: 1
+      batch_size: 1,
+      timeline_limit: 20
     }
 
     {had_work, results} = Worker.run_cycle(state)
@@ -110,7 +111,8 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
       table: table,
       completed_table: completed_table,
       max_concurrency: 1,
-      batch_size: 1
+      batch_size: 1,
+      timeline_limit: 20
     }
 
     capture_log(fn ->

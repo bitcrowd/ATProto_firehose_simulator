@@ -100,11 +100,13 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
               "posts" => posts,
               "sessions" => nil,
               "follows" => nil,
-              "request_interval_ms" => request_interval_ms
+              "request_interval_ms" => request_interval_ms,
+              "timeline_limit" => timeline_limit
             }} = Jason.decode(content)
 
     assert is_list(posts)
     assert request_interval_ms == 30_000
+    assert timeline_limit == 20
 
     import_upload =
       file_input(view, "#planning-import-form", :scenario_json, [
@@ -396,6 +398,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
         "max_active_user_id": 5,
         "follower_density": 2.0,
         "request_interval_ms": 25000,
+        "timeline_limit": 40,
         "tiers": [
           {"max_followers": 1000, "session_minutes": 240}
         ]
@@ -424,7 +427,8 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       "follows": [
         {"offset_ms": 50, "actor_id": 3, "subject_id": 1}
       ],
-      "request_interval_ms": 35000
+      "request_interval_ms": 35000,
+      "timeline_limit": 28
     }
     """
   end
