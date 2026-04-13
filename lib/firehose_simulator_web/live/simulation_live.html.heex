@@ -28,16 +28,15 @@
               No scenarios available. Generate or import one in Planning.
             </p>
 
-            <button
+            <.link
               :for={scenario <- @scenarios}
               id={"simulation-select-#{scenario.id}"}
-              type="button"
-              phx-click="select_scenario"
-              phx-value-scenario_id={scenario.id}
+              patch={~p"/simulation?scenario_id=#{scenario.id}"}
               class={[
-                "w-full rounded-box border px-3 py-2 text-left transition-colors",
-                @selected_scenario_id == scenario.id && "border-primary/70 bg-primary/10",
-                @selected_scenario_id != scenario.id &&
+                "block w-full rounded-box border px-3 py-2 text-left transition-colors",
+                @selected_scenario && @selected_scenario.id == scenario.id &&
+                  "border-primary/70 bg-primary/10",
+                (!@selected_scenario || @selected_scenario.id != scenario.id) &&
                   "border-base-300 hover:border-base-content/40"
               ]}
             >
@@ -47,7 +46,7 @@
                 scenario={scenario.scenario}
                 class="mt-1 text-xs text-base-content/70"
               />
-            </button>
+            </.link>
           </div>
         </div>
 
@@ -67,7 +66,7 @@
           <.button
             id="play-button"
             type="submit"
-            disabled={!@selected_scenario_id}
+            disabled={!@selected_scenario}
             variant="primary"
           >
             Play selected scenario

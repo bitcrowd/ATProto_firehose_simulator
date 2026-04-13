@@ -7,7 +7,6 @@ defmodule FirehoseSimulator.State do
 
   @type state :: %{
           scenarios: %{optional(String.t()) => Scenario.t()},
-          selected_scenario_id: String.t() | nil,
           running_players: %{optional(String.t()) => map()},
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
@@ -36,23 +35,6 @@ defmodule FirehoseSimulator.State do
   @spec list_scenarios() :: %{optional(String.t()) => Scenario.t()}
   def list_scenarios do
     GenServer.call(__MODULE__, :list_scenarios)
-  end
-
-  @spec select_scenario(String.t() | nil) :: :ok
-  def select_scenario(nil), do: GenServer.call(__MODULE__, {:select_scenario, nil})
-
-  def select_scenario(scenario_id) when is_binary(scenario_id) do
-    GenServer.call(__MODULE__, {:select_scenario, scenario_id})
-  end
-
-  @spec get_selected_scenario_id() :: String.t() | nil
-  def get_selected_scenario_id do
-    GenServer.call(__MODULE__, :get_selected_scenario_id)
-  end
-
-  @spec get_selected_scenario() :: Scenario.t() | nil
-  def get_selected_scenario do
-    GenServer.call(__MODULE__, :get_selected_scenario)
   end
 
   @spec clear_scenarios() :: :ok
@@ -124,56 +106,22 @@ defmodule FirehoseSimulator.State do
 
   def handle_call({:put_scenario, scenario_id, scenario}, _from, state) do
     scenarios = Map.put(state.scenarios, scenario_id, scenario)
-    selected_id = state.selected_scenario_id || scenario_id
 
-    {:reply, :ok, %{state | scenarios: scenarios, selected_scenario_id: selected_id}}
+    {:reply, :ok, %{state | scenarios: scenarios}}
   end
 
   def handle_call({:delete_scenario, scenario_id}, _from, state) do
     scenarios = Map.delete(state.scenarios, scenario_id)
 
-    selected_id =
-      if state.selected_scenario_id == scenario_id do
-        scenarios
-        |> Map.keys()
-        |> Enum.sort()
-        |> List.first()
-      else
-        state.selected_scenario_id
-      end
-
-    {:reply, :ok, %{state | scenarios: scenarios, selected_scenario_id: selected_id}}
+    {:reply, :ok, %{state | scenarios: scenarios}}
   end
 
   def handle_call(:list_scenarios, _from, state) do
     {:reply, state.scenarios, state}
   end
 
-  def handle_call({:select_scenario, nil}, _from, state) do
-    {:reply, :ok, %{state | selected_scenario_id: nil}}
-  end
-
-  def handle_call({:select_scenario, scenario_id}, _from, state) do
-    selected_id =
-      if Map.has_key?(state.scenarios, scenario_id) do
-        scenario_id
-      else
-        state.selected_scenario_id
-      end
-
-    {:reply, :ok, %{state | selected_scenario_id: selected_id}}
-  end
-
-  def handle_call(:get_selected_scenario_id, _from, state) do
-    {:reply, state.selected_scenario_id, state}
-  end
-
-  def handle_call(:get_selected_scenario, _from, state) do
-    {:reply, Map.get(state.scenarios, state.selected_scenario_id), state}
-  end
-
   def handle_call(:clear_scenarios, _from, state) do
-    {:reply, :ok, %{state | scenarios: %{}, selected_scenario_id: nil}}
+    {:reply, :ok, %{state | scenarios: %{}}}
   end
 
   def handle_call(:list_running_players, _from, state) do
@@ -206,7 +154,6 @@ defmodule FirehoseSimulator.State do
   defp default_state do
     %{
       scenarios: %{},
-      selected_scenario_id: nil,
       running_players: %{},
       userbase_uploaded?: false,
       userbase_result: nil

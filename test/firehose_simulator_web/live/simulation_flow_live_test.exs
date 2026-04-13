@@ -159,13 +159,14 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/simulation")
 
-    refute has_element?(view, "#play-button[disabled]")
+    assert has_element?(view, "#play-button[disabled]")
     assert has_element?(view, "#simulation-scenario-summary-plan-1")
 
     view
     |> element("#simulation-select-plan-1")
     |> render_click()
 
+    assert_patch(view, ~p"/simulation?scenario_id=plan-1")
     refute has_element?(view, "#play-button[disabled]")
 
     view
@@ -198,6 +199,20 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     view |> element("#reset-all-button") |> render_click()
     assert render(view) =~ "All simulation players reset."
+  end
+
+  test "simulation liveview ignores missing selected scenario in url", %{conn: conn} do
+    :ok =
+      State.put_scenario("plan-1", %Scenario{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: nil,
+        follows: nil
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/simulation?scenario_id=missing-plan")
+
+    assert has_element?(view, "#simulation-scenario-summary-plan-1")
+    assert has_element?(view, "#play-button[disabled]")
   end
 
   test "metrics liveview renders metrics tab and counters", %{conn: conn} do
