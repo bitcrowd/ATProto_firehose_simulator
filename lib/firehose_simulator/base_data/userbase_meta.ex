@@ -1,4 +1,4 @@
-defmodule FirehoseSimulator.UserbaseMeta do
+defmodule FirehoseSimulator.BaseData.UserbaseMeta do
   @enforce_keys [:version, :kind, :run_id, :exported_at, :userbase, :files]
   defstruct [:version, :kind, :run_id, :exported_at, :userbase, :files]
 

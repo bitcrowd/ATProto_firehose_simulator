@@ -1,8 +1,8 @@
-defmodule FirehoseSimulator.UserbaseImport do
+defmodule FirehoseSimulator.BaseData.UserbaseImport do
+  alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.BulkCreation.DynamicRepo
   alias FirehoseSimulator.DatabaseConnection
-  alias FirehoseSimulator.UserbaseMeta
 
   @spec import(String.t(), DatabaseConnection.t(), module(), module()) ::
           {:ok, map()} | {:error, String.t()}

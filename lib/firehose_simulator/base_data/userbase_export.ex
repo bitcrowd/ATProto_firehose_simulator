@@ -1,8 +1,8 @@
-defmodule FirehoseSimulator.UserbaseExport do
+defmodule FirehoseSimulator.BaseData.UserbaseExport do
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
+  alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.BulkCreation
-  alias FirehoseSimulator.UserbaseMeta
 
   @default_export_root "priv/userbases"
 

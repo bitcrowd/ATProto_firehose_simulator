@@ -7,13 +7,13 @@ defmodule FirehoseSimulator do
 
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.BulkCreation.Vacuum
+  alias FirehoseSimulator.BaseData.UserbaseExport
+  alias FirehoseSimulator.BaseData.UserbaseImport
   alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.State
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.BaseData.Userbase
-  alias FirehoseSimulator.UserbaseExport
-  alias FirehoseSimulator.UserbaseImport
 
   @default_userbase_filename "priv/simulation/userbase.json"
   # Bulk Creation
