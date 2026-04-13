@@ -13,13 +13,13 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           "simulation-plan-params",
           """
           {
+            "seed": 1,
+            "time_units": 1,
             "time_unit_duration_ms": 3600000,
             "posts_params": {
               "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "posts_per_time_unit": 0.25}
               ]
@@ -28,8 +28,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
-              "seed": 1,
-              "time_units": 1,
               "request_interval_ms": 25000,
               "tiers": [
                 {"max_followers": 1000, "session_minutes": 240}
@@ -39,8 +37,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
               "num_users": 10,
               "max_active_user_id": 5,
               "follower_density": 2.0,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "follows_per_time_unit": 0.25}
               ]
@@ -86,11 +82,11 @@ defmodule FirehoseSimulator.SimulationPlanTest do
           "simulation-plan-params-default-duration",
           """
           {
+            "seed": 1,
+            "time_units": 1,
             "posts_params": {
               "num_users": 10,
               "max_active_user_id": 1,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "posts_per_time_unit": 1.0}
               ]
@@ -98,8 +94,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
             "sessions_params": {
               "num_users": 10,
               "max_active_user_id": 1,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "session_minutes": 10}
               ]
@@ -107,8 +101,6 @@ defmodule FirehoseSimulator.SimulationPlanTest do
             "follows_params": {
               "num_users": 10,
               "max_active_user_id": 1,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "follows_per_time_unit": 1.0}
               ]

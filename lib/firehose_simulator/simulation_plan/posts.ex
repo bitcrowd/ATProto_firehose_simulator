@@ -3,8 +3,7 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
   Generates a deterministic in-memory posts plan from a follower graph configuration.
 
   Posts are distributed at random offsets throughout each simulated time unit,
-  independent of session schedules. Uses its own RNG seed so changing
-  post config does not affect session generation.
+  independent of session schedules.
 
   ## Example
 
@@ -26,24 +25,22 @@ defmodule FirehoseSimulator.SimulationPlan.Posts do
   @doc """
   Generate an in-memory posts plan from a `%PostsParams{}` config.
   """
-  def generate(%PostsParams{} = config) do
-    generate(config, @default_unit_duration_ms)
-  end
-
-  @doc """
-  Generate an in-memory posts plan from a `%PostsParams{}` config and explicit
-  time unit duration in milliseconds.
-  """
-  def generate(%PostsParams{} = config, unit_duration_ms)
-      when is_integer(unit_duration_ms) and unit_duration_ms > 0 do
-    :rand.seed(:exsss, {config.seed, config.seed, config.seed})
+  def generate(
+        %PostsParams{} = config,
+        seed,
+        time_units,
+        unit_duration_ms \\ @default_unit_duration_ms
+      )
+      when is_integer(seed) and is_integer(time_units) and time_units > 0 and
+             is_integer(unit_duration_ms) and unit_duration_ms > 0 do
+    :rand.seed(:exsss, {seed, seed, seed})
 
     posts =
       build_posts(
         config.max_active_user_id,
         config.num_users,
         config.follower_density,
-        config.time_units,
+        time_units,
         config.tiers,
         unit_duration_ms
       )

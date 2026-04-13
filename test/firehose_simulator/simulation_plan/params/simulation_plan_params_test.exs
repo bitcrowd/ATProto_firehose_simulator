@@ -8,12 +8,12 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
       assert {:ok, %SimulationPlanParams{} = params} =
                SimulationPlanParams.load("""
                {
+                 "seed": 1,
+                 "time_units": 1,
                  "time_unit_duration_ms": 3600000,
                  "posts_params": {
                    "num_users": 10,
                    "max_active_user_id": 5,
-                   "seed": 1,
-                   "time_units": 1,
                    "tiers": [
                      {"max_followers": 1000, "posts_per_time_unit": 0.25}
                    ]
@@ -21,8 +21,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                  "sessions_params": {
                    "num_users": 10,
                    "max_active_user_id": 5,
-                   "seed": 1,
-                   "time_units": 1,
                    "request_interval_ms": 15000,
                    "tiers": [
                      {"max_followers": 1000, "session_minutes": 240}
@@ -31,8 +29,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                  "follows_params": {
                    "num_users": 10,
                    "max_active_user_id": 5,
-                   "seed": 1,
-                   "time_units": 1,
                    "tiers": [
                      {"max_followers": 1000, "follows_per_time_unit": 0.25}
                    ]
@@ -40,6 +36,8 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
                }
                """)
 
+      assert params.seed == 1
+      assert params.time_units == 1
       assert params.time_unit_duration_ms == 3_600_000
       assert params.posts_params.num_users == 10
       assert params.sessions_params.num_users == 10
@@ -47,10 +45,25 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
       assert params.follows_params.num_users == 10
     end
 
+    test "validates required top-level fields" do
+      assert {:error, message} =
+               SimulationPlanParams.load("""
+               {
+                 "time_unit_duration_ms": 3600000
+               }
+               """)
+
+      assert String.contains?(message, "invalid simulation plan params config:")
+      assert String.contains?(message, "seed")
+      assert String.contains?(message, "time_units")
+    end
+
     test "validates time_unit_duration_ms when provided" do
       assert {:error, message} =
                SimulationPlanParams.load("""
                {
+                 "seed": 1,
+                 "time_units": 1,
                  "time_unit_duration_ms": 0
                }
                """)
@@ -60,7 +73,16 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
     end
 
     test "supports optional sections" do
-      assert {:ok, %SimulationPlanParams{} = params} = SimulationPlanParams.load("{}")
+      assert {:ok, %SimulationPlanParams{} = params} =
+               SimulationPlanParams.load("""
+               {
+                 "seed": 1,
+                 "time_units": 1
+               }
+               """)
+
+      assert params.seed == 1
+      assert params.time_units == 1
       assert is_nil(params.time_unit_duration_ms)
       assert is_nil(params.posts_params)
       assert is_nil(params.sessions_params)
@@ -71,7 +93,7 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SimulationPlanParamsTest do
   describe "load_file/1" do
     @tag :tmp_dir
     test "reads unified json from disk", %{tmp_dir: tmp_dir} do
-      path = write_file!(tmp_dir, "simulation-plan-params", "{}")
+      path = write_file!(tmp_dir, "simulation-plan-params", ~s({"seed":1,"time_units":1}))
       assert {:ok, %SimulationPlanParams{}} = SimulationPlanParams.load_file(path)
     end
 

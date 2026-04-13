@@ -374,12 +374,12 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   defp simulation_plan_params_json do
     """
     {
+      "seed": 1,
+      "time_units": 1,
       "posts_params": {
         "num_users": 10,
         "max_active_user_id": 5,
         "follower_density": 2.0,
-        "seed": 1,
-        "time_units": 1,
         "tiers": [
           {"max_followers": 1000, "posts_per_time_unit": 0.25}
         ]
@@ -388,8 +388,6 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
         "num_users": 10,
         "max_active_user_id": 5,
         "follower_density": 2.0,
-        "seed": 1,
-        "time_units": 1,
         "request_interval_ms": 25000,
         "tiers": [
           {"max_followers": 1000, "session_minutes": 240}
@@ -399,8 +397,6 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
         "num_users": 10,
         "max_active_user_id": 5,
         "follower_density": 2.0,
-        "seed": 1,
-        "time_units": 1,
         "tiers": [
           {"max_followers": 1000, "follows_per_time_unit": 0.25}
         ]

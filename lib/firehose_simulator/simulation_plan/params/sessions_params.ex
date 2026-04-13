@@ -12,8 +12,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
           num_users: pos_integer(),
           max_active_user_id: pos_integer(),
           follower_density: float(),
-          seed: integer(),
-          time_units: pos_integer(),
           request_interval_ms: pos_integer(),
           tiers: [SessionTier.t()]
         }
@@ -23,8 +21,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
     field(:num_users, :integer)
     field(:max_active_user_id, :integer)
     field(:follower_density, :float, default: 1.0)
-    field(:seed, :integer)
-    field(:time_units, :integer)
     field(:request_interval_ms, :integer, default: 30_000)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
@@ -61,15 +57,12 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParams do
       :num_users,
       :max_active_user_id,
       :follower_density,
-      :seed,
-      :time_units,
       :request_interval_ms
     ])
-    |> validate_required([:num_users, :max_active_user_id, :seed, :time_units])
+    |> validate_required([:num_users, :max_active_user_id])
     |> validate_number(:num_users, greater_than: 0)
     |> validate_number(:max_active_user_id, greater_than: 0)
     |> validate_number(:follower_density, greater_than: 0)
-    |> validate_number(:time_units, greater_than: 0)
     |> validate_number(:request_interval_ms, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
     |> validate_length(:tiers, min: 1)

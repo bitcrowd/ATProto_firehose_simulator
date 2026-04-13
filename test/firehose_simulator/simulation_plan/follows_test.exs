@@ -8,8 +8,6 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
-    seed: 42,
-    time_units: 1,
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.FollowTier{
         max_followers: 1_000,
@@ -18,8 +16,8 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     ]
   }
 
-  test "generate/1 returns an in-memory follows list" do
-    follows = Follows.generate(@config)
+  test "generate/4 returns an in-memory follows list" do
+    follows = Follows.generate(@config, 42, 1)
 
     assert length(follows) == 2
     assert Enum.all?(follows, &is_integer(&1.offset_ms))
@@ -27,13 +25,11 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
     assert Enum.all?(follows, &is_integer(&1.subject_id))
   end
 
-  test "generate/1 uses follower_density for tier matching" do
+  test "generate/4 uses follower_density for tier matching" do
     config = %FollowsParams{
       num_users: 10,
       max_active_user_id: 2,
       follower_density: 1.0,
-      seed: 42,
-      time_units: 1,
       tiers: [
         %FirehoseSimulator.SimulationPlan.Params.FollowTier{
           max_followers: 6,
@@ -48,12 +44,12 @@ defmodule FirehoseSimulator.SimulationPlan.FollowsTest do
 
     dense_config = %{config | follower_density: 2.0}
 
-    assert length(Follows.generate(config)) == 1
-    assert length(Follows.generate(dense_config)) == 2
+    assert length(Follows.generate(config, 42, 1)) == 1
+    assert length(Follows.generate(dense_config, 42, 1)) == 2
   end
 
-  test "generate/2 uses the provided time unit duration" do
-    follows = Follows.generate(@config, 1_000)
+  test "generate/4 uses the provided time unit duration" do
+    follows = Follows.generate(@config, 42, 1, 1_000)
 
     assert Enum.all?(follows, &(&1.offset_ms < 1_000))
   end

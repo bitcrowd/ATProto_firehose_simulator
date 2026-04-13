@@ -11,8 +11,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                  "num_users": 1000000,
                  "max_active_user_id": 5000,
                  "follower_density": 2.0,
-                 "seed": 42,
-                 "time_units": 1,
                  "request_interval_ms": 45000,
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240},
@@ -25,8 +23,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
       assert sessions.num_users == 1_000_000
       assert sessions.max_active_user_id == 5_000
       assert sessions.follower_density == 2.0
-      assert sessions.seed == 42
-      assert sessions.time_units == 1
       assert sessions.request_interval_ms == 45_000
       assert Enum.map(sessions.tiers, & &1.session_minutes) == [240, 480, 1000]
     end
@@ -37,8 +33,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                {
                  "num_users": 10,
                  "max_active_user_id": 5,
-                 "seed": 1,
-                 "time_units": 1,
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240}
                  ]
@@ -55,8 +49,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                {
                  "num_users": 10,
                  "max_active_user_id": 5,
-                 "seed": 1,
-                 "time_units": 1,
                  "request_interval_ms": 0,
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240}
@@ -80,8 +72,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                {
                  "num_users": 1000000,
                  "max_active_user_id": 5000,
-                 "seed": 42,
-                 "time_units": 1,
                  "tiers": [
                    {"max_followers": 1000}
                  ]
@@ -100,8 +90,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
                {
                  "num_users": 10,
                  "max_active_user_id": 5,
-                 "seed": 1,
-                 "time_units": 1,
                  "tiers": [
                    {"max_followers": 1000, "session_minutes": 240}
                  ]
@@ -121,8 +109,6 @@ defmodule FirehoseSimulator.SimulationPlan.Params.SessionsParamsTest do
           {
             "num_users": 10,
             "max_active_user_id": 5,
-            "seed": 1,
-            "time_units": 1,
             "tiers": [
               {"max_followers": 1000, "session_minutes": 240}
             ]

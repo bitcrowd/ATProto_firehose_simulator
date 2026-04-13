@@ -28,11 +28,11 @@ defmodule FirehoseSimulatorTest do
           "simulation-plan-params",
           """
           {
+            "seed": 1,
+            "time_units": 1,
             "posts_params": {
               "num_users": 10,
               "max_active_user_id": 5,
-              "seed": 1,
-              "time_units": 1,
               "tiers": [
                 {"max_followers": 1000, "posts_per_time_unit": 0.25}
               ]

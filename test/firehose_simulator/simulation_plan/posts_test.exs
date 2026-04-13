@@ -8,8 +8,6 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     num_users: 100,
     max_active_user_id: 2,
     follower_density: 1.0,
-    seed: 42,
-    time_units: 1,
     tiers: [
       %FirehoseSimulator.SimulationPlan.Params.PostTier{
         max_followers: 1_000,
@@ -18,21 +16,19 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
     ]
   }
 
-  test "generate/1 returns an in-memory posts list" do
-    posts = Posts.generate(@config)
+  test "generate/4 returns an in-memory posts list" do
+    posts = Posts.generate(@config, 42, 1)
 
     assert length(posts) == 2
     assert Enum.all?(posts, &is_integer(&1.offset_ms))
     assert posts |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
   end
 
-  test "generate/1 uses follower_density for tier matching" do
+  test "generate/4 uses follower_density for tier matching" do
     config = %PostsParams{
       num_users: 10,
       max_active_user_id: 2,
       follower_density: 1.0,
-      seed: 42,
-      time_units: 1,
       tiers: [
         %FirehoseSimulator.SimulationPlan.Params.PostTier{
           max_followers: 6,
@@ -47,12 +43,12 @@ defmodule FirehoseSimulator.SimulationPlan.PostsTest do
 
     dense_config = %{config | follower_density: 2.0}
 
-    assert length(Posts.generate(config)) == 1
-    assert length(Posts.generate(dense_config)) == 2
+    assert length(Posts.generate(config, 42, 1)) == 1
+    assert length(Posts.generate(dense_config, 42, 1)) == 2
   end
 
-  test "generate/2 uses the provided time unit duration" do
-    posts = Posts.generate(@config, 1_000)
+  test "generate/4 uses the provided time unit duration" do
+    posts = Posts.generate(@config, 42, 1, 1_000)
 
     assert Enum.all?(posts, &(&1.offset_ms < 1_000))
   end
