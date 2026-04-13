@@ -64,20 +64,6 @@ if config_env() == :prod do
            environment variable DATAPLANE_URL is missing.
            """)
 
-  config :firehose_simulator,
-         :bsky_api_url,
-         System.get_env("BSKY_API_URL") ||
-           raise("""
-           environment variable BSKY_API_URL is missing.
-           """)
-
-  config :firehose_simulator,
-         :bsky_did,
-         System.get_env("BSKY_DID") ||
-           raise("""
-           environment variable BSKY_DID is missing.
-           """)
-
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
