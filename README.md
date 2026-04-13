@@ -39,6 +39,8 @@ docker compose up
 
 Grafana is available at `http:localhost:3000`.
 
+Import [`infra/firesim-1775727593906.json`](/Users/joel/code/sim2/infra/firesim-1775727593906.json) through Grafana's dashboard import UI and map the `DS_PROMETHEUS` input to your local Prometheus datasource.
+
 ## Web UI
 
 1. `Setup`: create the userbase or import one using the configured database.

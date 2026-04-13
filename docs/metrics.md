@@ -11,6 +11,7 @@ Metrics provide runtime observability for plan loading and live playback activit
 - `FirehoseSimulatorWeb.MetricsLive`
 - `infra/prometheus.yml`
 - `infra/docker-compose.yml` (Prometheus/Grafana local stack)
+- `infra/firesim-1775727593906.json` (portable Grafana dashboard import)
 
 ## Public Interfaces
 
@@ -62,3 +63,13 @@ Detailed emitted telemetry event inventory and event-to-metric mapping:
 - Telemetry handler re-attachment handles `:already_exists` by detach/attach.
 - Empty labelled maps are exported as a sentinel label/value pair (`...{label="none"} 0`).
 - Non-integer measurement inputs are normalized to `0` in aggregation helpers.
+
+## Grafana Dashboard Import
+
+- Import `infra/firesim-1775727593906.json` through Grafana's dashboard import flow.
+- The dashboard uses Grafana's `${DS_PROMETHEUS}` datasource input placeholder instead of a hardcoded datasource UID.
+- On import, map `DS_PROMETHEUS` to the Prometheus datasource available in that Grafana instance.
+- If you re-export the dashboard from Grafana, check the JSON before committing it:
+  - there should be no concrete Prometheus datasource UIDs
+  - the file should still contain `${DS_PROMETHEUS}`
+  - panel targets should inherit the panel datasource instead of carrying their own datasource overrides
