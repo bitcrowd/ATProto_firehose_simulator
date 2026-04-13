@@ -14,9 +14,8 @@ Base data defines the initial simulated population used by both bulk creation an
 
 - `FirehoseSimulator.create_userbase/0`
 - `FirehoseSimulator.create_userbase/1`
-- `FirehoseSimulator.create_userbase/2`
 - `FirehoseSimulator.export_userbase_to_csv/1,2,3`
-- `FirehoseSimulator.import_userbase_from_csv/1,2`
+- `FirehoseSimulator.import_userbase_from_csv/1`
 
 ## Parameters
 
@@ -29,14 +28,15 @@ Base data defines the initial simulated population used by both bulk creation an
 - `max_active_user_id` (required, integer > 0 and `<= num_users`)
 - `follower_density` (optional, float > 0, default `1.0`)
 
-### Connection Input
+### Database Configuration
 
-`create_userbase/2` accepts either:
+`create_userbase/*` and `import_userbase_from_csv/1` use the application repo, `FirehoseSimulator.Repo`.
 
-- `%FirehoseSimulator.DatabaseConnection{connection_string: ...}`
-- a Postgres connection string (wrapped into `DatabaseConnection` internally)
+Configure the DB URL once at startup:
 
-`import_userbase_from_csv/2` accepts the same connection inputs.
+- `config/dev.exs` in development
+- `config/test.exs` in test
+- `config/runtime.exs` in production
 
 ### CSV Export Inputs
 
@@ -46,13 +46,13 @@ Base data defines the initial simulated population used by both bulk creation an
 
 ## Runtime Behavior
 
-1. `FirehoseSimulator.create_userbase/*` resolves userbase path and DB connection.
+1. `FirehoseSimulator.create_userbase/*` resolves the userbase path.
 2. `Userbase.load_file/1` reads and validates JSON via embedded changesets.
-3. `BulkCreation.create_userbase/2` connects through `BulkCreation.DynamicRepo`.
+3. `BulkCreation.create_userbase/1` writes through `FirehoseSimulator.Repo`.
 4. `FollowerGraph.generate/2` builds the follower relationships from `num_users` and `follower_density`.
 5. Direct bulk insertion writes actors and follows with deterministic offsets.
 6. `export_userbase_to_csv/*` generates actor/follow rows in memory, writes `actor.csv` and `follow.csv`, then writes `userbase_meta.json`.
-7. `import_userbase_from_csv/*` loads `userbase_meta.json` and runs server-side `COPY` for actors first, then follows.
+7. `import_userbase_from_csv/1` loads `userbase_meta.json` and runs server-side `COPY` for actors first, then follows.
 8. Each function returns counts plus file path metadata where applicable.
 
 ### Manifest Format
@@ -75,7 +75,6 @@ CSV paths in the manifest are absolute paths.
 
 - Missing/unreadable userbase file returns `{:error, "cannot read userbase file at ..."}`.
 - Invalid userbase fields return validation errors.
-- Non-Postgres connection strings return `{:error, "Connection string must be a postgres URL"}`.
 - DB connection or insert failures bubble up as `{:error, reason}`.
 - Missing or invalid manifest files return `{:error, ...}` from `UserbaseMeta`.
 - CSV import fails if Postgres cannot read the absolute CSV paths referenced by the manifest.

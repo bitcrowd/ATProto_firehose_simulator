@@ -18,6 +18,7 @@ defmodule FirehoseSimulator.Application do
 
     children =
       [
+        FirehoseSimulator.Repo,
         FirehoseSimulatorWeb.Telemetry,
         {DNSCluster,
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},

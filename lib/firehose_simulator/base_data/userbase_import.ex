@@ -1,29 +1,12 @@
 defmodule FirehoseSimulator.BaseData.UserbaseImport do
   alias FirehoseSimulator.BaseData.UserbaseMeta
-  alias FirehoseSimulator.BulkCreation
-  alias FirehoseSimulator.BulkCreation.DynamicRepo
-  alias FirehoseSimulator.DatabaseConnection
+  alias FirehoseSimulator.Repo
 
-  @spec import(String.t(), DatabaseConnection.t(), module(), module()) ::
+  @spec import(String.t(), module()) ::
           {:ok, map()} | {:error, String.t()}
-  def import(
-        meta_path,
-        %DatabaseConnection{} = connection,
-        repo \\ DynamicRepo,
-        connector \\ BulkCreation
-      )
-      when is_binary(meta_path) and is_atom(repo) and is_atom(connector) do
+  def import(meta_path, repo \\ Repo) when is_binary(meta_path) and is_atom(repo) do
     with {:ok, meta} <- UserbaseMeta.load_file(meta_path),
-         :ok <- connector.connect(connection.connection_string),
-         {:ok, :copied} <-
-           with_dynamic_repo(connector.repo_name(connection.connection_string), fn ->
-             with {:ok, _actor_result} <-
-                    copy_csv(repo, copy_actor_sql(meta.files.actor.path), timeout: :infinity),
-                  {:ok, _follow_result} <-
-                    copy_csv(repo, copy_follow_sql(meta.files.follow.path), timeout: :infinity) do
-               {:ok, :copied}
-             end
-           end) do
+         {:ok, :copied} <- copy_userbase_files(repo, meta) do
       {:ok,
        %{
          meta_path: meta_path,
@@ -47,6 +30,15 @@ defmodule FirehoseSimulator.BaseData.UserbaseImport do
       quoted_path(path) <> " WITH (FORMAT csv)"
   end
 
+  defp copy_userbase_files(repo, meta) do
+    with {:ok, _actor_result} <-
+           copy_csv(repo, copy_actor_sql(meta.files.actor.path), timeout: :infinity),
+         {:ok, _follow_result} <-
+           copy_csv(repo, copy_follow_sql(meta.files.follow.path), timeout: :infinity) do
+      {:ok, :copied}
+    end
+  end
+
   defp copy_csv(repo, sql, opts) do
     case repo.query(sql, [], opts) do
       {:ok, result} -> {:ok, result}
@@ -54,17 +46,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseImport do
       {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
       {:error, reason} when is_binary(reason) -> {:error, reason}
       {:error, reason} -> {:error, inspect(reason)}
-    end
-  end
-
-  defp with_dynamic_repo(repo_name, fun) do
-    previous_repo = DynamicRepo.get_dynamic_repo()
-    DynamicRepo.put_dynamic_repo(repo_name)
-
-    try do
-      fun.()
-    after
-      DynamicRepo.put_dynamic_repo(previous_repo)
     end
   end
 

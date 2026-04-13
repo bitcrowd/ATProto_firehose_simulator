@@ -9,7 +9,7 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 ## Modules
 
 - `FirehoseSimulator.BulkCreation`
-- `FirehoseSimulator.BulkCreation.DynamicRepo`
+- `FirehoseSimulator.Repo`
 - `FirehoseSimulator.BulkCreation.Actor`
 - `FirehoseSimulator.BulkCreation.Follow`
 - `FirehoseSimulator.BulkCreation.Post`
@@ -21,13 +21,12 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 ## Public Entry Points
 
 - `FirehoseSimulator.bulk_create_scenario/1`
-- `FirehoseSimulator.bulk_create_scenario/2`
-- `FirehoseSimulator.create_userbase/0,1,2`
+- `FirehoseSimulator.create_userbase/0,1`
 - `FirehoseSimulator.export_userbase_to_csv/1,2,3`
-- `FirehoseSimulator.import_userbase_from_csv/1,2`
-- `FirehoseSimulator.vacuum/0,1,2`
-- `FirehoseSimulator.BulkCreation.create_scenario/2`
-- `FirehoseSimulator.BulkCreation.create_userbase/2`
+- `FirehoseSimulator.import_userbase_from_csv/1`
+- `FirehoseSimulator.vacuum/0,1`
+- `FirehoseSimulator.BulkCreation.create_scenario/1`
+- `FirehoseSimulator.BulkCreation.create_userbase/1`
 
 ## Parameters
 
@@ -35,11 +34,7 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 
 - `%FirehoseSimulator.Scenario{}` for scenario bulk loads.
 - `%FirehoseSimulator.BaseData.Userbase{}` for userbase-only loads.
-- `%FirehoseSimulator.DatabaseConnection{connection_string: ...}` (or string wrapper via top-level API).
-
-### Connection Constraints
-
-- Connection string must start with `postgres://` or `postgresql://`.
+- Database configuration comes from `FirehoseSimulator.Repo`.
 
 ### Insert Behavior
 
@@ -57,7 +52,7 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 
 ## Runtime Behavior
 
-1. `BulkCreation.connect/1` validates connection string and starts a dynamic repo.
+1. `FirehoseSimulator.Repo` is configured once at startup and used directly for all bulk operations.
 2. For plan bulk loads:
 - posts/follows/sessions are extracted from the plan (`nil` sections become empty lists).
 - actor IDs are inferred from event payloads and deduplicated.
@@ -67,7 +62,7 @@ It also supports a CSV workflow where userbase data is first exported to disk an
 3. For userbase bulk loads:
 - follower graph is generated from base-data params.
 - actor rows and follow rows are inserted.
-4. `vacuum/*` delegates to `BulkCreation.Vacuum.run/2` and logs results.
+4. `vacuum/*` delegates to `BulkCreation.Vacuum.run/1` and logs results.
 5. The CSV import path depends on the Postgres server process having read access to the exported files.
 
 ## Return Values
@@ -83,8 +78,6 @@ Bulk operations return summary maps, including counts such as:
 
 ## Failure Modes
 
-- Invalid connection string format returns `{:error, ...}`.
-- Repo connect failures return `{:error, ...}`.
 - DB write/truncate errors return `{:error, reason}` from insertion or cleanup steps.
 - Invalid manifest files or unreadable CSVs return `{:error, reason}` before `COPY` runs.
 - `COPY` permission or file access failures are surfaced directly from Postgres.

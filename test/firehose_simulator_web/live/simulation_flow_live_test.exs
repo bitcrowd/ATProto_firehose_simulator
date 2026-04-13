@@ -26,8 +26,8 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
   test "setup liveview uploads userbase and creates userbase", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/setup")
-    assert has_element?(view, "#setup-db-connection-string")
-    assert has_element?(view, "#setup-import-db-connection-string")
+    refute has_element?(view, "#setup-db-connection-string")
+    refute has_element?(view, "#setup-import-db-connection-string")
 
     upload =
       file_input(view, "#setup-form", :userbase, [
@@ -37,7 +37,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     render_upload(upload, "userbase.json")
 
     view
-    |> form("#setup-form", %{"generate" => %{"db_connection_string" => "postgres://example"}})
+    |> form("#setup-form", %{"generate" => %{}})
     |> render_submit()
 
     assert has_element?(view, "#setup-result")
@@ -55,7 +55,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     render_upload(upload, "userbase_meta.json")
 
     view
-    |> form("#setup-import-form", %{"import" => %{"db_connection_string" => "postgres://example"}})
+    |> form("#setup-import-form", %{"import" => %{}})
     |> render_submit()
 
     assert has_element?(view, "#setup-result")
@@ -134,12 +134,11 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     {:ok, view, _html} = live(conn, ~p"/vacuum")
 
     assert has_element?(view, ~s(a[href="/vacuum"]), "Vacuum")
-    assert has_element?(view, "#vacuum-db-connection-string")
+    refute has_element?(view, "#vacuum-db-connection-string")
 
     view
     |> form("#vacuum-form", %{
       "vacuum" => %{
-        "db_connection_string" => "postgres://example",
         "delete_userbase" => "true",
         "delete_posts" => "true"
       }
@@ -219,20 +218,14 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   defmodule FakeSimulator do
     @moduledoc false
 
-    def create_userbase(path, connection_string) do
-      if File.exists?(path) and String.starts_with?(connection_string, "postgres://") do
-        {:ok, %{userbase_path: path, db_connection_string: connection_string}}
-      else
-        {:error, "invalid setup inputs"}
-      end
+    def create_userbase(path) do
+      if File.exists?(path), do: {:ok, %{userbase_path: path}}, else: {:error, "invalid setup"}
     end
 
-    def import_userbase_from_csv(path, connection_string) do
-      if File.exists?(path) and String.starts_with?(connection_string, "postgres://") do
-        {:ok, %{userbase_meta_path: path, db_connection_string: connection_string}}
-      else
-        {:error, "invalid import inputs"}
-      end
+    def import_userbase_from_csv(path) do
+      if File.exists?(path),
+        do: {:ok, %{userbase_meta_path: path}},
+        else: {:error, "invalid import"}
     end
 
     def generate_scenario_from_json(paths) do
@@ -304,12 +297,11 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       State.clear_running_players()
     end
 
-    def vacuum(connection_string, opts) when is_binary(connection_string) do
+    def vacuum(opts) when is_list(opts) do
       delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
       delete_posts? = Keyword.get(opts, :delete_posts?, false)
 
-      if String.starts_with?(connection_string, "postgres://") and
-           (delete_userbase? or delete_posts?) do
+      if delete_userbase? or delete_posts? do
         {:ok,
          %{
            delete_userbase?: delete_userbase?,
@@ -323,7 +315,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
              )
          }}
       else
-        {:error, "invalid vacuum inputs"}
+        {:error, "invalid vacuum"}
       end
     end
 

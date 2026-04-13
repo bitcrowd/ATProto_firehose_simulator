@@ -160,7 +160,7 @@ Grafana is available at `http:localhost:3000`.
 
 ## Web UI
 
-1. `Setup`: configure database connection and create the userbase.
+1. `Setup`: create the userbase or import one using the configured database.
 2. `Planning`: generate plans from params JSON or import plans from scenario JSON files.
 3. `Simulation`: select one available plan and play/stop/reset.
 4. `Vacuum`: run cleanup actions for userbase and/or post tables.
@@ -168,12 +168,11 @@ Grafana is available at `http:localhost:3000`.
 
 ## In IEx
 
-Create your userbase with a DB connection string and userbase JSON file:
+Create your userbase from a userbase JSON file:
 
 ```elixir
-db_url = "postgres://postgres:postgres@localhost:5432/dataplane"
 userbase_path = "priv/simulation/userbase.json"
-{:ok, _result} = FirehoseSimulator.create_userbase(userbase_path, db_url)
+{:ok, _result} = FirehoseSimulator.create_userbase(userbase_path)
 ```
 
  Generate a scenario from params JSON:
@@ -216,7 +215,7 @@ Stop/reset all running players:
 Use vacuum functions to truncate userbase and/or post tables:
 
 ```elixir
-{:ok, _result} = FirehoseSimulator.vacuum(db_url, delete_userbase?: true, delete_posts?: true)
+{:ok, _result} = FirehoseSimulator.vacuum(delete_userbase?: true, delete_posts?: true)
 ```
 
 ### Userbase
@@ -231,9 +230,8 @@ userbase_path = "priv/simulation/bluesky_userbase.json"
 Import that exported userbase into Postgres with `COPY`:
 
 ```elixir
-db_url = "postgres://postgres:postgres@localhost:5432/dataplane"
 meta_path = export_result.meta_path
-{:ok, _result} = FirehoseSimulator.import_userbase_from_csv(meta_path, db_url)
+{:ok, _result} = FirehoseSimulator.import_userbase_from_csv(meta_path)
 ```
 
 The import path uses server-side `COPY FROM '/absolute/path.csv'`, so the Postgres server process must be able to read the exported CSV files.

@@ -9,9 +9,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.BulkCreation.Vacuum
   alias FirehoseSimulator.BaseData.UserbaseExport
   alias FirehoseSimulator.BaseData.UserbaseImport
-  alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
-  alias FirehoseSimulator.State
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.BaseData.Userbase
 
@@ -19,26 +17,15 @@ defmodule FirehoseSimulator do
   # Bulk Creation
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do
-    create_userbase(userbase_filename(), database_connection())
-  end
-
-  @spec create_userbase(String.t(), DatabaseConnection.t()) :: {:ok, map()} | {:error, String.t()}
-  def create_userbase(path, %DatabaseConnection{} = connection) when is_binary(path) do
-    with {:ok, userbase} <- load_userbase(path),
-         {:ok, result} <- do_create_userbase(userbase, connection) do
-      {:ok, result}
-    end
-  end
-
-  @spec create_userbase(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
-  def create_userbase(path, connection_string)
-      when is_binary(path) and is_binary(connection_string) do
-    create_userbase(path, %DatabaseConnection{connection_string: connection_string})
+    create_userbase(userbase_filename())
   end
 
   @spec create_userbase(String.t()) :: {:ok, map()} | {:error, String.t()}
   def create_userbase(path) when is_binary(path) do
-    create_userbase(path, database_connection())
+    with {:ok, userbase} <- load_userbase(path),
+         {:ok, result} <- do_create_userbase(userbase) do
+      {:ok, result}
+    end
   end
 
   @spec export_userbase_to_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
@@ -64,36 +51,14 @@ defmodule FirehoseSimulator do
 
   @spec import_userbase_from_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
   def import_userbase_from_csv(meta_path) when is_binary(meta_path) do
-    import_userbase_from_csv(meta_path, database_connection())
-  end
-
-  @spec import_userbase_from_csv(String.t(), DatabaseConnection.t()) ::
-          {:ok, map()} | {:error, String.t()}
-  def import_userbase_from_csv(meta_path, %DatabaseConnection{} = connection)
-      when is_binary(meta_path) do
-    do_import_userbase_from_csv(meta_path, connection)
-  end
-
-  @spec import_userbase_from_csv(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
-  def import_userbase_from_csv(meta_path, connection_string)
-      when is_binary(meta_path) and is_binary(connection_string) do
-    import_userbase_from_csv(meta_path, %DatabaseConnection{connection_string: connection_string})
+    do_import_userbase_from_csv(meta_path)
   end
 
   @spec bulk_create_scenario(Scenario.t()) :: {:ok, map()} | {:error, String.t()}
   def bulk_create_scenario(%Scenario{} = scenario) do
-    bulk_create_scenario(scenario, database_connection())
-  end
-
-  @spec bulk_create_scenario(Scenario.t(), DatabaseConnection.t()) ::
-          {:ok, map()} | {:error, String.t()}
-  def bulk_create_scenario(
-        %Scenario{} = scenario,
-        %DatabaseConnection{} = connection
-      ) do
     Logger.info("creating scenario data in database")
 
-    case BulkCreation.create_scenario(scenario, connection) do
+    case BulkCreation.create_scenario(scenario) do
       {:ok, result} = ok ->
         Logger.info("created scenario data: #{inspect(result)}")
         ok
@@ -111,15 +76,9 @@ defmodule FirehoseSimulator do
 
   @spec vacuum(keyword()) :: {:ok, map()} | {:error, String.t()}
   def vacuum(opts) when is_list(opts) do
-    vacuum(database_connection().connection_string, opts)
-  end
-
-  @spec vacuum(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
-  def vacuum(connection_string, opts)
-      when is_binary(connection_string) and is_list(opts) do
     Logger.info("running vacuum actions")
 
-    case Vacuum.run(connection_string, opts) do
+    case Vacuum.run(opts) do
       {:ok, result} = ok ->
         Logger.info("completed vacuum actions: #{inspect(result)}")
         ok
@@ -132,21 +91,6 @@ defmodule FirehoseSimulator do
 
   defp userbase_filename do
     System.get_env("USERBASE_JSON", @default_userbase_filename)
-  end
-
-  defp database_connection do
-    case state_connection_string() do
-      nil -> DatabaseConnection.default()
-      connection_string -> %DatabaseConnection{connection_string: connection_string}
-    end
-  end
-
-  defp state_connection_string do
-    try do
-      State.get_db_connection_string()
-    catch
-      :exit, _reason -> nil
-    end
   end
 
   defp load_userbase(path) do
@@ -166,10 +110,10 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp do_create_userbase(userbase, connection) do
+  defp do_create_userbase(userbase) do
     Logger.info("creating userbase #{userbase.name} in database for #{userbase.num_users} users")
 
-    case BulkCreation.create_userbase(userbase, connection) do
+    case BulkCreation.create_userbase(userbase) do
       {:ok, result} ->
         Logger.info("created userbase \"#{userbase.name}\": #{inspect(result)}")
         {:ok, result}
@@ -194,10 +138,10 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp do_import_userbase_from_csv(meta_path, connection) do
+  defp do_import_userbase_from_csv(meta_path) do
     Logger.info("importing userbase from csv manifest #{meta_path}")
 
-    case UserbaseImport.import(meta_path, connection) do
+    case UserbaseImport.import(meta_path) do
       {:ok, result} = ok ->
         Logger.info("imported userbase from csv manifest #{meta_path}: #{inspect(result)}")
         ok

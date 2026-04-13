@@ -1,28 +1,21 @@
 defmodule FirehoseSimulator.BulkCreation.Vacuum do
-  alias FirehoseSimulator.BulkCreation
-  alias FirehoseSimulator.BulkCreation.DynamicRepo
+  alias FirehoseSimulator.Repo
 
-  @spec run(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
-  def run(connection_string, opts) when is_binary(connection_string) and is_list(opts) do
+  @spec run(keyword()) :: {:ok, map()} | {:error, String.t()}
+  def run(opts) when is_list(opts) do
     delete_userbase? = Keyword.get(opts, :delete_userbase?, false)
     delete_posts? = Keyword.get(opts, :delete_posts?, false)
 
     with :ok <- validate_requested_actions(delete_userbase?, delete_posts?),
-         :ok <- BulkCreation.connect(connection_string) do
-      repo_name = BulkCreation.repo_name(connection_string)
-
-      with_dynamic_repo(repo_name, fn ->
-        with {:ok, deleted_userbase} <- maybe_delete_userbase(delete_userbase?),
-             {:ok, deleted_posts} <- maybe_delete_posts(delete_posts?) do
-          {:ok,
-           %{
-             delete_userbase?: delete_userbase?,
-             delete_posts?: delete_posts?,
-             deleted_userbase: deleted_userbase,
-             deleted_posts: deleted_posts
-           }}
-        end
-      end)
+         {:ok, deleted_userbase} <- maybe_delete_userbase(delete_userbase?),
+         {:ok, deleted_posts} <- maybe_delete_posts(delete_posts?) do
+      {:ok,
+       %{
+         delete_userbase?: delete_userbase?,
+         delete_posts?: delete_posts?,
+         deleted_userbase: deleted_userbase,
+         deleted_posts: deleted_posts
+       }}
     end
   end
 
@@ -60,23 +53,9 @@ defmodule FirehoseSimulator.BulkCreation.Vacuum do
   end
 
   defp truncate_table(table_name) do
-    case DynamicRepo.query("TRUNCATE TABLE #{table_name}", [], timeout: :infinity) do
+    case Repo.query("TRUNCATE TABLE #{table_name}", [], timeout: :infinity) do
       {:ok, result} -> {:ok, result}
       {:error, reason} -> {:error, format_db_error(reason)}
-    end
-  end
-
-  defp with_dynamic_repo(repo_name, fun) do
-    previous_repo = DynamicRepo.get_dynamic_repo()
-    DynamicRepo.put_dynamic_repo(repo_name)
-
-    try do
-      fun.()
-    rescue
-      error in [DBConnection.ConnectionError, Postgrex.Error] ->
-        {:error, Exception.message(error)}
-    after
-      DynamicRepo.put_dynamic_repo(previous_repo)
     end
   end
 

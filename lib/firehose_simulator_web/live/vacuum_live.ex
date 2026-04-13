@@ -1,19 +1,15 @@
 defmodule FirehoseSimulatorWeb.VacuumLive do
   use FirehoseSimulatorWeb, :live_view
 
-  alias FirehoseSimulator.State
-
   @impl true
   def mount(_params, _session, socket) do
-    state = State.get()
-
     socket =
       socket
       |> assign(:current_path, ~p"/vacuum")
       |> assign(:current_scope, nil)
       |> assign(:running_vacuum?, false)
       |> assign(:vacuum_result, nil)
-      |> assign(:form, vacuum_form(state.db_connection_string))
+      |> assign(:form, vacuum_form())
 
     {:ok, socket}
   end
@@ -26,19 +22,15 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
   @impl true
   def handle_event("run_vacuum", %{"vacuum" => params}, socket) do
     socket = assign(socket, :form, to_form(params, as: :vacuum))
-    connection_string = String.trim(params["db_connection_string"] || "")
     delete_userbase? = truthy_param?(params["delete_userbase"])
     delete_posts? = truthy_param?(params["delete_posts"])
 
-    with :ok <- validate_connection_string(connection_string),
-         :ok <- validate_actions(delete_userbase?, delete_posts?),
-         :ok <- State.put_db_connection_string(connection_string) do
+    with :ok <- validate_actions(delete_userbase?, delete_posts?) do
       {:noreply,
        socket
        |> assign(:running_vacuum?, true)
        |> start_async(:run_vacuum, fn ->
          simulator_module().vacuum(
-           connection_string,
            delete_userbase?: delete_userbase?,
            delete_posts?: delete_posts?
          )
@@ -75,19 +67,15 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
      |> put_flash(:error, "Failed to run vacuum actions: #{inspect(reason)}")}
   end
 
-  defp vacuum_form(connection_string) do
+  defp vacuum_form do
     to_form(
       %{
-        "db_connection_string" => connection_string,
         "delete_userbase" => false,
         "delete_posts" => false
       },
       as: :vacuum
     )
   end
-
-  defp validate_connection_string(""), do: {:error, "DB connection string cannot be empty"}
-  defp validate_connection_string(_connection_string), do: :ok
 
   defp validate_actions(false, false),
     do: {:error, "Select at least one vacuum action"}

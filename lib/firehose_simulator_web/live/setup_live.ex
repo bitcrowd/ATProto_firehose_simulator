@@ -17,14 +17,8 @@ defmodule FirehoseSimulatorWeb.SetupLive do
       |> assign(:state, state)
       |> assign(:creating_userbase?, false)
       |> assign(:importing_userbase?, false)
-      |> assign(
-        :generate_form,
-        to_form(%{"db_connection_string" => state.db_connection_string}, as: :generate)
-      )
-      |> assign(
-        :import_form,
-        to_form(%{"db_connection_string" => state.db_connection_string}, as: :import)
-      )
+      |> assign(:generate_form, to_form(%{}, as: :generate))
+      |> assign(:import_form, to_form(%{}, as: :import))
       |> allow_upload(:userbase, accept: ~w(.json), max_entries: 1, auto_upload: true)
       |> allow_upload(:userbase_meta, accept: ~w(.json), max_entries: 1, auto_upload: true)
 
@@ -41,26 +35,26 @@ defmodule FirehoseSimulatorWeb.SetupLive do
   @impl true
   def handle_event(
         "create_userbase",
-        %{"generate" => %{"db_connection_string" => connection_string} = params},
+        %{"generate" => params},
         socket
       ) do
-    connection_string = String.trim(connection_string)
-
     with :ok <- ensure_upload_completed(socket, :userbase, "userbase"),
-         :ok <- validate_connection_string(connection_string),
-         {:ok, userbase_path} <- consume_json_upload(socket, :userbase),
-         :ok <- State.put_db_connection_string(connection_string) do
+         {:ok, userbase_path} <- consume_json_upload(socket, :userbase) do
       {:noreply,
        socket
        |> assign(:creating_userbase?, true)
        |> assign(:generate_form, to_form(params, as: :generate))
        |> start_async(:create_userbase, fn ->
-         simulator_module().create_userbase(userbase_path, connection_string)
+         simulator_module().create_userbase(userbase_path)
        end)}
     else
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to create userbase: #{inspect(reason)}")}
     end
+  end
+
+  def handle_event("create_userbase", _params, socket) do
+    handle_event("create_userbase", %{"generate" => %{}}, socket)
   end
 
   @impl true
@@ -73,26 +67,26 @@ defmodule FirehoseSimulatorWeb.SetupLive do
   @impl true
   def handle_event(
         "import_userbase",
-        %{"import" => %{"db_connection_string" => connection_string} = params},
+        %{"import" => params},
         socket
       ) do
-    connection_string = String.trim(connection_string)
-
     with :ok <- ensure_upload_completed(socket, :userbase_meta, "userbase meta"),
-         :ok <- validate_connection_string(connection_string),
-         {:ok, meta_path} <- consume_json_upload(socket, :userbase_meta),
-         :ok <- State.put_db_connection_string(connection_string) do
+         {:ok, meta_path} <- consume_json_upload(socket, :userbase_meta) do
       {:noreply,
        socket
        |> assign(:importing_userbase?, true)
        |> assign(:import_form, to_form(params, as: :import))
        |> start_async(:import_userbase, fn ->
-         simulator_module().import_userbase_from_csv(meta_path, connection_string)
+         simulator_module().import_userbase_from_csv(meta_path)
        end)}
     else
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to import userbase: #{inspect(reason)}")}
     end
+  end
+
+  def handle_event("import_userbase", _params, socket) do
+    handle_event("import_userbase", %{"import" => %{}}, socket)
   end
 
   @impl true
@@ -145,9 +139,6 @@ defmodule FirehoseSimulatorWeb.SetupLive do
      |> assign(:importing_userbase?, false)
      |> put_flash(:error, "Failed to import userbase: #{inspect(reason)}")}
   end
-
-  defp validate_connection_string(""), do: {:error, "DB connection string cannot be empty"}
-  defp validate_connection_string(_connection_string), do: :ok
 
   defp ensure_upload_completed(socket, upload_name, label) do
     {completed_entries, in_progress_entries} = uploaded_entries(socket, upload_name)

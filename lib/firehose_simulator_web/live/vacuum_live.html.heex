@@ -1,7 +1,7 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Vacuum
-    <:subtitle>Run table cleanup actions for userbase and post data.</:subtitle>
+    <:subtitle>Run table cleanup actions against the configured database.</:subtitle>
   </.header>
 
   <section id="vacuum-maintenance" class="card bg-base-100 border border-base-300 shadow-sm">
@@ -17,15 +17,6 @@
         phx-submit="run_vacuum"
         class="space-y-4"
       >
-        <.input
-          field={@form[:db_connection_string]}
-          id="vacuum-db-connection-string"
-          type="text"
-          label="DB connection string"
-          required
-          autocomplete="off"
-        />
-
         <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-1">
           <.input
             field={@form[:delete_userbase]}

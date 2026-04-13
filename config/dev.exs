@@ -15,6 +15,12 @@ config :firehose_simulator,
 config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
 config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 
+config :firehose_simulator, FirehoseSimulator.Repo,
+  url: "postgres://postgres:postgres@localhost:5432/dataplane",
+  pool_size: 10,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

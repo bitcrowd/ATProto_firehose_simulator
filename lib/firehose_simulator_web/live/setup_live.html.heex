@@ -2,7 +2,7 @@
   <.header>
     Setup
     <:subtitle>
-      Connect to your database and either create a userbase or import one from a manifest.
+      Use the configured database to create a userbase or import one from a manifest.
     </:subtitle>
   </.header>
 
@@ -20,15 +20,6 @@
           phx-submit="create_userbase"
           class="space-y-4"
         >
-          <.input
-            field={@generate_form[:db_connection_string]}
-            id="setup-db-connection-string"
-            type="text"
-            label="DB connection string"
-            required
-            autocomplete="off"
-          />
-
           <div class="space-y-2">
             <label for={@uploads.userbase.ref} class="label">Userbase JSON</label>
             <.live_file_input
@@ -74,15 +65,6 @@
           phx-submit="import_userbase"
           class="space-y-4"
         >
-          <.input
-            field={@import_form[:db_connection_string]}
-            id="setup-import-db-connection-string"
-            type="text"
-            label="DB connection string"
-            required
-            autocomplete="off"
-          />
-
           <div class="space-y-2">
             <label for={@uploads.userbase_meta.ref} class="label">Userbase Meta JSON</label>
             <.live_file_input

@@ -1,32 +1,27 @@
 defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.BulkCreation.Actor
-  alias FirehoseSimulator.BulkCreation.DynamicRepo
   alias FirehoseSimulator.BulkCreation.FeedItem
   alias FirehoseSimulator.BulkCreation.Follow
   alias FirehoseSimulator.BulkCreation.Post
   alias FirehoseSimulator.BulkCreation.Record
-  alias FirehoseSimulator.Data
-  alias FirehoseSimulator.DatabaseConnection
-  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
+  alias FirehoseSimulator.Data
+  alias FirehoseSimulator.Repo
+  alias FirehoseSimulator.Scenario
   alias Aether.ATProto.TID
 
   @insert_batch_size 5_000
 
-  def create_userbase(%Userbase{} = userbase, %DatabaseConnection{
-        connection_string: connection_string
-      }) do
-    with :ok <- connect(connection_string),
-         first_user_id <- 1,
+  def create_userbase(%Userbase{} = userbase) do
+    with first_user_id <- 1,
          user_ids = Enum.to_list(first_user_id..(first_user_id + userbase.num_users - 1)),
          {:ok, graph, follows_count} <-
            FollowerGraph.generate(userbase.num_users,
              start_id: first_user_id,
              follower_density: userbase.follower_density
            ),
-         {:ok, inserted_follow_count, last_user_id} <-
-           insert_userbase_graph(repo_name(connection_string), user_ids, graph) do
+         {:ok, inserted_follow_count, last_user_id} <- insert_userbase_graph(user_ids, graph) do
       {:ok,
        %{
          inserted_actor_count: length(user_ids),
@@ -38,23 +33,9 @@ defmodule FirehoseSimulator.BulkCreation do
     end
   end
 
-  def create_scenario(%Scenario{} = scenario, %DatabaseConnection{
-        connection_string: connection_string
-      }) do
-    with :ok <- connect(connection_string),
-         {:ok, result} <- insert_scenario(repo_name(connection_string), scenario) do
+  def create_scenario(%Scenario{} = scenario) do
+    with {:ok, result} <- insert_scenario(scenario) do
       {:ok, result}
-    end
-  end
-
-  def repo_name(connection_string) do
-    :"bulk_repo_#{:erlang.phash2(connection_string)}"
-  end
-
-  def connect(connection_string) when is_binary(connection_string) do
-    with :ok <- validate_connection_string(connection_string),
-         {:ok, _pid} <- DynamicRepo.connect(repo_name(connection_string), connection_string) do
-      :ok
     end
   end
 
@@ -109,51 +90,47 @@ defmodule FirehoseSimulator.BulkCreation do
     }
   end
 
-  defp insert_userbase_graph(repo_name, user_ids, graph) do
-    with_dynamic_repo(repo_name, fn ->
-      insert_actor_rows(user_ids)
+  defp insert_userbase_graph(user_ids, graph) do
+    insert_actor_rows(user_ids)
 
-      follow_rows = follow_rows_from_graph(graph)
-      insert_follow_rows(follow_rows)
+    follow_rows = follow_rows_from_graph(graph)
+    insert_follow_rows(follow_rows)
 
-      max_user_id = Enum.max(user_ids, fn -> 0 end)
-      {:ok, length(follow_rows), max_user_id}
-    end)
+    max_user_id = Enum.max(user_ids, fn -> 0 end)
+    {:ok, length(follow_rows), max_user_id}
   end
 
-  defp insert_scenario(repo_name, %Scenario{} = scenario) do
-    with_dynamic_repo(repo_name, fn ->
-      posts = events_from_scenario(scenario.posts)
-      follows = events_from_scenario(scenario.follows)
-      sessions = events_from_scenario(scenario.sessions)
+  defp insert_scenario(%Scenario{} = scenario) do
+    posts = events_from_scenario(scenario.posts)
+    follows = events_from_scenario(scenario.follows)
+    sessions = events_from_scenario(scenario.sessions)
 
-      actor_ids =
-        actor_ids_from_posts(posts) ++
-          actor_ids_from_follows(follows) ++
-          actor_ids_from_sessions(sessions)
+    actor_ids =
+      actor_ids_from_posts(posts) ++
+        actor_ids_from_follows(follows) ++
+        actor_ids_from_sessions(sessions)
 
-      actor_ids = Enum.uniq(actor_ids)
+    actor_ids = Enum.uniq(actor_ids)
 
-      insert_actor_rows(actor_ids)
+    insert_actor_rows(actor_ids)
 
-      %{
-        inserted_post_count: inserted_post_count,
-        inserted_record_count: inserted_record_count,
-        inserted_feed_item_count: inserted_feed_item_count
-      } = insert_post_rows(posts)
+    %{
+      inserted_post_count: inserted_post_count,
+      inserted_record_count: inserted_record_count,
+      inserted_feed_item_count: inserted_feed_item_count
+    } = insert_post_rows(posts)
 
-      insert_follow_rows(follows)
+    insert_follow_rows(follows)
 
-      {:ok,
-       %{
-         inserted_actor_count: length(actor_ids),
-         inserted_post_count: inserted_post_count,
-         inserted_record_count: inserted_record_count,
-         inserted_feed_item_count: inserted_feed_item_count,
-         inserted_follow_count: length(follows),
-         included_session_count: length(sessions)
-       }}
-    end)
+    {:ok,
+     %{
+       inserted_actor_count: length(actor_ids),
+       inserted_post_count: inserted_post_count,
+       inserted_record_count: inserted_record_count,
+       inserted_feed_item_count: inserted_feed_item_count,
+       inserted_follow_count: length(follows),
+       included_session_count: length(sessions)
+     }}
   end
 
   defp follow_rows_from_graph(graph) do
@@ -232,10 +209,6 @@ defmodule FirehoseSimulator.BulkCreation do
     Enum.map(sessions, fn %{user_id: user_id} -> user_id end)
   end
 
-  defp validate_connection_string("postgres://" <> _), do: :ok
-  defp validate_connection_string("postgresql://" <> _), do: :ok
-  defp validate_connection_string(_), do: {:error, "Connection string must be a postgres URL"}
-
   @doc false
   def actor_row(user_id, indexed_at) when is_integer(user_id) and is_binary(indexed_at) do
     %{
@@ -272,7 +245,7 @@ defmodule FirehoseSimulator.BulkCreation do
     rows
     |> Enum.chunk_every(@insert_batch_size)
     |> Enum.each(fn batch ->
-      DynamicRepo.insert_all(schema, batch, opts)
+      Repo.insert_all(schema, batch, opts)
     end)
   end
 
@@ -291,19 +264,5 @@ defmodule FirehoseSimulator.BulkCreation do
     |> DateTime.add(offset_ms, :millisecond)
     |> DateTime.truncate(:millisecond)
     |> DateTime.to_iso8601()
-  end
-
-  defp with_dynamic_repo(repo_name, fun) do
-    previous_repo = DynamicRepo.get_dynamic_repo()
-    DynamicRepo.put_dynamic_repo(repo_name)
-
-    try do
-      fun.()
-    rescue
-      error in [DBConnection.ConnectionError, Postgrex.Error] ->
-        {:error, Exception.message(error)}
-    after
-      DynamicRepo.put_dynamic_repo(previous_repo)
-    end
   end
 end

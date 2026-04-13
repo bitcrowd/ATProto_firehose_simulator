@@ -3,11 +3,9 @@ defmodule FirehoseSimulator.State do
 
   use GenServer
 
-  alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Scenario
 
   @type state :: %{
-          db_connection_string: String.t() | nil,
           scenarios: %{optional(String.t()) => Scenario.t()},
           selected_scenario_id: String.t() | nil,
           running_players: %{optional(String.t()) => map()},
@@ -23,16 +21,6 @@ defmodule FirehoseSimulator.State do
   @spec get() :: state()
   def get do
     GenServer.call(__MODULE__, :get_state)
-  end
-
-  @spec get_db_connection_string() :: String.t() | nil
-  def get_db_connection_string do
-    GenServer.call(__MODULE__, :get_db_connection_string)
-  end
-
-  @spec put_db_connection_string(String.t()) :: :ok
-  def put_db_connection_string(connection_string) when is_binary(connection_string) do
-    GenServer.call(__MODULE__, {:put_db_connection_string, connection_string})
   end
 
   @spec put_scenario(String.t(), Scenario.t()) :: :ok
@@ -134,14 +122,6 @@ defmodule FirehoseSimulator.State do
     {:reply, state, state}
   end
 
-  def handle_call(:get_db_connection_string, _from, state) do
-    {:reply, state.db_connection_string, state}
-  end
-
-  def handle_call({:put_db_connection_string, connection_string}, _from, state) do
-    {:reply, :ok, %{state | db_connection_string: connection_string}}
-  end
-
   def handle_call({:put_scenario, scenario_id, scenario}, _from, state) do
     scenarios = Map.put(state.scenarios, scenario_id, scenario)
     selected_id = state.selected_scenario_id || scenario_id
@@ -225,7 +205,6 @@ defmodule FirehoseSimulator.State do
 
   defp default_state do
     %{
-      db_connection_string: DatabaseConnection.default().connection_string,
       scenarios: %{},
       selected_scenario_id: nil,
       running_players: %{},

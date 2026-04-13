@@ -3,7 +3,6 @@ defmodule FirehoseSimulatorTest do
 
   import ExUnit.CaptureLog
 
-  alias FirehoseSimulator.DatabaseConnection
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.Scenario
 
@@ -162,39 +161,12 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "create_userbase/2" do
+  describe "create_userbase/1" do
     test "returns file load errors before attempting database work" do
-      connection = %DatabaseConnection{connection_string: "postgres://example"}
-
       capture_log(fn ->
         assert {:error, "cannot read userbase file at missing-userbase.json"} =
-                 FirehoseSimulator.create_userbase("missing-userbase.json", connection)
+                 FirehoseSimulator.create_userbase("missing-userbase.json")
       end)
-    end
-
-    test "accepts a connection string through the top-level api" do
-      capture_log(fn ->
-        assert {:error, "cannot read userbase file at missing-userbase.json"} =
-                 FirehoseSimulator.create_userbase("missing-userbase.json", "postgres://example")
-      end)
-    end
-
-    test "state defaults db connection string from DATABASE_URL" do
-      previous_database_url = System.get_env("DATABASE_URL")
-      test_database_url = "postgres://postgres:postgres@localhost:5432/state_default_test"
-
-      on_exit(fn ->
-        restore_env("DATABASE_URL", previous_database_url)
-        :ok = FirehoseSimulator.State.reset_all()
-      end)
-
-      System.put_env("DATABASE_URL", test_database_url)
-      assert :ok = FirehoseSimulator.State.reset_all()
-
-      assert %DatabaseConnection{connection_string: ^test_database_url} =
-               DatabaseConnection.default()
-
-      assert test_database_url == FirehoseSimulator.State.get_db_connection_string()
     end
   end
 
@@ -224,59 +196,19 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "import_userbase_from_csv/2" do
+  describe "import_userbase_from_csv/1" do
     test "returns manifest file errors before attempting database work" do
-      connection = %DatabaseConnection{connection_string: "postgres://example"}
-
       capture_log(fn ->
         assert {:error, "cannot read userbase meta file at missing-userbase-meta.json"} =
-                 FirehoseSimulator.import_userbase_from_csv(
-                   "missing-userbase-meta.json",
-                   connection
-                 )
-      end)
-    end
-
-    test "accepts a connection string through the top-level api" do
-      capture_log(fn ->
-        assert {:error, "cannot read userbase meta file at missing-userbase-meta.json"} =
-                 FirehoseSimulator.import_userbase_from_csv(
-                   "missing-userbase-meta.json",
-                   "postgres://example"
-                 )
+                 FirehoseSimulator.import_userbase_from_csv("missing-userbase-meta.json")
       end)
     end
   end
 
-  describe "bulk_create_scenario/2" do
-    test "returns connection validation errors before attempting database work" do
-      connection = %DatabaseConnection{connection_string: "not-a-url"}
-
-      scenario = %Scenario{
-        posts: [%{offset_ms: 25, user_id: 1}],
-        sessions: nil,
-        follows: nil
-      }
-
-      capture_log(fn ->
-        assert {:error, "Connection string must be a postgres URL"} =
-                 FirehoseSimulator.bulk_create_scenario(scenario, connection)
-      end)
-    end
-  end
-
-  describe "vacuum/2" do
+  describe "vacuum/1" do
     test "returns action validation errors" do
       capture_log(fn ->
-        assert {:error, "Select at least one vacuum action"} =
-                 FirehoseSimulator.vacuum("postgres://example", [])
-      end)
-    end
-
-    test "returns connection validation errors before attempting database work" do
-      capture_log(fn ->
-        assert {:error, "Connection string must be a postgres URL"} =
-                 FirehoseSimulator.vacuum("not-a-url", delete_userbase?: true)
+        assert {:error, "Select at least one vacuum action"} = FirehoseSimulator.vacuum([])
       end)
     end
   end
@@ -333,7 +265,4 @@ defmodule FirehoseSimulatorTest do
     File.write!(path, content)
     path
   end
-
-  defp restore_env(var, nil), do: System.delete_env(var)
-  defp restore_env(var, value), do: System.put_env(var, value)
 end

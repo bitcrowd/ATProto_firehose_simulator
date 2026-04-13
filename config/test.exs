@@ -15,6 +15,11 @@ config :firehose_simulator,
 config :firehose_simulator, :bsky_api_url, System.get_env("BSKY_API_URL", "http://localhost:2584")
 config :firehose_simulator, :bsky_did, System.get_env("BSKY_DID", "did:web:api.example.com")
 
+config :firehose_simulator, FirehoseSimulator.Repo,
+  url: "postgres://postgres:postgres@localhost:5432/dataplane",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,

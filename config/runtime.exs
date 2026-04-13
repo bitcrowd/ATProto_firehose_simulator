@@ -35,6 +35,16 @@ config :firehose_simulator, PDSWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PDS_PORT", "4002"))]
 
 if config_env() == :prod do
+  database_url =
+    System.get_env("DATABASE_URL") ||
+      raise("""
+      environment variable DATABASE_URL is missing.
+      """)
+
+  config :firehose_simulator, FirehoseSimulator.Repo,
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+
   config :firehose_simulator, :plc,
     multikey:
       System.get_env("PLC_MULTIKEY") ||

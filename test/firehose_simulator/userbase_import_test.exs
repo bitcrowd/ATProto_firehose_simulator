@@ -3,7 +3,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
 
   alias FirehoseSimulator.BaseData.UserbaseImport
   alias FirehoseSimulator.BaseData.UserbaseMeta
-  alias FirehoseSimulator.DatabaseConnection
 
   @tag :tmp_dir
   test "imports from manifest using actor copy then follow copy", %{tmp_dir: tmp_dir} do
@@ -33,15 +32,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
         meta_path
       )
 
-    connection = %DatabaseConnection{connection_string: "postgres://example"}
-
-    assert {:ok, result} =
-             UserbaseImport.import(
-               meta_path,
-               connection,
-               __MODULE__.RepoStub,
-               __MODULE__.ConnectorStub
-             )
+    assert {:ok, result} = UserbaseImport.import(meta_path, __MODULE__.RepoStub)
 
     assert result.inserted_actor_count == 1
     assert result.inserted_follow_count == 1
@@ -57,11 +48,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
     sql = UserbaseImport.copy_actor_sql("/tmp/actor's.csv")
     assert sql =~ "COPY bsky.actor"
     assert sql =~ "/tmp/actor''s.csv"
-  end
-
-  defmodule ConnectorStub do
-    def connect(_connection_string), do: :ok
-    def repo_name(_connection_string), do: __MODULE__.Repo
   end
 
   defmodule RepoStub do
