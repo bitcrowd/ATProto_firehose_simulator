@@ -8,8 +8,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Player.Event
-  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.Player.Store
+  alias FirehoseSimulator.Scenario
   alias Phoenix.PubSub
 
   @check_interval_ms 100
@@ -19,8 +19,12 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  def start_feeding(event_feeder) do
-    GenServer.cast(event_feeder, :start)
+  def start(event_feeder) do
+    GenServer.call(event_feeder, :start, :infinity)
+  end
+
+  def pause(event_feeder) do
+    GenServer.call(event_feeder, :pause, :infinity)
   end
 
   def load_scenario(event_feeder, %Scenario{} = scenario) do
@@ -50,6 +54,7 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     {:ok,
      %{
        player_id: player_id,
+       lifecycle_state: :loaded,
        sessions: sessions,
        posts: posts,
        follows: follows,
@@ -58,6 +63,8 @@ defmodule FirehoseSimulator.Player.EventFeeder do
        scheduler_count: scheduler_count,
        next_session_id: 1,
        started_at: nil,
+       paused_at: nil,
+       total_paused: 0,
        post_tasks: [],
        follow_tasks: []
      }}
@@ -66,7 +73,9 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   @impl true
   def handle_call(:status, _from, state) do
     status = %{
+      lifecycle_state: state.lifecycle_state,
       started?: state.started_at != nil,
+      effective_elapsed: effective_elapsed(state),
       pending: %{
         sessions: length(state.sessions),
         posts: length(state.posts),
@@ -75,6 +84,41 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     }
 
     {:reply, status, state}
+  end
+
+  def handle_call(:start, _from, %{lifecycle_state: :running} = state) do
+    {:reply, {:error, {:invalid_state_transition, :running, :start}}, state}
+  end
+
+  def handle_call(:start, _from, %{lifecycle_state: :loaded} = state) do
+    now = System.monotonic_time(:millisecond)
+    Logger.info("[EventFeeder] Started")
+    schedule_check()
+
+    {:reply, :ok,
+     %{state | lifecycle_state: :running, started_at: now, paused_at: nil, total_paused: 0}}
+  end
+
+  def handle_call(:start, _from, %{lifecycle_state: :paused} = state) do
+    now = System.monotonic_time(:millisecond)
+    schedule_check()
+
+    {:reply, :ok,
+     %{
+       state
+       | lifecycle_state: :running,
+         paused_at: nil,
+         total_paused: state.total_paused + (now - state.paused_at)
+     }}
+  end
+
+  def handle_call(:pause, _from, %{lifecycle_state: :running} = state) do
+    now = System.monotonic_time(:millisecond)
+    {:reply, :ok, %{state | lifecycle_state: :paused, paused_at: now}}
+  end
+
+  def handle_call(:pause, _from, %{lifecycle_state: lifecycle_state} = state) do
+    {:reply, {:error, {:invalid_state_transition, lifecycle_state, :pause}}, state}
   end
 
   def handle_call({:load_scenario, scenario}, _from, state) do
@@ -98,23 +142,13 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   end
 
   @impl true
-  def handle_cast(:start, %{started_at: nil} = state) do
-    now = System.monotonic_time(:millisecond)
-    Logger.info("[EventFeeder] Started")
-    schedule_check()
-    {:noreply, %{state | started_at: now}}
-  end
-
-  def handle_cast(:start, state), do: {:noreply, state}
-
-  @impl true
-  def handle_info(:check, %{started_at: nil} = state) do
+  def handle_info(:check, %{lifecycle_state: lifecycle_state} = state)
+      when lifecycle_state in [:loaded, :paused] do
     {:noreply, state}
   end
 
   def handle_info(:check, state) do
-    now = System.monotonic_time(:millisecond)
-    elapsed_ms = now - state.started_at
+    elapsed_ms = effective_elapsed(state)
 
     {state, sessions_started} = process_sessions(state, elapsed_ms)
     state = maybe_dispatch_posts(state, elapsed_ms)
@@ -196,6 +230,21 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
   defp schedule_check do
     Process.send_after(self(), :check, @check_interval_ms)
+  end
+
+  defp effective_elapsed(%{started_at: nil}), do: 0
+
+  defp effective_elapsed(%{
+         lifecycle_state: :paused,
+         paused_at: paused_at,
+         started_at: started_at,
+         total_paused: total_paused
+       }),
+       do: max(paused_at - started_at - total_paused, 0)
+
+  defp effective_elapsed(%{started_at: started_at, total_paused: total_paused}) do
+    now = System.monotonic_time(:millisecond)
+    max(now - started_at - total_paused, 0)
   end
 
   defp telemetry_metadata(%{player_id: player_id}, metadata) when is_binary(player_id) do

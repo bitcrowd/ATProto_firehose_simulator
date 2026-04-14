@@ -11,10 +11,10 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:current_scope, nil)
       |> assign(:scenarios, [])
       |> assign(:selected_scenario, nil)
-      |> assign(:play_form, to_form(%{"offset_ms" => "0"}, as: :play))
-      |> assign(:running_players, [])
+      |> assign(:load_form, to_form(%{"offset_ms" => "0"}, as: :load))
+      |> assign(:players, [])
       |> assign(:last_action, nil)
-      |> assign_running_players()
+      |> assign_players()
 
     {:ok, socket}
   end
@@ -25,36 +25,35 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   @impl true
-  def handle_event("validate_play", %{"play" => params}, socket) do
-    {:noreply, assign(socket, :play_form, to_form(params, as: :play))}
+  def handle_event("validate_load", %{"load" => params}, socket) do
+    {:noreply, assign(socket, :load_form, to_form(params, as: :load))}
   end
 
-  def handle_event("validate_play", _params, socket), do: {:noreply, socket}
+  def handle_event("validate_load", _params, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("play", %{"play" => params}, socket) do
-    socket = assign(socket, :play_form, to_form(params, as: :play))
+  def handle_event("load", %{"load" => params}, socket) do
+    socket = assign(socket, :load_form, to_form(params, as: :load))
 
     with {:ok, offset_ms} <- parse_offset_ms(params),
          {:ok, selected_scenario} <- fetch_selected_scenario(socket) do
-      shifted_scenario = simulator_module().shift_scenario(selected_scenario.scenario, offset_ms)
-
-      case simulator_module().play(
-             shifted_scenario,
+      case simulator_module().load_with_offset(
+             selected_scenario.scenario,
+             offset_ms,
              scenario_id: selected_scenario.id
            ) do
         {:ok, player_id, _metadata} ->
           {:noreply,
            socket
-           |> assign_running_players()
+           |> assign_players()
            |> assign(
              :last_action,
-             "Simulation playback started for #{player_id} with #{offset_ms} ms offset."
+             "Simulation loaded for #{player_id} with #{offset_ms} ms offset."
            )
-           |> put_flash(:info, "Simulation started for #{player_id}.")}
+           |> put_flash(:info, "Simulation loaded for #{player_id}.")}
 
         {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Failed to start simulation: #{inspect(reason)}")}
+          {:noreply, put_flash(socket, :error, "Failed to load simulation: #{inspect(reason)}")}
       end
     else
       {:error, reason} ->
@@ -62,8 +61,36 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     end
   end
 
-  def handle_event("play", _params, socket) do
-    {:noreply, put_flash(socket, :error, "Invalid play form payload.")}
+  def handle_event("load", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Invalid load form payload.")}
+  end
+
+  def handle_event("start", %{"player_id" => player_id}, socket) do
+    case simulator_module().start(player_id) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign_players()
+         |> assign(:last_action, "Simulation started for #{player_id}.")
+         |> put_flash(:info, "Simulation started for #{player_id}.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to start simulation: #{inspect(reason)}")}
+    end
+  end
+
+  def handle_event("pause", %{"player_id" => player_id}, socket) do
+    case simulator_module().pause(player_id) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign_players()
+         |> assign(:last_action, "Simulation paused for #{player_id}.")
+         |> put_flash(:info, "Simulation paused for #{player_id}.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to pause simulation: #{inspect(reason)}")}
+    end
   end
 
   @impl true
@@ -72,7 +99,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       :ok ->
         {:noreply,
          socket
-         |> assign_running_players()
+         |> assign_players()
          |> assign(:last_action, "Simulation stopped for #{player_id}.")
          |> put_flash(:info, "Simulation stopped for #{player_id}.")}
 
@@ -91,7 +118,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       :ok ->
         {:noreply,
          socket
-         |> assign_running_players()
+         |> assign_players()
          |> assign(:last_action, "All simulation players stopped.")
          |> put_flash(:info, "All simulation players stopped.")}
 
@@ -101,31 +128,12 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   @impl true
-  def handle_event("reset", %{"player_id" => player_id}, socket) do
-    case simulator_module().reset(player_id) do
-      :ok ->
-        {:noreply,
-         socket
-         |> assign_running_players()
-         |> assign(:last_action, "Simulation reset for #{player_id}.")
-         |> put_flash(:info, "Simulation reset for #{player_id}.")}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to reset simulation: #{inspect(reason)}")}
-    end
-  end
-
-  def handle_event("reset", _params, socket) do
-    {:noreply, put_flash(socket, :error, "Missing player id to reset.")}
-  end
-
-  @impl true
   def handle_event("reset_all", _params, socket) do
     case simulator_module().reset_all() do
       :ok ->
         {:noreply,
          socket
-         |> assign_running_players()
+         |> assign_players()
          |> assign(:last_action, "All simulation players reset.")
          |> put_flash(:info, "All simulation players reset.")}
 
@@ -167,17 +175,24 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   defp fetch_selected_scenario(socket) do
     case socket.assigns.selected_scenario do
-      nil -> {:error, "Select a scenario before playing."}
+      nil -> {:error, "Select a scenario before loading."}
       selected_scenario -> {:ok, selected_scenario}
     end
   end
 
-  defp assign_running_players(socket) do
-    running_players =
-      State.list_running_players()
+  defp assign_players(socket) do
+    players =
+      State.list_players()
       |> Enum.map(fn {player_id, metadata} -> %{player_id: player_id, metadata: metadata} end)
-      |> Enum.sort_by(fn %{metadata: metadata} -> Map.get(metadata, :started_at_ms, 0) end, :desc)
+      |> Enum.sort_by(fn %{metadata: metadata} ->
+        {sort_order(metadata.lifecycle_state), -Map.get(metadata, :loaded_at, 0)}
+      end)
 
-    assign(socket, :running_players, running_players)
+    assign(socket, :players, players)
   end
+
+  defp sort_order(:running), do: 0
+  defp sort_order(:paused), do: 1
+  defp sort_order(:loaded), do: 2
+  defp sort_order(_other), do: 3
 end

@@ -8,11 +8,11 @@ defmodule FirehoseSimulatorTest do
 
   setup do
     :ok = FirehoseSimulator.stop_all()
-    :ok = FirehoseSimulator.State.clear_running_players()
+    :ok = FirehoseSimulator.State.clear_players()
 
     on_exit(fn ->
       :ok = FirehoseSimulator.stop_all()
-      :ok = FirehoseSimulator.State.clear_running_players()
+      :ok = FirehoseSimulator.State.clear_players()
     end)
 
     :ok
@@ -82,7 +82,7 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "play/2" do
+  describe "load/start/pause/stop" do
     setup do
       on_exit(fn ->
         _ = FirehoseSimulator.stop_all()
@@ -91,7 +91,7 @@ defmodule FirehoseSimulatorTest do
       :ok
     end
 
-    test "starts playing and returns a player id" do
+    test "loads a player and starts it" do
       scenario = %Scenario{
         sessions: nil,
         posts: nil,
@@ -101,20 +101,44 @@ defmodule FirehoseSimulatorTest do
       }
 
       capture_log(fn ->
-        assert {:ok, player_id, %{started?: true} = metadata} =
-                 FirehoseSimulator.play(scenario, scheduler_count: 1)
+        assert {:ok, player_id, metadata} =
+                 FirehoseSimulator.load(scenario, scheduler_count: 1)
 
         assert is_binary(player_id)
         assert metadata.request_interval_ms == 15_000
         assert metadata.timeline_limit == 42
+        assert metadata.lifecycle_state == :loaded
       end)
 
-      running_players = FirehoseSimulator.State.list_running_players()
-      [player_id] = Map.keys(running_players)
+      [player_id] = FirehoseSimulator.State.list_players() |> Map.keys()
+
       status = Player.status(player_id)
-      assert status.running?
+      refute status.running?
       assert status.loaded?
-      assert status.feeder.started?
+
+      assert :ok = FirehoseSimulator.start(player_id)
+      assert Player.status(player_id).running?
+    end
+
+    test "pauses and resumes without changing started_at" do
+      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
+
+      assert {:ok, player_id, _metadata} = FirehoseSimulator.load(scenario, scheduler_count: 1)
+      assert :ok = FirehoseSimulator.start(player_id)
+
+      started_at = Player.status(player_id).metadata.started_at
+
+      assert :ok = FirehoseSimulator.pause(player_id)
+      paused_status = Player.status(player_id)
+      assert paused_status.paused?
+      assert paused_status.metadata.paused_at
+
+      assert :ok = FirehoseSimulator.start(player_id)
+
+      resumed_status = Player.status(player_id)
+      assert resumed_status.running?
+      assert resumed_status.metadata.started_at == started_at
+      assert resumed_status.metadata.total_paused >= 0
     end
 
     test "allows concurrent players for the same plan and stops them independently" do
@@ -122,12 +146,14 @@ defmodule FirehoseSimulatorTest do
 
       capture_log(fn ->
         assert {:ok, player_1, _meta_1} =
-                 FirehoseSimulator.play(scenario, scheduler_count: 1)
+                 FirehoseSimulator.load(scenario, scheduler_count: 1)
 
         assert {:ok, player_2, _meta_2} =
-                 FirehoseSimulator.play(scenario, scheduler_count: 1)
+                 FirehoseSimulator.load(scenario, scheduler_count: 1)
 
         refute player_1 == player_2
+        assert :ok = FirehoseSimulator.start(player_1)
+        assert :ok = FirehoseSimulator.start(player_2)
 
         assert :ok = FirehoseSimulator.stop(player_1)
 
@@ -137,7 +163,7 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "play_with_offset/3" do
+  describe "load_with_offset/3" do
     setup do
       on_exit(fn ->
         _ = FirehoseSimulator.stop_all()
@@ -146,7 +172,7 @@ defmodule FirehoseSimulatorTest do
       :ok
     end
 
-    test "shifts the plan before starting playback" do
+    test "shifts the plan before loading playback" do
       scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
         sessions: nil,
@@ -154,18 +180,17 @@ defmodule FirehoseSimulatorTest do
       }
 
       capture_log(fn ->
-        assert {:ok, player_id, %{started?: true}} =
-                 FirehoseSimulator.play_with_offset(scenario, 250, scheduler_count: 1)
+        assert {:ok, player_id, metadata} =
+                 FirehoseSimulator.load_with_offset(scenario, 250, scheduler_count: 1)
 
         assert is_binary(player_id)
+        assert metadata.lifecycle_state == :loaded
       end)
 
-      running_players = FirehoseSimulator.State.list_running_players()
-      [player_id] = Map.keys(running_players)
+      [player_id] = FirehoseSimulator.State.list_players() |> Map.keys()
       status = Player.status(player_id)
-      assert status.running?
       assert status.loaded?
-      assert status.feeder.started?
+      refute status.running?
     end
   end
 
@@ -221,22 +246,7 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "reset/1 and reset/0" do
-    test "resets an individual player and keeps others running" do
-      scenario = %Scenario{sessions: nil, posts: nil, follows: nil}
-
-      assert {:ok, player_1, _meta_1} =
-               FirehoseSimulator.play(scenario, scheduler_count: 1)
-
-      assert {:ok, player_2, _meta_2} =
-               FirehoseSimulator.play(scenario, scheduler_count: 1)
-
-      assert :ok = FirehoseSimulator.reset(player_1)
-
-      assert Player.status(player_2).running?
-      refute Map.has_key?(FirehoseSimulator.State.list_running_players(), player_1)
-    end
-
+  describe "reset/0" do
     test "exposes global reset from the top-level api" do
       assert :ok = FirehoseSimulator.reset_all()
       assert :ok = FirehoseSimulator.reset()

@@ -33,7 +33,9 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
          ]}
       )
 
-    :ok = EventFeeder.start_feeding(event_feeder)
+    assert %{lifecycle_state: :loaded, started?: false} = EventFeeder.status(event_feeder)
+
+    :ok = EventFeeder.start(event_feeder)
     send(event_feeder, :check)
 
     assert_receive [_, _], 1_000

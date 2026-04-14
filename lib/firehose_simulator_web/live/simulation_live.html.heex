@@ -1,20 +1,20 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Simulation
-    <:subtitle>Start simulation players and manage active runs.</:subtitle>
+    <:subtitle>Load simulation players and control loaded, running, and paused runs.</:subtitle>
   </.header>
 
   <section id="simulation-config" class="card bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body gap-5">
       <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-play-circle" class="size-5 text-primary" /> Start simulation player
+        <.icon name="hero-play-circle" class="size-5 text-primary" /> Load simulation player
       </div>
 
       <.form
-        for={@play_form}
-        id="simulation-play-form"
-        phx-change="validate_play"
-        phx-submit="play"
+        for={@load_form}
+        id="simulation-load-form"
+        phx-change="validate_load"
+        phx-submit="load"
         class="space-y-4"
       >
         <div class="space-y-2">
@@ -53,23 +53,23 @@
         <div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div class="space-y-2">
             <.input
-              field={@play_form[:offset_ms]}
+              field={@load_form[:offset_ms]}
               id="simulation-offset-ms"
               type="number"
               label="Start offset (ms)"
             />
             <p id="simulation-offset-help" class="text-xs text-base-content/70">
-              Use `0` to start immediately. Positive values shift events later; negative values shift earlier.
+              Use `0` to load from the beginning. Positive values shift events later; negative values shift earlier.
             </p>
           </div>
 
           <.button
-            id="play-button"
+            id="load-button"
             type="submit"
             disabled={!@selected_scenario}
             variant="primary"
           >
-            Play selected scenario
+            Load selected scenario
           </.button>
         </div>
       </.form>
@@ -81,13 +81,13 @@
   </section>
 
   <section
-    id="running-players-list"
+    id="players-list"
     class="card bg-base-100 border border-base-300 shadow-sm mt-6"
   >
     <div class="card-body gap-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-queue-list" class="size-5 text-primary" /> Running simulation players
+          <.icon name="hero-queue-list" class="size-5 text-primary" /> Simulation players
         </div>
         <div class="flex flex-wrap gap-2">
           <.button id="stop-all-button" type="button" phx-click="stop_all">
@@ -100,50 +100,89 @@
       </div>
 
       <p
-        :if={@running_players == []}
-        id="running-players-empty"
+        :if={@players == []}
+        id="players-empty"
         class="text-sm text-base-content/70"
       >
-        No running simulation players.
+        No simulation players loaded.
       </p>
 
-      <div :if={@running_players != []} class="space-y-3">
+      <div :if={@players != []} class="space-y-3">
         <div
-          :for={player <- @running_players}
-          id={"running-player-#{player.player_id}"}
+          :for={player <- @players}
+          id={"player-#{player.player_id}"}
           class="rounded-box border border-base-300 p-4 transition-colors"
         >
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="space-y-1">
-              <p class="font-semibold" id={"running-player-id-#{player.player_id}"}>
-                {player.player_id}
-              </p>
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="font-semibold" id={"player-id-#{player.player_id}"}>
+                  {player.player_id}
+                </p>
+                <span
+                  id={"player-state-#{player.player_id}"}
+                  class={[
+                    "rounded-full px-2 py-0.5 text-xs font-semibold",
+                    player.metadata.lifecycle_state == :running &&
+                      "bg-emerald-100 text-emerald-800",
+                    player.metadata.lifecycle_state == :paused && "bg-amber-100 text-amber-800",
+                    player.metadata.lifecycle_state == :loaded && "bg-sky-100 text-sky-800"
+                  ]}
+                >
+                  {player.metadata.lifecycle_state}
+                </span>
+              </div>
               <p class="text-xs text-base-content/70">
-                schedulers: {Map.get(player.metadata, :schedulers, "n/a")} · request interval: {Map.get(
+                scenario: {Map.get(player.metadata, :scenario_id, "n/a")} · schedulers: {Map.get(
                   player.metadata,
-                  :request_interval_ms,
+                  :schedulers,
                   "n/a"
-                )} ms · timeline limit: {Map.get(player.metadata, :timeline_limit, "n/a")}
+                )} · request interval: {Map.get(player.metadata, :request_interval_ms, "n/a")} ms · timeline limit: {Map.get(
+                  player.metadata,
+                  :timeline_limit,
+                  "n/a"
+                )}
+              </p>
+              <p class="text-xs text-base-content/60">
+                loaded at: {Map.get(player.metadata, :loaded_at, "n/a")} · started at: {Map.get(
+                  player.metadata,
+                  :started_at,
+                  "n/a"
+                )} · paused at: {Map.get(player.metadata, :paused_at, "n/a")} · total paused: {Map.get(
+                  player.metadata,
+                  :total_paused,
+                  0
+                )}
               </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
               <.button
+                :if={player.metadata.lifecycle_state in [:loaded, :paused]}
+                id={"start-player-#{player.player_id}"}
+                type="button"
+                phx-click="start"
+                phx-value-player_id={player.player_id}
+              >
+                Start
+              </.button>
+              <.button
+                :if={player.metadata.lifecycle_state == :running}
+                id={"pause-player-#{player.player_id}"}
+                type="button"
+                phx-click="pause"
+                phx-value-player_id={player.player_id}
+              >
+                Pause
+              </.button>
+              <.button
                 id={"stop-player-#{player.player_id}"}
                 type="button"
                 phx-click="stop"
                 phx-value-player_id={player.player_id}
-              >
-                Stop
-              </.button>
-              <.button
-                id={"reset-player-#{player.player_id}"}
-                type="button"
-                phx-click="reset"
-                phx-value-player_id={player.player_id}
                 variant="primary"
               >
-                Reset
+                Stop
               </.button>
             </div>
           </div>

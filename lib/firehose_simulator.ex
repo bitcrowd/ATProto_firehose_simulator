@@ -204,35 +204,65 @@ defmodule FirehoseSimulator do
 
   # Player
 
-  @spec play(Scenario.t(), keyword()) :: {:ok, String.t(), map()} | {:error, term()}
-  def play(%Scenario{} = scenario, opts \\ []) do
-    Logger.info("starting simulation playback")
+  @spec load(Scenario.t(), keyword()) :: {:ok, String.t(), map()} | {:error, term()}
+  def load(%Scenario{} = scenario, opts \\ []) do
+    Logger.info("loading simulation player")
 
-    case Player.play(scenario, opts) do
+    case Player.load(scenario, opts) do
       {:ok, _player_id, _result} = ok ->
-        Logger.info("simulation playback started")
+        Logger.info("simulation player loaded")
         ok
 
       {:error, reason} = error ->
-        Logger.error("failed to start simulation playback: #{inspect(reason)}")
+        Logger.error("failed to load simulation player: #{inspect(reason)}")
         error
     end
   end
 
-  @spec play_with_offset(Scenario.t(), integer()) ::
+  @spec load_with_offset(Scenario.t(), integer()) ::
           {:ok, String.t(), map()} | {:error, term()}
-  def play_with_offset(%Scenario{} = scenario, offset_ms)
+  def load_with_offset(%Scenario{} = scenario, offset_ms)
       when is_integer(offset_ms) do
-    play_with_offset(scenario, offset_ms, [])
+    load_with_offset(scenario, offset_ms, [])
   end
 
-  @spec play_with_offset(Scenario.t(), integer(), keyword()) ::
+  @spec load_with_offset(Scenario.t(), integer(), keyword()) ::
           {:ok, String.t(), map()} | {:error, term()}
-  def play_with_offset(%Scenario{} = scenario, offset_ms, opts)
+  def load_with_offset(%Scenario{} = scenario, offset_ms, opts)
       when is_integer(offset_ms) and is_list(opts) do
     scenario
     |> shift_scenario(offset_ms)
-    |> play(opts)
+    |> load(opts)
+  end
+
+  @spec start(String.t()) :: :ok | {:error, term()}
+  def start(player_id) when is_binary(player_id) do
+    Logger.info("starting simulation playback for #{player_id}")
+
+    case Player.start(player_id) do
+      :ok ->
+        Logger.info("simulation playback started for #{player_id}")
+        :ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to start simulation playback for #{player_id}: #{inspect(reason)}")
+        error
+    end
+  end
+
+  @spec pause(String.t()) :: :ok | {:error, term()}
+  def pause(player_id) when is_binary(player_id) do
+    Logger.info("pausing simulation playback for #{player_id}")
+
+    case Player.pause(player_id) do
+      :ok ->
+        Logger.info("simulation playback paused for #{player_id}")
+        :ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to pause simulation playback for #{player_id}: #{inspect(reason)}")
+        error
+    end
   end
 
   @spec stop(String.t()) :: :ok | {:error, term()}
@@ -240,9 +270,9 @@ defmodule FirehoseSimulator do
     Logger.info("stopping simulation playback")
 
     case Player.stop(player_id) do
-      :ok = ok ->
+      :ok ->
         Logger.info("simulation playback stopped for #{player_id}")
-        ok
+        :ok
 
       {:error, reason} = error ->
         Logger.error("failed to stop simulation playback for #{player_id}: #{inspect(reason)}")
@@ -256,21 +286,6 @@ defmodule FirehoseSimulator do
     :ok = Player.stop_all()
     Logger.info("all simulation playback stopped")
     :ok
-  end
-
-  @spec reset(String.t()) :: :ok | {:error, term()}
-  def reset(player_id) when is_binary(player_id) do
-    Logger.info("resetting simulation playback")
-
-    case Player.reset(player_id) do
-      :ok = ok ->
-        Logger.info("simulation playback reset for #{player_id}")
-        ok
-
-      {:error, reason} = error ->
-        Logger.error("failed to reset simulation playback for #{player_id}: #{inspect(reason)}")
-        error
-    end
   end
 
   @spec reset() :: :ok

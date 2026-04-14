@@ -151,7 +151,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert render(view) =~ "Vacuum actions completed."
   end
 
-  test "simulation liveview selects scenario and controls playback", %{conn: conn} do
+  test "simulation liveview selects scenario and controls lifecycle", %{conn: conn} do
     :ok =
       State.put_scenario("plan-1", %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
@@ -161,7 +161,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/simulation")
 
-    assert has_element?(view, "#play-button[disabled]")
+    assert has_element?(view, "#load-button[disabled]")
     assert has_element?(view, "#simulation-scenario-summary-plan-1")
 
     view
@@ -169,32 +169,41 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     |> render_click()
 
     assert_patch(view, ~p"/simulation?scenario_id=plan-1")
-    refute has_element?(view, "#play-button[disabled]")
+    refute has_element?(view, "#load-button[disabled]")
 
     view
-    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
+    |> form("#simulation-load-form", %{"load" => %{"offset_ms" => "250"}})
     |> render_submit()
+
+    assert render(view) =~ "Simulation loaded for player-1."
+    assert has_element?(view, "#player-player-1")
+    assert has_element?(view, "#player-state-player-1", "loaded")
+
+    view
+    |> element("#start-player-player-1")
+    |> render_click()
 
     assert render(view) =~ "Simulation started for player-1."
-    assert has_element?(view, "#running-player-player-1")
+    assert has_element?(view, "#player-state-player-1", "running")
 
     view
-    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
+    |> element("#pause-player-player-1")
+    |> render_click()
+
+    assert render(view) =~ "Simulation paused for player-1."
+    assert has_element?(view, "#player-state-player-1", "paused")
+
+    view
+    |> form("#simulation-load-form", %{"load" => %{"offset_ms" => "250"}})
     |> render_submit()
 
-    assert has_element?(view, "#running-player-player-2")
+    assert has_element?(view, "#player-player-2")
+
+    view |> element("#start-player-player-1") |> render_click()
+    assert has_element?(view, "#player-state-player-1", "running")
 
     view |> element("#stop-player-player-1") |> render_click()
     assert render(view) =~ "Simulation stopped for player-1."
-
-    view |> element("#reset-player-player-2") |> render_click()
-    assert render(view) =~ "Simulation reset for player-2."
-
-    view
-    |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
-    |> render_submit()
-
-    assert has_element?(view, "#running-player-player-1")
 
     view |> element("#stop-all-button") |> render_click()
     assert render(view) =~ "All simulation players stopped."
@@ -214,7 +223,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     {:ok, view, _html} = live(conn, ~p"/simulation?scenario_id=missing-plan")
 
     assert has_element?(view, "#simulation-scenario-summary-plan-1")
-    assert has_element?(view, "#play-button[disabled]")
+    assert has_element?(view, "#load-button[disabled]")
   end
 
   test "metrics liveview renders metrics tab and counters", %{conn: conn} do
@@ -271,47 +280,64 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       FirehoseSimulator.shift_scenario(scenario, offset_ms)
     end
 
-    def play(%Scenario{} = scenario), do: play(scenario, [])
+    def load(%Scenario{} = scenario), do: load(scenario, [])
 
-    def play_with_offset(%Scenario{} = scenario, offset_ms)
+    def load_with_offset(%Scenario{} = scenario, offset_ms)
+        when is_integer(offset_ms) do
+      load_with_offset(scenario, offset_ms, [])
+    end
+
+    def load_with_offset(%Scenario{} = scenario, offset_ms, _opts)
         when is_integer(offset_ms) do
       scenario
       |> FirehoseSimulator.shift_scenario(offset_ms)
-      |> play()
+      |> load()
     end
 
-    def play(%Scenario{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
+    def load(%Scenario{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
       player_id = next_fake_player_id()
-      metadata = %{player_id: player_id, started?: true}
-      :ok = State.put_running_player(player_id, metadata)
+      metadata = base_metadata(player_id, :loaded)
+      :ok = State.put_player(player_id, metadata)
       {:ok, player_id, metadata}
     end
 
-    def play(%Scenario{posts: [%{offset_ms: 10, user_id: 1}]}, _opts) do
+    def load(%Scenario{posts: [%{offset_ms: 10, user_id: 1}]}, _opts) do
       player_id = next_fake_player_id()
-      metadata = %{player_id: player_id, started?: true}
-      :ok = State.put_running_player(player_id, metadata)
+      metadata = base_metadata(player_id, :loaded)
+      :ok = State.put_player(player_id, metadata)
       {:ok, player_id, metadata}
     end
 
-    def play(%Scenario{}, _opts), do: {:error, :invalid_shift}
+    def load(%Scenario{}, _opts), do: {:error, :invalid_shift}
+
+    def start(player_id) do
+      update_player(player_id, fn metadata ->
+        metadata
+        |> Map.put(:lifecycle_state, :running)
+        |> Map.put_new(:started_at, System.system_time(:millisecond))
+        |> Map.put(:paused_at, nil)
+      end)
+    end
+
+    def pause(player_id) do
+      update_player(player_id, fn metadata ->
+        metadata
+        |> Map.put(:lifecycle_state, :paused)
+        |> Map.put(:paused_at, System.system_time(:millisecond))
+      end)
+    end
 
     def stop(player_id) do
-      :ok = State.delete_running_player(player_id)
-      :ok
-    end
-
-    def reset(player_id) do
-      :ok = State.delete_running_player(player_id)
+      :ok = State.delete_player(player_id)
       :ok
     end
 
     def reset_all do
-      State.clear_running_players()
+      State.clear_players()
     end
 
     def stop_all do
-      State.clear_running_players()
+      State.clear_players()
     end
 
     def vacuum(opts) when is_list(opts) do
@@ -337,8 +363,32 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     end
 
     defp next_fake_player_id do
-      count = map_size(State.list_running_players()) + 1
+      count = map_size(State.list_players()) + 1
       "player-#{count}"
+    end
+
+    defp update_player(player_id, fun) do
+      metadata =
+        State.list_players()
+        |> Map.fetch!(player_id)
+        |> fun.()
+
+      State.put_player(player_id, metadata)
+    end
+
+    defp base_metadata(player_id, lifecycle_state) do
+      %{
+        player_id: player_id,
+        scenario_id: "plan-1",
+        lifecycle_state: lifecycle_state,
+        request_interval_ms: 30_000,
+        timeline_limit: 20,
+        schedulers: 1,
+        loaded_at: System.system_time(:millisecond),
+        started_at: nil,
+        paused_at: nil,
+        total_paused: 0
+      }
     end
   end
 

@@ -7,7 +7,7 @@ defmodule FirehoseSimulator.State do
 
   @type state :: %{
           scenarios: %{optional(String.t()) => Scenario.t()},
-          running_players: %{optional(String.t()) => map()},
+          players: %{optional(String.t()) => map()},
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -42,45 +42,39 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, :clear_scenarios)
   end
 
-  @spec list_running_players() :: %{optional(String.t()) => map()}
-  def list_running_players do
-    GenServer.call(__MODULE__, :list_running_players)
+  @spec list_players() :: %{optional(String.t()) => map()}
+  def list_players do
+    GenServer.call(__MODULE__, :list_players)
   end
 
-  @spec put_running_player(String.t(), map()) :: :ok
-  def put_running_player(player_id, metadata) when is_binary(player_id) and is_map(metadata) do
-    GenServer.call(__MODULE__, {:put_running_player, player_id, metadata})
+  @spec put_player(String.t(), map()) :: :ok
+  def put_player(player_id, metadata) when is_binary(player_id) and is_map(metadata) do
+    GenServer.call(__MODULE__, {:put_player, player_id, metadata})
   end
 
-  @spec delete_running_player(String.t()) :: :ok
-  def delete_running_player(player_id) when is_binary(player_id) do
-    GenServer.call(__MODULE__, {:delete_running_player, player_id})
+  @spec delete_player(String.t()) :: :ok
+  def delete_player(player_id) when is_binary(player_id) do
+    GenServer.call(__MODULE__, {:delete_player, player_id})
   end
 
-  @spec clear_running_players() :: :ok
-  def clear_running_players do
-    GenServer.call(__MODULE__, :clear_running_players)
+  @spec clear_players() :: :ok
+  def clear_players do
+    GenServer.call(__MODULE__, :clear_players)
   end
 
   @spec get_player_ids() :: map()
   def get_player_ids do
-    list_running_players()
+    list_players()
   end
 
   @spec put_player_ids(map()) :: :ok
   def put_player_ids(player_ids) when is_map(player_ids) do
-    :ok = clear_running_players()
-
-    Enum.each(player_ids, fn {player_id, metadata} ->
-      put_running_player(to_string(player_id), normalize_running_player_metadata(metadata))
-    end)
-
-    :ok
+    GenServer.call(__MODULE__, {:put_player_ids, player_ids})
   end
 
   @spec clear_player_ids() :: :ok
   def clear_player_ids do
-    clear_running_players()
+    clear_players()
   end
 
   @spec put_userbase_result(boolean(), map() | nil) :: :ok
@@ -124,22 +118,31 @@ defmodule FirehoseSimulator.State do
     {:reply, :ok, %{state | scenarios: %{}}}
   end
 
-  def handle_call(:list_running_players, _from, state) do
-    {:reply, state.running_players, state}
+  def handle_call(:list_players, _from, state) do
+    {:reply, state.players, state}
   end
 
-  def handle_call({:put_running_player, player_id, metadata}, _from, state) do
-    running_players = Map.put(state.running_players, player_id, metadata)
-    {:reply, :ok, %{state | running_players: running_players}}
+  def handle_call({:put_player, player_id, metadata}, _from, state) do
+    players = Map.put(state.players, player_id, metadata)
+    {:reply, :ok, %{state | players: players}}
   end
 
-  def handle_call({:delete_running_player, player_id}, _from, state) do
-    running_players = Map.delete(state.running_players, player_id)
-    {:reply, :ok, %{state | running_players: running_players}}
+  def handle_call({:put_player_ids, player_ids}, _from, state) do
+    players =
+      player_ids
+      |> Enum.map(fn {player_id, metadata} -> {to_string(player_id), metadata} end)
+      |> Map.new()
+
+    {:reply, :ok, %{state | players: players}}
   end
 
-  def handle_call(:clear_running_players, _from, state) do
-    {:reply, :ok, %{state | running_players: %{}}}
+  def handle_call({:delete_player, player_id}, _from, state) do
+    players = Map.delete(state.players, player_id)
+    {:reply, :ok, %{state | players: players}}
+  end
+
+  def handle_call(:clear_players, _from, state) do
+    {:reply, :ok, %{state | players: %{}}}
   end
 
   def handle_call({:put_userbase_result, userbase_uploaded?, userbase_result}, _from, state) do
@@ -154,12 +157,9 @@ defmodule FirehoseSimulator.State do
   defp default_state do
     %{
       scenarios: %{},
-      running_players: %{},
+      players: %{},
       userbase_uploaded?: false,
       userbase_result: nil
     }
   end
-
-  defp normalize_running_player_metadata(metadata) when is_map(metadata), do: metadata
-  defp normalize_running_player_metadata(metadata), do: %{value: metadata}
 end

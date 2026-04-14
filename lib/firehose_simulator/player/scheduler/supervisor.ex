@@ -34,6 +34,9 @@ defmodule FirehoseSimulator.Player.Scheduler.Supervisor do
         Supervisor.child_spec(
           {FirehoseSimulator.Player.Scheduler.Worker,
            [
+             name:
+               {:via, Registry,
+                {FirehoseSimulator.Player.Registry, {player_id, {:worker, partition}}}},
              player_id: player_id,
              partition: partition,
              num_partitions: scheduler_count,

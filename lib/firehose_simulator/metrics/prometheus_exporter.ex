@@ -17,12 +17,14 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
       [
         "# TYPE firehose_simulator_json_files_loaded_total counter\n",
         metric("firehose_simulator_json_files_loaded_total", snapshot.json_files_loaded),
+        "# TYPE firehose_simulator_player_load_total counter\n",
+        metric("firehose_simulator_player_load_total", snapshot.player_load),
         "# TYPE firehose_simulator_player_start_total counter\n",
         metric("firehose_simulator_player_start_total", snapshot.player_start),
+        "# TYPE firehose_simulator_player_pause_total counter\n",
+        metric("firehose_simulator_player_pause_total", snapshot.player_pause),
         "# TYPE firehose_simulator_player_stop_total counter\n",
         metric("firehose_simulator_player_stop_total", snapshot.player_stop),
-        "# TYPE firehose_simulator_player_reset_total counter\n",
-        metric("firehose_simulator_player_reset_total", snapshot.player_reset),
         "# TYPE firehose_simulator_event_feeder_inject_total counter\n",
         metric(
           "firehose_simulator_event_feeder_inject_total",

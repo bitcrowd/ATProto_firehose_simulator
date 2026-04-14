@@ -80,14 +80,17 @@ defmodule FirehoseSimulator.Metrics do
         :json_files_loaded ->
           Map.update!(state, :json_files_loaded, &(&1 + 1))
 
+        :player_load ->
+          Map.update!(state, :player_load, &(&1 + 1))
+
         :player_start ->
           Map.update!(state, :player_start, &(&1 + 1))
 
+        :player_pause ->
+          Map.update!(state, :player_pause, &(&1 + 1))
+
         :player_stop ->
           Map.update!(state, :player_stop, &(&1 + 1))
-
-        :player_reset ->
-          Map.update!(state, :player_reset, &(&1 + 1))
 
         _other ->
           state
@@ -287,9 +290,10 @@ defmodule FirehoseSimulator.Metrics do
   defp default_state do
     %{
       json_files_loaded: 0,
+      player_load: 0,
       player_start: 0,
+      player_pause: 0,
       player_stop: 0,
-      player_reset: 0,
       event_feeder_inject_count: 0,
       event_feeder_sessions_started: 0,
       event_feeder_posts_dispatch_count: 0,
@@ -408,9 +412,10 @@ defmodule FirehoseSimulator.Metrics do
   defp metric_value(state, metric) do
     case metric do
       :json_files_loaded -> state.json_files_loaded
+      :player_load -> state.player_load
       :player_start -> state.player_start
+      :player_pause -> state.player_pause
       :player_stop -> state.player_stop
-      :player_reset -> state.player_reset
       _other -> "n/a"
     end
   end

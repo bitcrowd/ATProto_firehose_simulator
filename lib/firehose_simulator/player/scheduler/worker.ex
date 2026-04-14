@@ -1,11 +1,6 @@
 defmodule FirehoseSimulator.Player.Scheduler.Worker do
   @moduledoc """
   Scheduler worker that owns a partition of sessions.
-
-  Runs a continuous loop that:
-  1. Scans its ETS partition for sessions due for a get_timeline request
-  2. Executes get_timeline in parallel via Task.async_stream
-  3. Removes expired sessions
   """
   use GenServer
 
@@ -15,7 +10,17 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
   alias FirehoseSimulator.Player.Store
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    {name, opts} = Keyword.pop!(opts, :name)
+
+    GenServer.start_link(__MODULE__, opts, name: name)
+  end
+
+  def start_processing(worker) do
+    GenServer.call(worker, :start_processing, :infinity)
+  end
+
+  def pause_processing(worker) do
+    GenServer.call(worker, :pause_processing, :infinity)
   end
 
   @impl true
@@ -47,37 +52,52 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       completed_table: completed_table,
       max_concurrency: max_concurrency,
       batch_size: max_concurrency,
-      timeline_limit: timeline_limit
+      timeline_limit: timeline_limit,
+      lifecycle_state: :loaded
     }
 
     Logger.info("[Worker #{partition}] Started (max_concurrency=#{max_concurrency})")
-
-    send(self(), :start_loop)
 
     {:ok, state}
   end
 
   @impl true
-  def handle_info(:start_loop, state) do
-    spawn_link(fn -> run_loop(state) end)
+  def handle_call(:start_processing, _from, %{lifecycle_state: :running} = state) do
+    {:reply, :ok, state}
+  end
 
+  def handle_call(:start_processing, _from, state) do
+    send(self(), :work)
+    {:reply, :ok, %{state | lifecycle_state: :running}}
+  end
+
+  def handle_call(:pause_processing, _from, %{lifecycle_state: :running} = state) do
+    {:reply, :ok, %{state | lifecycle_state: :paused}}
+  end
+
+  def handle_call(:pause_processing, _from, state) do
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_info(:work, %{lifecycle_state: :running} = state) do
+    {had_work, _results} = run_cycle(state)
+
+    if had_work do
+      send(self(), :work)
+    else
+      Process.send_after(self(), :work, 1)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(:work, state) do
     {:noreply, state}
   end
 
   def handle_info(_msg, state) do
     {:noreply, state}
-  end
-
-  # --- Internal ---
-
-  defp run_loop(state) do
-    {had_work, _results} = run_cycle(state)
-
-    unless had_work do
-      Process.sleep(1)
-    end
-
-    run_loop(state)
   end
 
   @doc false
