@@ -6,6 +6,22 @@
 
   <section id="simulation-config" class="card bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body gap-5">
+      <div
+        id="simulation-plan-summary"
+        class="rounded-box border border-base-300/80 bg-base-200/40 px-4 py-3 text-sm text-base-content/80"
+      >
+        <%= if @current_simulation_plan.entries == [] do %>
+          <p id="simulation-plan-empty">No active simulation plan yet.</p>
+        <% else %>
+          <p id="simulation-plan-entry-count">
+            active plan entries: {length(@current_simulation_plan.entries)}
+          </p>
+          <p :if={@current_simulation_plan.export_path} id="simulation-plan-export-path">
+            last export: {@current_simulation_plan.export_path}
+          </p>
+        <% end %>
+      </div>
+
       <div class="flex items-center gap-2 text-sm font-medium">
         <.icon name="hero-play-circle" class="size-5 text-primary" /> Load simulation player
       </div>
@@ -21,7 +37,7 @@
           <p class="text-sm font-medium">Select scenario</p>
           <div id="simulation-scenario-list" class="space-y-2">
             <p
-              :if={@scenarios == []}
+              :if={@scenario_ids == []}
               id="simulation-scenarios-empty"
               class="text-sm text-base-content/70"
             >
@@ -29,21 +45,21 @@
             </p>
 
             <.link
-              :for={scenario <- @scenarios}
-              id={"simulation-select-#{scenario.id}"}
-              patch={~p"/simulation?scenario_id=#{scenario.id}"}
+              :for={scenario_id <- @scenario_ids}
+              id={"simulation-select-#{scenario_id}"}
+              patch={~p"/simulation?scenario_id=#{scenario_id}"}
               class={[
                 "block w-full rounded-box border px-3 py-2 text-left transition-colors",
-                @selected_scenario && @selected_scenario.id == scenario.id &&
+                @selected_scenario_id == scenario_id &&
                   "border-primary/70 bg-primary/10",
-                (!@selected_scenario || @selected_scenario.id != scenario.id) &&
+                @selected_scenario_id != scenario_id &&
                   "border-base-300 hover:border-base-content/40"
               ]}
             >
-              <p class="text-sm font-semibold">{scenario.id}</p>
+              <p class="text-sm font-semibold">{scenario_id}</p>
               <.scenario_summary
-                id={"simulation-scenario-summary-#{scenario.id}"}
-                scenario={scenario.scenario}
+                id={"simulation-scenario-summary-#{scenario_id}"}
+                scenario={scenario_for_id(scenario_id)}
                 class="mt-1 text-xs text-base-content/70"
               />
             </.link>
@@ -66,7 +82,7 @@
           <.button
             id="load-button"
             type="submit"
-            disabled={!@selected_scenario}
+            disabled={!@selected_scenario_id}
             variant="primary"
           >
             Load selected scenario

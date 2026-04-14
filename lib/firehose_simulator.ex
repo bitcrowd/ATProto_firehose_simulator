@@ -11,9 +11,12 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.BaseData.UserbaseImport
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.State
   alias FirehoseSimulator.BaseData.Userbase
 
   @default_userbase_filename "priv/simulation/userbase.json"
+
   # Bulk Creation
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do
@@ -188,6 +191,7 @@ defmodule FirehoseSimulator do
   def export_scenario_to_json(%Scenario{} = scenario, path)
       when is_binary(path) do
     with {:ok, json} <- Scenario.to_json(scenario),
+         :ok <- File.mkdir_p(Path.dirname(path)),
          :ok <- File.write(path, json) do
       :ok
     else
@@ -200,6 +204,78 @@ defmodule FirehoseSimulator do
   def shift_scenario(%Scenario{} = scenario, offset_ms)
       when is_integer(offset_ms) do
     Scenario.shift(scenario, offset_ms)
+  end
+
+  # Simulation Plan
+
+  @spec import_simulation_plan_from_json(String.t()) ::
+          {:ok, SimulationPlan.t()} | {:error, String.t() | term()}
+  def import_simulation_plan_from_json(path) when is_binary(path) do
+    Logger.info("importing simulation plan from json file: #{path}")
+
+    current_plan = State.get_simulation_plan()
+
+    offset_ms =
+      if current_plan.started_at do
+        DateTime.diff(DateTime.utc_now(), current_plan.started_at, :milllisecond)
+      else
+        0
+      end
+
+    with {:ok, simulation_plan, imported_entries} <-
+           SimulationPlan.JSON.import_from_json(path, current_plan, offset_ms),
+         {:ok, _played_entries} <-
+           SimulationPlan.load_entries(imported_entries, offset_ms) do
+      :ok = State.put_simulation_plan(simulation_plan)
+      {:ok, simulation_plan}
+    else
+      {:error, reason} = error ->
+        Logger.error("failed to import simulation plan from json #{path}: #{inspect(reason)}")
+        error
+    end
+  end
+
+  @spec export_simulation_plan_to_json(SimulationPlan.t(), String.t()) ::
+          :ok | {:error, String.t()}
+  def export_simulation_plan_to_json(%SimulationPlan{} = simulation_plan, path)
+      when is_binary(path) do
+    case SimulationPlan.JSON.export_to_file(simulation_plan, path) do
+      {:ok, _path} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @spec current_simulation_plan() :: SimulationPlan.t()
+  def current_simulation_plan do
+    State.get_simulation_plan()
+  end
+
+  @spec add_and_play_scenario(String.t(), Scenario.t(), integer(), String.t()) ::
+          {:ok, SimulationPlan.t()} | {:error, String.t()}
+  def add_and_play_scenario(
+        scenario_name,
+        %Scenario{} = scenario,
+        submitted_offset_ms,
+        scenario_path
+      )
+      when is_binary(scenario_name) and is_integer(submitted_offset_ms) do
+    current_plan = State.get_simulation_plan()
+
+    with {:ok, simulation_plan, entry} <-
+           SimulationPlan.add_scenario(
+             current_plan,
+             scenario,
+             scenario_name,
+             submitted_offset_ms,
+             scenario_path
+           ),
+         {:ok, export_path} <-
+           SimulationPlan.JSON.export_to_file(simulation_plan) do
+      simulation_plan = %{simulation_plan | export_path: export_path}
+      :ok = State.put_simulation_plan(simulation_plan)
+      :ok = State.put_scenario(scenario_name, %{scenario | source_path: entry.scenario_path})
+      {:ok, simulation_plan}
+    end
   end
 
   # Player

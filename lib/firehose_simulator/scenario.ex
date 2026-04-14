@@ -3,32 +3,36 @@ defmodule FirehoseSimulator.Scenario do
 
   require Logger
 
+  use Ecto.Schema
+
   alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
+  alias FirehoseSimulator.Scenario.Params.ScenarioParams
   alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Sessions
-  alias FirehoseSimulator.Scenario.Params.ScenarioParams
 
   @default_time_unit_duration_ms 86_400_000
   @default_request_interval_ms 30_000
   @default_timeline_limit 20
 
-  @enforce_keys [:posts, :sessions, :follows]
-  defstruct [
-    :posts,
-    :sessions,
-    :follows,
-    request_interval_ms: @default_request_interval_ms,
-    timeline_limit: @default_timeline_limit
-  ]
+  @primary_key false
+  embedded_schema do
+    field(:posts, {:array, :map})
+    field(:sessions, {:array, :map})
+    field(:follows, {:array, :map})
+    field(:request_interval_ms, :integer, default: @default_request_interval_ms)
+    field(:timeline_limit, :integer, default: @default_timeline_limit)
+    field(:source_path, :string, virtual: true)
+  end
 
   @type t :: %__MODULE__{
           posts: Posts.t() | nil,
           sessions: Sessions.t() | nil,
           follows: Follows.t() | nil,
           request_interval_ms: pos_integer(),
-          timeline_limit: pos_integer()
+          timeline_limit: pos_integer(),
+          source_path: String.t() | nil
         }
 
   @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
@@ -57,7 +61,8 @@ defmodule FirehoseSimulator.Scenario do
            sessions: sessions,
            follows: follows,
            request_interval_ms: request_interval_ms,
-           timeline_limit: timeline_limit
+           timeline_limit: timeline_limit,
+           source_path: nil
          }}
       end
     end
@@ -75,7 +80,7 @@ defmodule FirehoseSimulator.Scenario do
 
     with {:ok, json} <- File.read(path),
          {:ok, scenario} <- from_json(json) do
-      {:ok, scenario}
+      {:ok, %{scenario | source_path: path}}
     else
       {:error, :enoent} -> {:error, "cannot read scenario json at #{path}"}
       {:error, reason} when is_binary(reason) -> {:error, reason}
@@ -83,7 +88,7 @@ defmodule FirehoseSimulator.Scenario do
     end
   end
 
-  @spec to_json(t()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec to_json(t()) :: {:ok, Scenario.t()} | {:error, String.t()}
   def to_json(%__MODULE__{} = scenario) do
     JSON.encode(scenario)
   end
@@ -95,7 +100,8 @@ defmodule FirehoseSimulator.Scenario do
       sessions: shift_events(scenario.sessions, offset_ms),
       follows: shift_events(scenario.follows, offset_ms),
       request_interval_ms: scenario.request_interval_ms,
-      timeline_limit: scenario.timeline_limit
+      timeline_limit: scenario.timeline_limit,
+      source_path: scenario.source_path
     }
   end
 

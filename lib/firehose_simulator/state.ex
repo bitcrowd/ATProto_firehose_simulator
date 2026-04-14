@@ -4,10 +4,12 @@ defmodule FirehoseSimulator.State do
   use GenServer
 
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.SimulationPlan
 
   @type state :: %{
           scenarios: %{optional(String.t()) => Scenario.t()},
           players: %{optional(String.t()) => map()},
+          simulation_plan: SimulationPlan.t(),
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -40,6 +42,15 @@ defmodule FirehoseSimulator.State do
   @spec clear_scenarios() :: :ok
   def clear_scenarios do
     GenServer.call(__MODULE__, :clear_scenarios)
+  end
+
+  @spec get_simulation_plan() :: SimulationPlan.t()
+  def get_simulation_plan do
+    GenServer.call(__MODULE__, :get_simulation_plan)
+  end
+
+  def put_simulation_plan(%SimulationPlan{} = simulation_plan) do
+    GenServer.call(__MODULE__, {:put_simulation_plan, simulation_plan})
   end
 
   @spec list_players() :: %{optional(String.t()) => map()}
@@ -118,6 +129,14 @@ defmodule FirehoseSimulator.State do
     {:reply, :ok, %{state | scenarios: %{}}}
   end
 
+  def handle_call(:get_simulation_plan, _from, state) do
+    {:reply, state.simulation_plan, state}
+  end
+
+  def handle_call({:put_simulation_plan, simulation_plan}, _from, state) do
+    {:reply, :ok, %{state | simulation_plan: simulation_plan}}
+  end
+
   def handle_call(:list_players, _from, state) do
     {:reply, state.players, state}
   end
@@ -155,9 +174,12 @@ defmodule FirehoseSimulator.State do
   end
 
   defp default_state do
+    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
+
     %{
       scenarios: %{},
       players: %{},
+      simulation_plan: simulation_plan,
       userbase_uploaded?: false,
       userbase_result: nil
     }

@@ -17,8 +17,8 @@ The player executes scenarios in real time using per-run process trees with isol
 ## Public Entry Points
 
 - `FirehoseSimulator.play/2`
-- `FirehoseSimulator.play_with_offset/2`
-- `FirehoseSimulator.play_with_offset/3`
+- `FirehoseSimulator.load_with_offset/2`
+- `FirehoseSimulator.load_with_offset/3`
 - `FirehoseSimulator.stop/0`
 - `FirehoseSimulator.stop/1`
 - `FirehoseSimulator.reset/0`

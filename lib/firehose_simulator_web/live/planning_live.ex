@@ -15,6 +15,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       |> assign(:current_scope, nil)
       |> assign(:generate_form, to_form(%{"scenario_name" => ""}, as: :generate))
       |> assign(:import_form, to_form(%{"scenario_name" => ""}, as: :import))
+      |> assign(:import_plan_form, to_form(%{}, as: :import_plan))
       |> assign(:last_action, nil)
       |> assign_scenarios()
       |> allow_upload(:scenario_params_json,
@@ -23,6 +24,11 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
         auto_upload: true
       )
       |> allow_upload(:scenario_json,
+        accept: ~w(.json),
+        max_entries: 1,
+        auto_upload: true
+      )
+      |> allow_upload(:simulation_plan_json,
         accept: ~w(.json),
         max_entries: 1,
         auto_upload: true
@@ -90,6 +96,56 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     else
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to import scenario: #{inspect(reason)}")}
+    end
+  end
+
+  @impl true
+  def handle_event("validate_import_plan", %{"import_plan" => params}, socket) do
+    {:noreply, assign(socket, :import_plan_form, to_form(params, as: :import_plan))}
+  end
+
+  def handle_event("validate_import_plan", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("import_simulation_plan", %{"import_plan" => params}, socket) do
+    socket = assign(socket, :import_plan_form, to_form(params, as: :import_plan))
+
+    with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
+         {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
+         {:ok, simulation_plan} <- simulator_module().import_simulation_plan_from_json(plan_path) do
+      {:noreply,
+       socket
+       |> assign(
+         :last_action,
+         "Imported simulation plan with #{length(simulation_plan.entries)} entries."
+       )
+       |> assign(:import_plan_form, to_form(%{}, as: :import_plan))
+       |> assign_scenarios()
+       |> put_flash(:info, "Simulation plan imported.")}
+    else
+      {:error, reason} ->
+        {:noreply,
+         put_flash(socket, :error, "Failed to import simulation plan: #{inspect(reason)}")}
+    end
+  end
+
+  def handle_event("import_simulation_plan", _params, socket) do
+    with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
+         {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
+         {:ok, simulation_plan} <- simulator_module().import_simulation_plan_from_json(plan_path) do
+      {:noreply,
+       socket
+       |> assign(
+         :last_action,
+         "Imported simulation plan with #{length(simulation_plan.entries)} entries."
+       )
+       |> assign(:import_plan_form, to_form(%{}, as: :import_plan))
+       |> assign_scenarios()
+       |> put_flash(:info, "Simulation plan imported.")}
+    else
+      {:error, reason} ->
+        {:noreply,
+         put_flash(socket, :error, "Failed to import simulation plan: #{inspect(reason)}")}
     end
   end
 
@@ -235,5 +291,6 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   defp json_file_kind(:scenario_params_json), do: "scenario_params"
   defp json_file_kind(:scenario_json), do: "scenario"
+  defp json_file_kind(:simulation_plan_json), do: "simulation_plan"
   defp json_file_kind(_upload_name), do: "unknown"
 end

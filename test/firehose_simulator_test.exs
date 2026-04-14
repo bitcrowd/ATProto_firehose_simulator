@@ -5,14 +5,19 @@ defmodule FirehoseSimulatorTest do
 
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.SimulationPlan.JSON
 
   setup do
     :ok = FirehoseSimulator.stop_all()
     :ok = FirehoseSimulator.State.clear_players()
+    :ok = FirehoseSimulator.State.reset_all()
 
     on_exit(fn ->
       :ok = FirehoseSimulator.stop_all()
       :ok = FirehoseSimulator.State.clear_players()
+      :ok = FirehoseSimulator.State.reset_all()
     end)
 
     :ok
@@ -78,7 +83,238 @@ defmodule FirehoseSimulatorTest do
       assert {:ok, %Scenario{} = reloaded} =
                FirehoseSimulator.import_scenario_from_json(output_path)
 
-      assert reloaded == scenario
+      assert %{reloaded | source_path: nil} == %{scenario | source_path: nil}
+      assert reloaded.source_path == Path.expand(output_path)
+    end
+  end
+
+  describe "simulation plans" do
+    test "encodes simulation plan json with name and entries" do
+      started_at = ~U[2025-01-01 00:00:00Z]
+
+      simulation_plan = %SimulationPlan{
+        name: "nightly-load",
+        started_at: started_at,
+        export_path: "/tmp/simulation-plan.json",
+        entries: [
+          %Entry{
+            scenario_name: "regular",
+            scenario_path: "/tmp/scenario.json",
+            offset_ms: 250
+          }
+        ]
+      }
+
+      assert {:ok, json} = JSON.encode(simulation_plan)
+      assert {:ok, decoded} = Jason.decode(json)
+
+      assert decoded["name"] == "nightly-load"
+      refute Map.has_key?(decoded, "started_at")
+      refute Map.has_key?(decoded, "export_path")
+
+      assert decoded["entries"] == [
+               %{
+                 "scenario_name" => "regular",
+                 "scenario_path" => "/tmp/scenario.json",
+                 "offset_ms" => 250
+               }
+             ]
+    end
+
+    test "decodes simulation plan json into a simulation plan struct" do
+      assert {:ok, %SimulationPlan{} = simulation_plan} =
+               JSON.decode("""
+               {
+                 "name": "nightly-load",
+                 "entries": [
+                   {
+                     "scenario_name": "regular",
+                     "scenario_path": "/tmp/scenario.json",
+                     "offset_ms": 250
+                   }
+                 ]
+               }
+               """)
+
+      assert simulation_plan.name == "nightly-load"
+      assert simulation_plan.started_at == nil
+      assert simulation_plan.export_path == nil
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "regular"
+      assert entry.scenario_path == "/tmp/scenario.json"
+      assert entry.offset_ms == 250
+      assert entry.scenario == nil
+    end
+
+    @tag :tmp_dir
+    test "exports a simulation plan snapshot to a provided path", %{
+      tmp_dir: tmp_dir
+    } do
+      path = Path.join(tmp_dir, "simulation-plan.json")
+
+      simulation_plan = %SimulationPlan{
+        name: "generated-plan",
+        entries: [
+          %Entry{
+            scenario_name: "regular",
+            scenario_path: "/tmp/scenario.json",
+            offset_ms: 250
+          }
+        ]
+      }
+
+      assert {:ok, ^path} = JSON.export_to_file(simulation_plan, path)
+      assert File.exists?(path)
+
+      assert {:ok, decoded} = File.read(path)
+      assert {:ok, %SimulationPlan{} = reloaded} = JSON.decode(decoded)
+      assert reloaded.name == "generated-plan"
+      assert [%Entry{scenario_name: "regular", offset_ms: 250}] = reloaded.entries
+    end
+
+    test "entry changeset accepts an embedded scenario struct" do
+      scenario = %Scenario{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: nil,
+        follows: nil,
+        request_interval_ms: 30_000
+      }
+
+      assert {:ok, %Entry{} = entry} =
+               Entry.new(%{
+                 "scenario_name" => "embedded-plan",
+                 "scenario_path" => "/tmp/embedded-plan.json",
+                 "offset_ms" => 100,
+                 "scenario" => scenario
+               })
+
+      assert entry.scenario == scenario
+    end
+
+    test "current_simulation_plan/0 returns the plan stored in state" do
+      simulation_plan = %SimulationPlan{
+        started_at: ~U[2025-01-01 00:00:00Z],
+        entries: [
+          %Entry{
+            scenario_name: "stored-plan",
+            scenario_path: "/tmp/stored-plan.json",
+            offset_ms: 250
+          }
+        ]
+      }
+
+      assert :ok = FirehoseSimulator.State.put_simulation_plan(simulation_plan)
+      assert FirehoseSimulator.current_simulation_plan() == simulation_plan
+    end
+
+    @tag :tmp_dir
+    test "add_and_play_scenario/4 adds the scenario to the stored plan and exports it", %{
+      tmp_dir: tmp_dir
+    } do
+      scenario_path = Path.join(tmp_dir, "scenario.json")
+      File.write!(scenario_path, ~s({"posts":[],"sessions":[],"follows":[]}))
+
+      scenario = %Scenario{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: nil,
+        follows: nil,
+        request_interval_ms: 30_000
+      }
+
+      assert {:ok, %SimulationPlan{} = simulation_plan} =
+               FirehoseSimulator.add_and_play_scenario(
+                 "added-scenario",
+                 scenario,
+                 250,
+                 scenario_path
+               )
+
+      assert simulation_plan.export_path
+      assert File.exists?(simulation_plan.export_path)
+      assert FirehoseSimulator.current_simulation_plan() == simulation_plan
+
+      assert %Scenario{source_path: ^scenario_path} =
+               FirehoseSimulator.State.list_scenarios()["added-scenario"]
+
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "added-scenario"
+      assert entry.scenario_path == scenario_path
+      assert entry.offset_ms == 250
+    end
+
+    @tag :tmp_dir
+    test "import_simulation_plan_from_json/1 loads plan entries, resolves relative paths, and stores the plan",
+         %{tmp_dir: tmp_dir} do
+      scenario_path =
+        write_file!(
+          tmp_dir,
+          "import-scenario",
+          """
+          {
+            "posts": [],
+            "sessions": [],
+            "follows": [],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      plan_path =
+        write_file!(
+          tmp_dir,
+          "simulation-plan",
+          """
+          {
+            "name": "imported-plan",
+            "entries": [
+              {
+                "scenario_name": "imported-entry",
+                "scenario_path": "#{Path.basename(scenario_path)}",
+                "offset_ms": 0
+              }
+            ]
+          }
+          """
+        )
+
+      capture_log(fn ->
+        send(self(), {:result, FirehoseSimulator.import_simulation_plan_from_json(plan_path)})
+      end)
+
+      assert_receive {:result, {:ok, %SimulationPlan{} = simulation_plan}}
+
+      assert simulation_plan.name == "imported-plan"
+
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "imported-entry"
+      assert entry.scenario_path == Path.expand(scenario_path)
+      assert %Scenario{source_path: source_path} = entry.scenario
+      assert source_path == entry.scenario_path
+      assert FirehoseSimulator.current_simulation_plan() == simulation_plan
+      assert map_size(FirehoseSimulator.State.list_players()) == 1
+    end
+
+    @tag :tmp_dir
+    test "export_simulation_plan_to_json/2 writes a plan through the top-level api", %{
+      tmp_dir: tmp_dir
+    } do
+      path = Path.join(tmp_dir, "api-exported-plan.json")
+
+      simulation_plan = %SimulationPlan{
+        name: "api-exported",
+        entries: [
+          %Entry{
+            scenario_name: "regular",
+            scenario_path: "/tmp/scenario.json",
+            offset_ms: 250
+          }
+        ]
+      }
+
+      assert :ok = FirehoseSimulator.export_simulation_plan_to_json(simulation_plan, path)
+      assert File.exists?(path)
+      assert {:ok, json} = File.read(path)
+      assert {:ok, %SimulationPlan{name: "api-exported"}} = JSON.decode(json)
     end
   end
 

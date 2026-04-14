@@ -9,12 +9,14 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       socket
       |> assign(:current_path, ~p"/simulation")
       |> assign(:current_scope, nil)
-      |> assign(:scenarios, [])
-      |> assign(:selected_scenario, nil)
+      |> assign(:scenario_ids, [])
+      |> assign(:selected_scenario_id, nil)
       |> assign(:load_form, to_form(%{"offset_ms" => "0"}, as: :load))
       |> assign(:players, [])
+      |> assign(:current_simulation_plan, nil)
       |> assign(:last_action, nil)
       |> assign_players()
+      |> assign_current_simulation_plan()
 
     {:ok, socket}
   end
@@ -43,9 +45,18 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
              scenario_id: selected_scenario.id
            ) do
         {:ok, player_id, _metadata} ->
+          {:ok, simulation_plan} =
+            simulator_module().add_and_play_scenario(
+              selected_scenario.id,
+              selected_scenario.scenario,
+              offset_ms,
+              selected_scenario.scenario.source_path
+            )
+
           {:noreply,
            socket
            |> assign_players()
+           |> assign_current_simulation_plan(simulation_plan)
            |> assign(
              :last_action,
              "Simulation loaded for #{player_id} with #{offset_ms} ms offset."
@@ -143,18 +154,17 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   defp assign_scenarios(socket, selected_scenario_id) do
-    scenarios =
+    scenario_ids =
       State.list_scenarios()
-      |> Enum.map(fn {id, scenario} ->
-        %{id: id, scenario: scenario}
-      end)
-      |> Enum.sort_by(& &1.id, :desc)
+      |> Map.keys()
+      |> Enum.sort(:desc)
 
-    selected_scenario = Enum.find(scenarios, &(&1.id == selected_scenario_id))
+    selected_scenario_id =
+      if selected_scenario_id in scenario_ids, do: selected_scenario_id, else: nil
 
     socket
-    |> assign(:scenarios, scenarios)
-    |> assign(:selected_scenario, selected_scenario)
+    |> assign(:scenario_ids, scenario_ids)
+    |> assign(:selected_scenario_id, selected_scenario_id)
   end
 
   defp simulator_module do
@@ -174,9 +184,18 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   defp fetch_selected_scenario(socket) do
-    case socket.assigns.selected_scenario do
-      nil -> {:error, "Select a scenario before loading."}
-      selected_scenario -> {:ok, selected_scenario}
+    case socket.assigns.selected_scenario_id do
+      nil ->
+        {:error, "Select a scenario before loading."}
+
+      scenario_id ->
+        case State.list_scenarios() do
+          %{^scenario_id => scenario} ->
+            {:ok, %{id: scenario_id, scenario: scenario}}
+
+          _ ->
+            {:error, "Selected scenario is no longer available."}
+        end
     end
   end
 
@@ -195,4 +214,16 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   defp sort_order(:paused), do: 1
   defp sort_order(:loaded), do: 2
   defp sort_order(_other), do: 3
+
+  defp scenario_for_id(scenario_id) do
+    State.list_scenarios()
+    |> Map.get(scenario_id)
+  end
+
+  defp assign_current_simulation_plan(
+         socket,
+         simulation_plan \\ State.get_simulation_plan()
+       ) do
+    assign(socket, :current_simulation_plan, simulation_plan)
+  end
 end

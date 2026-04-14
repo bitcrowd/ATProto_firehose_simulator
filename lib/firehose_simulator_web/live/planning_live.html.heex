@@ -4,11 +4,11 @@
   <.header>
     Planning
     <:subtitle>
-      Generate scenarios from params JSON or import scenario JSON.
+      Generate scenarios from params JSON or import scenario and simulation plan JSON.
     </:subtitle>
   </.header>
 
-  <section id="planning-forms" class="grid gap-6 lg:grid-cols-2">
+  <section id="planning-forms" class="grid gap-6 lg:grid-cols-3">
     <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
@@ -80,6 +80,38 @@
 
           <.button id="planning-import-submit" type="submit" variant="primary">
             Import scenario
+          </.button>
+        </.form>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-folder-arrow-down" class="size-5 text-primary" />
+          Import simulation plan
+        </div>
+
+        <.form
+          for={@import_plan_form}
+          id="planning-import-plan-form"
+          phx-change="validate_import_plan"
+          phx-submit="import_simulation_plan"
+          class="space-y-4"
+        >
+          <div class="space-y-2">
+            <label for={@uploads.simulation_plan_json.ref} class="label">
+              Simulation Plan JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.simulation_plan_json}
+              id="planning-simulation-plan-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-import-plan-submit" type="submit" variant="primary">
+            Import simulation plan
           </.button>
         </.form>
       </div>
