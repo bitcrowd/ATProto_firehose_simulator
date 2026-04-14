@@ -3,24 +3,33 @@ defmodule FirehoseSimulator.Scenario do
 
   require Logger
 
+  use Ecto.Schema
+
   alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
+  alias FirehoseSimulator.Scenario.Params.ScenarioParams
   alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Sessions
-  alias FirehoseSimulator.Scenario.Params.ScenarioParams
 
   @default_time_unit_duration_ms 86_400_000
   @default_request_interval_ms 30_000
 
-  @enforce_keys [:posts, :sessions, :follows]
-  defstruct [:posts, :sessions, :follows, request_interval_ms: @default_request_interval_ms]
+  @primary_key false
+  embedded_schema do
+    field(:posts, {:array, :map})
+    field(:sessions, {:array, :map})
+    field(:follows, {:array, :map})
+    field(:request_interval_ms, :integer, default: @default_request_interval_ms)
+    field(:source_path, :string, virtual: true)
+  end
 
   @type t :: %__MODULE__{
           posts: Posts.t() | nil,
           sessions: Sessions.t() | nil,
           follows: Follows.t() | nil,
-          request_interval_ms: pos_integer()
+          request_interval_ms: pos_integer(),
+          source_path: String.t() | nil
         }
 
   @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
@@ -47,7 +56,8 @@ defmodule FirehoseSimulator.Scenario do
            posts: posts,
            sessions: sessions,
            follows: follows,
-           request_interval_ms: request_interval_ms
+           request_interval_ms: request_interval_ms,
+           source_path: nil
          }}
       end
     end
@@ -65,7 +75,7 @@ defmodule FirehoseSimulator.Scenario do
 
     with {:ok, json} <- File.read(path),
          {:ok, scenario} <- from_json(json) do
-      {:ok, scenario}
+      {:ok, %{scenario | source_path: path}}
     else
       {:error, :enoent} -> {:error, "cannot read scenario json at #{path}"}
       {:error, reason} when is_binary(reason) -> {:error, reason}
@@ -84,7 +94,8 @@ defmodule FirehoseSimulator.Scenario do
       posts: shift_events(scenario.posts, offset_ms),
       sessions: shift_events(scenario.sessions, offset_ms),
       follows: shift_events(scenario.follows, offset_ms),
-      request_interval_ms: scenario.request_interval_ms
+      request_interval_ms: scenario.request_interval_ms,
+      source_path: scenario.source_path
     }
   end
 

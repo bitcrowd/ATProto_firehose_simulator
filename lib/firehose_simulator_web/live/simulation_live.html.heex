@@ -6,6 +6,22 @@
 
   <section id="simulation-config" class="card bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body gap-5">
+      <div
+        id="simulation-plan-summary"
+        class="rounded-box border border-base-300/80 bg-base-200/40 px-4 py-3 text-sm text-base-content/80"
+      >
+        <%= if @current_simulation_plan.entries == [] do %>
+          <p id="simulation-plan-empty">No active simulation plan yet.</p>
+        <% else %>
+          <p id="simulation-plan-entry-count">
+            active plan entries: {length(@current_simulation_plan.entries)}
+          </p>
+          <p :if={@current_simulation_plan.export_path} id="simulation-plan-export-path">
+            last export: {@current_simulation_plan.export_path}
+          </p>
+        <% end %>
+      </div>
+
       <div class="flex items-center gap-2 text-sm font-medium">
         <.icon name="hero-play-circle" class="size-5 text-primary" /> Start simulation player
       </div>

@@ -161,9 +161,11 @@ Grafana is available at `http:localhost:3000`.
 ## Web UI
 
 1. `Setup`: create the userbase or import one using the configured database.
-2. `Planning`: generate plans from params JSON or import plans from scenario JSON files.
-3. `Simulation`: select one available plan and play/stop/reset.
+2. `Planning`: generate scenarios from params JSON, import scenarios, or import a simulation plan JSON file.
+3. `Simulation`: select one available scenario and play/stop/reset while building up the active simulation plan.
 4. `Vacuum`: run cleanup actions for userbase and/or post tables.
+
+See [docs/scenarios.md](./docs/scenarios.md) for scenario generation and [docs/simulation-plans.md](./docs/simulation-plans.md) for how the active run queue works.
 
 
 ## In IEx
@@ -260,3 +262,39 @@ Export and re-import full scenario as JSON:
 {:ok, imported_plan} =
   FirehoseSimulator.import_scenario_from_json("scenario.json")
 ```
+
+### Simulation Plans
+
+Add a scenario to the active simulation plan and export the updated plan snapshot:
+
+```elixir
+{:ok, scenario} =
+  FirehoseSimulator.import_scenario_from_json("scenario.json")
+
+{:ok, simulation_plan} =
+  FirehoseSimulator.add_and_play_scenario(
+    "baseline",
+    scenario,
+    0,
+    "scenario.json"
+  )
+```
+
+Export the current plan:
+
+```elixir
+:ok =
+  FirehoseSimulator.export_simulation_plan_to_json(
+    FirehoseSimulator.current_simulation_plan(),
+    "simulation_plan.json"
+  )
+```
+
+Import a saved simulation plan:
+
+```elixir
+{:ok, simulation_plan} =
+  FirehoseSimulator.import_simulation_plan_from_json("simulation_plan.json")
+```
+
+Simulation-plan JSON references scenario JSON files by path. Relative paths are resolved relative to the plan file during import.

@@ -13,8 +13,10 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> assign(:selected_scenario_id, nil)
       |> assign(:play_form, to_form(%{"offset_ms" => "0"}, as: :play))
       |> assign(:running_players, [])
+      |> assign(:current_simulation_plan, nil)
       |> assign(:last_action, nil)
       |> assign_scenarios()
+      |> assign_current_simulation_plan()
       |> assign_running_players()
 
     {:ok, socket}
@@ -46,8 +48,16 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
              scenario_id: socket.assigns.selected_scenario_id
            ) do
         {:ok, player_id, _metadata} ->
+          {:ok, simulation_plan} =
+            simulator_module().add_and_play_scenario(
+              socket.assigns.selected_scenario_id,
+              scenario,
+              offset_ms
+            )
+
           {:noreply,
            socket
+           |> assign_current_simulation_plan(simulation_plan)
            |> assign_running_players()
            |> assign(
              :last_action,
@@ -183,5 +193,12 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
       |> Enum.sort_by(fn %{metadata: metadata} -> Map.get(metadata, :started_at_ms, 0) end, :desc)
 
     assign(socket, :running_players, running_players)
+  end
+
+  defp assign_current_simulation_plan(
+         socket,
+         simulation_plan \\ State.get_simulation_plan()
+       ) do
+    assign(socket, :current_simulation_plan, simulation_plan)
   end
 end

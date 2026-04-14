@@ -4,10 +4,12 @@ defmodule FirehoseSimulator.State do
   use GenServer
 
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.SimulationPlan
 
   @type state :: %{
           scenarios: %{optional(String.t()) => Scenario.t()},
           selected_scenario_id: String.t() | nil,
+          simulation_plan: SimulationPlan.t(),
           running_players: %{optional(String.t()) => map()},
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
@@ -58,6 +60,15 @@ defmodule FirehoseSimulator.State do
   @spec clear_scenarios() :: :ok
   def clear_scenarios do
     GenServer.call(__MODULE__, :clear_scenarios)
+  end
+
+  @spec get_simulation_plan() :: SimulationPlan.t()
+  def get_simulation_plan do
+    GenServer.call(__MODULE__, :get_simulation_plan)
+  end
+
+  def put_simulation_plan(%SimulationPlan{} = simulation_plan) do
+    GenServer.call(__MODULE__, {:put_simulation_plan, simulation_plan})
   end
 
   @spec list_running_players() :: %{optional(String.t()) => map()}
@@ -125,7 +136,6 @@ defmodule FirehoseSimulator.State do
   def handle_call({:put_scenario, scenario_id, scenario}, _from, state) do
     scenarios = Map.put(state.scenarios, scenario_id, scenario)
     selected_id = state.selected_scenario_id || scenario_id
-
     {:reply, :ok, %{state | scenarios: scenarios, selected_scenario_id: selected_id}}
   end
 
@@ -176,6 +186,14 @@ defmodule FirehoseSimulator.State do
     {:reply, :ok, %{state | scenarios: %{}, selected_scenario_id: nil}}
   end
 
+  def handle_call(:get_simulation_plan, _from, state) do
+    {:reply, state.simulation_plan, state}
+  end
+
+  def handle_call({:put_simulation_plan, simulation_plan}, _from, state) do
+    {:reply, :ok, %{state | simulation_plan: simulation_plan}}
+  end
+
   def handle_call(:list_running_players, _from, state) do
     {:reply, state.running_players, state}
   end
@@ -204,9 +222,12 @@ defmodule FirehoseSimulator.State do
   end
 
   defp default_state do
+    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
+
     %{
       scenarios: %{},
       selected_scenario_id: nil,
+      simulation_plan: simulation_plan,
       running_players: %{},
       userbase_uploaded?: false,
       userbase_result: nil

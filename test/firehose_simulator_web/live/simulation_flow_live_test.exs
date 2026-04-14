@@ -4,6 +4,8 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   import Phoenix.LiveViewTest
 
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.SimulationPlan
+  alias FirehoseSimulator.SimulationPlan.Entry
   alias FirehoseSimulator.State
 
   setup do
@@ -128,6 +130,26 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     assert imported_scenario_id
     assert has_element?(view, "#scenario-row-#{imported_scenario_id}")
+
+    plan_upload =
+      file_input(view, "#planning-import-plan-form", :simulation_plan_json, [
+        %{
+          name: "simulation-plan.json",
+          content: simulation_plan_json(),
+          type: "application/json"
+        }
+      ])
+
+    render_upload(plan_upload, "simulation-plan.json")
+
+    view
+    |> form("#planning-import-plan-form", %{"import_plan" => %{}})
+    |> render_submit()
+
+    assert %SimulationPlan{entries: [%Entry{scenario_name: "imported-plan"}]} =
+             State.get_simulation_plan()
+
+    refute has_element?(view, "#scenario-row-imported-plan")
   end
 
   test "vacuum liveview runs selected vacuum actions", %{conn: conn} do
@@ -161,6 +183,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     refute has_element?(view, "#play-button[disabled]")
     assert has_element?(view, "#simulation-scenario-summary-plan-1")
+    assert has_element?(view, "#simulation-plan-empty")
 
     view
     |> element("#simulation-select-plan-1")
@@ -174,12 +197,16 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     assert render(view) =~ "Simulation started for player-1."
     assert has_element?(view, "#running-player-player-1")
+    assert has_element?(view, "#simulation-plan-entry-count")
 
     view
     |> form("#simulation-play-form", %{"play" => %{"offset_ms" => "250"}})
     |> render_submit()
 
     assert has_element?(view, "#running-player-player-2")
+
+    assert %SimulationPlan{entries: [%Entry{offset_ms: 250}, %Entry{offset_ms: 500}]} =
+             State.get_simulation_plan()
 
     view |> element("#stop-player-player-1") |> render_click()
     assert render(view) =~ "Simulation stopped for player-1."
@@ -250,6 +277,29 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       end
     end
 
+    def import_simulation_plan_from_json(path, _opts \\ []) do
+      if File.exists?(path) do
+        {:ok, scenario} = import_scenario_from_json(path)
+
+        simulation_plan = %SimulationPlan{
+          started_at: DateTime.utc_now(),
+          entries: [
+            %Entry{
+              scenario_name: "imported-plan",
+              scenario: scenario,
+              scenario_path: path,
+              offset_ms: 0
+            }
+          ]
+        }
+
+        :ok = State.put_simulation_plan(simulation_plan)
+        {:ok, simulation_plan}
+      else
+        {:error, "invalid simulation plan path"}
+      end
+    end
+
     def shift_scenario(%Scenario{} = scenario, offset_ms) do
       FirehoseSimulator.shift_scenario(scenario, offset_ms)
     end
@@ -258,9 +308,64 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     def play_with_offset(%Scenario{} = scenario, offset_ms)
         when is_integer(offset_ms) do
+      play_with_offset(scenario, offset_ms, [])
+    end
+
+    def play_with_offset(%Scenario{} = scenario, offset_ms, _opts)
+        when is_integer(offset_ms) do
       scenario
       |> FirehoseSimulator.shift_scenario(offset_ms)
       |> play()
+    end
+
+    def add_and_play_scenario(
+          scenario_name,
+          %Scenario{} = scenario,
+          submitted_offset_ms,
+          opts \\ []
+        ) do
+      scenario_path = Keyword.get(opts, :scenario_path, "/tmp/#{scenario_name}.json")
+
+      simulation_plan =
+        case State.get_simulation_plan() do
+          %SimulationPlan{entries: []} ->
+            %SimulationPlan{
+              started_at: DateTime.utc_now(),
+              entries: [
+                %Entry{
+                  scenario_name: scenario_name,
+                  scenario: scenario,
+                  scenario_path: scenario_path,
+                  offset_ms: submitted_offset_ms
+                }
+              ],
+              export_path: "/tmp/simulation-plan.json"
+            }
+
+          %SimulationPlan{} = current_plan ->
+            next_offset_ms =
+              case current_plan.entries do
+                [] -> submitted_offset_ms
+                entries -> List.last(entries).offset_ms + submitted_offset_ms
+              end
+
+            entry = %Entry{
+              scenario_name: scenario_name,
+              scenario: scenario,
+              scenario_path: scenario_path,
+              offset_ms: next_offset_ms
+            }
+
+            %SimulationPlan{
+              current_plan
+              | entries: current_plan.entries ++ [entry],
+                export_path: "/tmp/simulation-plan.json"
+            }
+        end
+
+      :ok = State.put_simulation_plan(simulation_plan)
+      :ok = State.put_scenario(scenario_name, %{scenario | source_path: scenario_path})
+      {:ok, simulation_plan}
     end
 
     def play(%Scenario{posts: [%{offset_ms: 260, user_id: 1}]}, _opts) do
@@ -410,6 +515,20 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
         {"offset_ms": 50, "actor_id": 3, "subject_id": 1}
       ],
       "request_interval_ms": 35000
+    }
+    """
+  end
+
+  defp simulation_plan_json do
+    """
+    {
+      "entries": [
+        {
+          "scenario_name": "imported-plan",
+          "scenario_path": "simulation-plan.json",
+          "offset_ms": 0
+        }
+      ]
     }
     """
   end
