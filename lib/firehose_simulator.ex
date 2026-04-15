@@ -217,7 +217,7 @@ defmodule FirehoseSimulator do
 
     offset_ms =
       if current_plan.started_at do
-        DateTime.diff(DateTime.utc_now(), current_plan.started_at, :milllisecond)
+        DateTime.diff(DateTime.utc_now(), current_plan.started_at, :millisecond)
       else
         0
       end
