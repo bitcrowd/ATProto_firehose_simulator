@@ -1,9 +1,15 @@
 defmodule FirehoseSimulatorTest do
-  use ExUnit.Case, async: false
+  use FirehoseSimulator.DataCase, async: false
 
   import ExUnit.CaptureLog
 
+  alias FirehoseSimulator.BulkCreation.Actor
+  alias FirehoseSimulator.BulkCreation.FeedItem
+  alias FirehoseSimulator.BulkCreation.Follow
+  alias FirehoseSimulator.BulkCreation.Post
+  alias FirehoseSimulator.BulkCreation.Record
   alias FirehoseSimulator.Player
+  alias FirehoseSimulator.Repo
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
@@ -371,11 +377,7 @@ defmodule FirehoseSimulatorTest do
 
       min_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) + 250
 
-      capture_log(fn ->
-        send(self(), {:result, FirehoseSimulator.import_simulation_plan_from_json(plan_path)})
-      end)
-
-      assert_receive {:result, {:ok, %SimulationPlan{} = simulation_plan}}
+      {:ok, simulation_plan} = FirehoseSimulator.import_simulation_plan_from_json(plan_path)
 
       max_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) + 250
 
@@ -389,6 +391,197 @@ defmodule FirehoseSimulatorTest do
       assert source_path == entry.scenario_path
       assert FirehoseSimulator.current_simulation_plan() == simulation_plan
       assert map_size(FirehoseSimulator.State.list_players()) == 1
+    end
+
+    @tag :tmp_dir
+    test "import_simulation_plan_from_json/1 bulk creates negative-offset entries instead of loading players",
+         %{tmp_dir: tmp_dir} do
+      post_user_id = unique_user_id()
+      follow_actor_id = post_user_id + 1
+      before_counts = row_counts([Actor, Post, Record, FeedItem, Follow])
+
+      scenario_path =
+        write_file!(
+          tmp_dir,
+          "preloaded-import-scenario",
+          """
+          {
+            "posts": [{"offset_ms": 10, "user_id": #{post_user_id}}],
+            "sessions": [],
+            "follows": [{"offset_ms": 30, "actor_id": #{follow_actor_id}, "subject_id": #{post_user_id}}],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      plan_path =
+        write_file!(
+          tmp_dir,
+          "preloaded-simulation-plan",
+          """
+          {
+            "name": "preloaded-imported-plan",
+            "entries": [
+              {
+                "scenario_name": "preloaded-entry",
+                "scenario_path": "#{Path.basename(scenario_path)}",
+                "offset_ms": -100000
+              }
+            ]
+          }
+          """
+        )
+
+      {:ok, simulation_plan} = FirehoseSimulator.import_simulation_plan_from_json(plan_path)
+
+      assert simulation_plan.name == "preloaded-imported-plan"
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "preloaded-entry"
+      assert entry.scenario_path == Path.expand(scenario_path)
+      assert entry.offset_ms == -100_000
+      assert map_size(FirehoseSimulator.State.list_players()) == 0
+      assert row_delta(before_counts, Actor) == 2
+      assert row_delta(before_counts, Post) == 1
+      assert row_delta(before_counts, Record) == 1
+      assert row_delta(before_counts, FeedItem) == 1
+      assert row_delta(before_counts, Follow) == 1
+    end
+
+    @tag :tmp_dir
+    test "import_simulation_plan_from_json/1 preloads negative entries and still loads non-negative entries",
+         %{tmp_dir: tmp_dir} do
+      post_user_id = unique_user_id()
+      before_counts = row_counts([Actor, Post, Record, FeedItem, Follow])
+
+      preloaded_scenario_path =
+        write_file!(
+          tmp_dir,
+          "mixed-preloaded-scenario",
+          """
+          {
+            "posts": [{"offset_ms": 10, "user_id": #{post_user_id}}],
+            "sessions": [],
+            "follows": [],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      loaded_scenario_path =
+        write_file!(
+          tmp_dir,
+          "mixed-loaded-scenario",
+          """
+          {
+            "posts": [],
+            "sessions": [],
+            "follows": [],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      plan_path =
+        write_file!(
+          tmp_dir,
+          "mixed-simulation-plan",
+          """
+          {
+            "name": "mixed-imported-plan",
+            "entries": [
+              {
+                "scenario_name": "preloaded-entry",
+                "scenario_path": "#{Path.basename(preloaded_scenario_path)}",
+                "offset_ms": -100000
+              },
+              {
+                "scenario_name": "loaded-entry",
+                "scenario_path": "#{Path.basename(loaded_scenario_path)}",
+                "offset_ms": 0
+              }
+            ]
+          }
+          """
+        )
+
+      capture_log(fn ->
+        send(self(), {:result, FirehoseSimulator.import_simulation_plan_from_json(plan_path)})
+      end)
+
+      assert_receive {:result, {:ok, %SimulationPlan{} = simulation_plan}}
+
+      assert simulation_plan.name == "mixed-imported-plan"
+
+      assert [%Entry{scenario_name: "preloaded-entry"}, %Entry{scenario_name: "loaded-entry"}] =
+               simulation_plan.entries
+
+      assert map_size(FirehoseSimulator.State.list_players()) == 1
+      assert row_delta(before_counts, Actor) == 1
+      assert row_delta(before_counts, Post) == 1
+      assert row_delta(before_counts, Record) == 1
+      assert row_delta(before_counts, FeedItem) == 1
+      assert row_delta(before_counts, Follow) == 0
+    end
+
+    @tag :tmp_dir
+    test "import_simulation_plan_from_json/1 keeps combined offsets for negative entries in a running plan",
+         %{tmp_dir: tmp_dir} do
+      post_user_id = unique_user_id()
+      before_counts = row_counts([Actor, Post, Record, FeedItem])
+
+      scenario_path =
+        write_file!(
+          tmp_dir,
+          "started-preloaded-import-scenario",
+          """
+          {
+            "posts": [{"offset_ms": 10, "user_id": #{post_user_id}}],
+            "sessions": [],
+            "follows": [],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      plan_path =
+        write_file!(
+          tmp_dir,
+          "started-preloaded-simulation-plan",
+          """
+          {
+            "name": "started-preloaded-plan",
+            "entries": [
+              {
+                "scenario_name": "started-preloaded-entry",
+                "scenario_path": "#{Path.basename(scenario_path)}",
+                "offset_ms": -250
+              }
+            ]
+          }
+          """
+        )
+
+      assert map_size(FirehoseSimulator.State.list_players()) == 0
+
+      started_at = DateTime.add(DateTime.utc_now(), -2, :second)
+      :ok = FirehoseSimulator.State.put_simulation_plan(%SimulationPlan{started_at: started_at})
+
+      min_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) - 250
+
+      {:ok, simulation_plan} = FirehoseSimulator.import_simulation_plan_from_json(plan_path)
+
+      max_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) - 250
+
+      assert simulation_plan.name == "started-preloaded-plan"
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "started-preloaded-entry"
+      assert entry.offset_ms >= min_offset_ms
+      assert entry.offset_ms <= max_offset_ms
+      assert map_size(FirehoseSimulator.State.list_players()) == 0
+      assert row_delta(before_counts, Actor) == 1
+      assert row_delta(before_counts, Post) == 1
+      assert row_delta(before_counts, Record) == 1
+      assert row_delta(before_counts, FeedItem) == 1
     end
 
     @tag :tmp_dir
@@ -617,5 +810,21 @@ defmodule FirehoseSimulatorTest do
     path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
     File.write!(path, content)
     path
+  end
+
+  defp row_count(schema) do
+    Repo.aggregate(schema, :count)
+  end
+
+  defp row_counts(schemas) do
+    Map.new(schemas, fn schema -> {schema, row_count(schema)} end)
+  end
+
+  defp row_delta(before_counts, schema) do
+    row_count(schema) - Map.fetch!(before_counts, schema)
+  end
+
+  defp unique_user_id do
+    System.unique_integer([:positive]) + 2_000_000
   end
 end

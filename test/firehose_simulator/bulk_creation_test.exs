@@ -32,14 +32,12 @@ defmodule FirehoseSimulator.BulkCreationTest do
 
       Enum.each(post_rows, fn post_row ->
         assert String.starts_with?(post_row.uri, "at://did:plc:firesim")
-        assert post_row.sortAt == post_row.createdAt
 
         assert %{} = record_row = Map.fetch!(records_by_uri, post_row.uri)
         assert %{} = feed_item_row = Map.fetch!(feed_items_by_uri, post_row.uri)
 
         assert record_row.cid == post_row.cid
         assert record_row.did == post_row.creator
-        assert is_binary(record_row.rev)
         assert record_row.indexedAt == post_row.indexedAt
 
         assert feed_item_row.cid == post_row.cid

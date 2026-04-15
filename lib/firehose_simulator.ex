@@ -224,14 +224,79 @@ defmodule FirehoseSimulator do
 
     with {:ok, simulation_plan, imported_entries} <-
            SimulationPlan.JSON.import_from_json(path, current_plan, offset_ms),
-         {:ok, _played_entries} <-
-           SimulationPlan.load_entries(imported_entries, offset_ms) do
+         {past_entries, future_entries} <- split_past_and_future_entries(imported_entries),
+         :ok <- bulk_create_entries(past_entries, offset_ms),
+         :ok <- load_entries(future_entries, offset_ms) do
       :ok = State.put_simulation_plan(simulation_plan)
       {:ok, simulation_plan}
     else
       {:error, reason} = error ->
         Logger.error("failed to import simulation plan from json #{path}: #{inspect(reason)}")
         error
+    end
+  end
+
+  defp split_past_and_future_entries(entries) do
+    {past_entries, future_entries} = Enum.split_with(entries, & &1.preload?)
+    {Enum.map(past_entries, & &1.entry), Enum.map(future_entries, & &1.entry)}
+  end
+
+  defp load_entries(entries, offset_ms) do
+    Enum.reduce_while(entries, :ok, fn entry, :ok ->
+      case load_entry(entry, offset_ms) do
+        {:ok, _} -> {:cont, :ok}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp load_entry(entry, import_offset_ms) do
+    total_offset_ms = entry.offset_ms + import_offset_ms
+
+    case FirehoseSimulator.load_with_offset(
+           entry.scenario,
+           total_offset_ms,
+           scenario_id: entry.scenario_name
+         ) do
+      {:ok, player_id, metadata} ->
+        metadata =
+          metadata
+          |> Map.put(:scenario_name, entry.scenario_name)
+          |> Map.put(:scenario_path, entry.scenario_path)
+          |> Map.put(:offset_ms, entry.offset_ms)
+
+        {:ok, %{player_id: player_id, metadata: metadata, entry: entry}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp bulk_create_entries(entries, offset_ms) do
+    Enum.reduce_while(entries, :ok, fn entry, :ok ->
+      case bulk_create_entry(entry, offset_ms) do
+        {:ok, _} -> {:cont, :ok}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp bulk_create_entry(entry, offset_ms) do
+    Logger.info(
+      "bulk creating imported scenario #{entry.scenario_name} from #{entry.scenario_path}"
+    )
+
+    case FirehoseSimulator.bulk_create_scenario(entry.scenario) do
+      {:ok, result} ->
+        {:ok,
+         %{
+           entry: entry,
+           offset_ms: offset_ms,
+           result: result
+         }}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

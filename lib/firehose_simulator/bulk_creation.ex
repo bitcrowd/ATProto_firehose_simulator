@@ -9,7 +9,6 @@ defmodule FirehoseSimulator.BulkCreation do
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Repo
   alias FirehoseSimulator.Scenario
-  alias Aether.ATProto.TID
 
   @insert_batch_size 5_000
 
@@ -58,8 +57,7 @@ defmodule FirehoseSimulator.BulkCreation do
           creator: did,
           text: text,
           createdAt: created_at,
-          indexedAt: indexed_at,
-          sortAt: created_at
+          indexedAt: indexed_at
         }
 
         record_row = %{
@@ -67,8 +65,7 @@ defmodule FirehoseSimulator.BulkCreation do
           cid: cid,
           did: did,
           json: Jason.encode!(record),
-          indexedAt: indexed_at,
-          rev: TID.new()
+          indexedAt: indexed_at
         }
 
         feed_item_row = %{

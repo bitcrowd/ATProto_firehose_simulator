@@ -70,35 +70,6 @@ defmodule FirehoseSimulator.SimulationPlan do
     end
   end
 
-  @spec load_entries([Entry.t()], integer()) :: {:ok, [map()]} | {:error, term()}
-  def load_entries(entries, import_offset_ms) when is_list(entries) do
-    Enum.reduce_while(entries, {:ok, []}, fn entry, {:ok, acc} ->
-      total_offset_ms = entry.offset_ms + import_offset_ms
-
-      case FirehoseSimulator.load_with_offset(
-             entry.scenario,
-             total_offset_ms,
-             scenario_id: entry.scenario_name
-           ) do
-        {:ok, player_id, metadata} ->
-          metadata =
-            metadata
-            |> Map.put(:scenario_name, entry.scenario_name)
-            |> Map.put(:scenario_path, entry.scenario_path)
-            |> Map.put(:offset_ms, entry.offset_ms)
-
-          {:cont, {:ok, [%{player_id: player_id, metadata: metadata, entry: entry} | acc]}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
-    end)
-    |> case do
-      {:ok, played} -> {:ok, Enum.reverse(played)}
-      {:error, _reason} = error -> error
-    end
-  end
-
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
     |> Enum.map(fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)

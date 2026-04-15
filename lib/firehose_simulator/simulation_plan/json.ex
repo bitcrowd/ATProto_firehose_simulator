@@ -55,7 +55,12 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
            load_imported_entry_attrs(decoded_plan, base_dir, offset_ms),
          {:ok, updated_plan} <-
            merge_imported_entry_attrs(simulation_plan, decoded_plan.name, imported_entry_attrs) do
-      imported_entries = Enum.drop(updated_plan.entries, length(simulation_plan.entries))
+      imported_entries =
+        Enum.drop(updated_plan.entries, length(simulation_plan.entries))
+        |> Enum.zip_with(imported_entry_attrs, fn entry, attrs ->
+          %{preload?: attrs.preload?, entry: entry}
+        end)
+
       {:ok, updated_plan, imported_entries}
     else
       {:error, :enoent} -> {:error, "cannot read simulation plan json at #{path}"}
@@ -98,7 +103,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
             "scenario" => scenario
           }
 
-          {:cont, {:ok, [entry_attrs | acc]}}
+          {:cont, {:ok, [%{preload?: entry.offset_ms < 0, entry: entry_attrs} | acc]}}
 
         {:error, reason} ->
           {:halt, {:error, reason}}
@@ -119,7 +124,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
       name: simulation_plan.name || imported_plan_name,
       started_at: simulation_plan.started_at,
       export_path: simulation_plan.export_path,
-      entries: simulation_plan.entries ++ imported_entry_attrs
+      entries: simulation_plan.entries ++ Enum.map(imported_entry_attrs, & &1.entry)
     }
 
     simulation_plan

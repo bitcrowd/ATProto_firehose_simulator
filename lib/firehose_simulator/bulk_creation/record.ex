@@ -11,6 +11,5 @@ defmodule FirehoseSimulator.BulkCreation.Record do
     field(:indexedAt, :string)
     field(:takedownRef, :string)
     field(:tags, :map)
-    field(:rev, :string)
   end
 end
