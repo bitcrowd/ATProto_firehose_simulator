@@ -27,10 +27,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
     GenServer.call(event_feeder, :pause, :infinity)
   end
 
-  def load_scenario(event_feeder, %Scenario{} = scenario) do
-    GenServer.call(event_feeder, {:load_scenario, scenario}, :infinity)
-  end
-
   def status(event_feeder) do
     GenServer.call(event_feeder, :status, :infinity)
   end
@@ -119,26 +115,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
 
   def handle_call(:pause, _from, %{lifecycle_state: lifecycle_state} = state) do
     {:reply, {:error, {:invalid_state_transition, lifecycle_state, :pause}}, state}
-  end
-
-  def handle_call({:load_scenario, scenario}, _from, state) do
-    {new_sessions, new_posts, new_follows} = scenario_events(scenario)
-
-    sessions = merge_sorted_events(state.sessions, new_sessions, fn {offset, _, _} -> offset end)
-    posts = merge_sorted_events(state.posts, new_posts, fn {offset, _} -> offset end)
-    follows = merge_sorted_events(state.follows, new_follows, fn {offset, _, _} -> offset end)
-
-    Logger.info(
-      "[EventFeeder] Appended #{length(new_sessions)} sessions, #{length(new_posts)} posts, #{length(new_follows)} follows"
-    )
-
-    reply = %{
-      sessions: length(new_sessions),
-      posts: length(new_posts),
-      follows: length(new_follows)
-    }
-
-    {:reply, {:ok, reply}, %{state | sessions: sessions, posts: posts, follows: follows}}
   end
 
   @impl true
@@ -390,11 +366,6 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       {offset_ms, actor_id, subject_id}
     end)
     |> Enum.sort_by(fn {offset, _actor_id, _subject_id} -> offset end)
-  end
-
-  defp merge_sorted_events(existing, new_events, key_fun) do
-    (existing ++ new_events)
-    |> Enum.sort_by(key_fun)
   end
 
   defp emit_post_event(user_id) do
