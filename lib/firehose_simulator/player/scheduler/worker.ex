@@ -123,6 +123,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
         |> Task.async_stream(
           fn {_id, session} ->
             t0 = System.monotonic_time(:millisecond)
+            lag_ms = max(now - session.next_request_at, 0)
 
             try do
               did = Data.did_for_user_id(session.user_id)
@@ -147,7 +148,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
 
               :telemetry.execute(
                 [:firehose_simulator, :worker, :query],
-                %{latency_ms: latency, rows: length(results)},
+                %{latency_ms: latency, rows: length(results), lag_ms: lag_ms},
                 %{status: :ok, player_id: state.player_id}
               )
 
@@ -160,7 +161,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
 
                 :telemetry.execute(
                   [:firehose_simulator, :worker, :query],
-                  %{latency_ms: latency, rows: 0},
+                  %{latency_ms: latency, rows: 0, lag_ms: lag_ms},
                   %{status: :exit, reason: inspect(reason), player_id: state.player_id}
                 )
 
@@ -171,7 +172,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
 
                 :telemetry.execute(
                   [:firehose_simulator, :worker, :query],
-                  %{latency_ms: latency, rows: 0},
+                  %{latency_ms: latency, rows: 0, lag_ms: lag_ms},
                   %{status: :error, reason: inspect(reason), player_id: state.player_id}
                 )
 
@@ -192,7 +193,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
           {:exit, :timeout}, acc ->
             :telemetry.execute(
               [:firehose_simulator, :worker, :query],
-              %{latency_ms: 30_000, rows: 0},
+              %{latency_ms: 30_000, rows: 0, lag_ms: 0},
               %{status: :timeout, player_id: state.player_id}
             )
 

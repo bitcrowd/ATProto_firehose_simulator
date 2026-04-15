@@ -91,6 +91,15 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
           "firehose_simulator_worker_query_latency_ms_total",
           snapshot.worker_query_total_latency_ms
         ),
+        "# TYPE firehose_simulator_worker_query_lag_ms histogram\n",
+        histogram_metrics(
+          "firehose_simulator_worker_query_lag_ms",
+          "kind",
+          "session_request",
+          snapshot.worker_query_lag_bucket_counts,
+          snapshot.worker_query_total_count,
+          snapshot.worker_query_lag_total_ms
+        ),
         "# TYPE firehose_simulator_worker_cycle_total counter\n",
         metric("firehose_simulator_worker_cycle_total", snapshot.worker_cycle_count),
         "# TYPE firehose_simulator_worker_cycle_session_count_total counter\n",
@@ -145,6 +154,21 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
         metric(
           "firehose_simulator_worker_query_window_p99_latency_ms",
           snapshot.worker_query_window_stats.p99_latency_ms
+        ),
+        "# TYPE firehose_simulator_worker_query_window_avg_lag_ms gauge\n",
+        metric(
+          "firehose_simulator_worker_query_window_avg_lag_ms",
+          snapshot.worker_query_window_stats.avg_lag_ms
+        ),
+        "# TYPE firehose_simulator_worker_query_window_p95_lag_ms gauge\n",
+        metric(
+          "firehose_simulator_worker_query_window_p95_lag_ms",
+          snapshot.worker_query_window_stats.p95_lag_ms
+        ),
+        "# TYPE firehose_simulator_worker_query_window_max_lag_ms gauge\n",
+        metric(
+          "firehose_simulator_worker_query_window_max_lag_ms",
+          snapshot.worker_query_window_stats.max_lag_ms
         ),
         "# TYPE firehose_simulator_worker_query_window_error_rate_pct gauge\n",
         metric(
@@ -207,6 +231,36 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
       [name, "{", label, "=\"", to_string(key), "\"} ", to_value(value), "\n"]
     end)
   end
+
+  defp histogram_metrics(name, label, label_value, bucket_counts, count, sum) do
+    [
+      histogram_bucket_metrics(name, label, label_value, bucket_counts),
+      [name, "_count{", label, "=\"", label_value, "\"} ", to_value(count), "\n"],
+      [name, "_sum{", label, "=\"", label_value, "\"} ", to_value(sum), "\n"]
+    ]
+  end
+
+  defp histogram_bucket_metrics(name, label, label_value, bucket_counts) do
+    bucket_counts
+    |> Enum.sort_by(fn {bucket, _count} -> histogram_bucket_sort_key(bucket) end)
+    |> Enum.map(fn {bucket, count} ->
+      [
+        name,
+        "_bucket{",
+        label,
+        "=\"",
+        label_value,
+        "\",le=\"",
+        bucket,
+        "\"} ",
+        to_value(count),
+        "\n"
+      ]
+    end)
+  end
+
+  defp histogram_bucket_sort_key("+Inf"), do: {1, 0}
+  defp histogram_bucket_sort_key(bucket), do: {0, String.to_integer(bucket)}
 
   defp to_value(value) when is_integer(value), do: Integer.to_string(value)
   defp to_value(value) when is_float(value), do: :erlang.float_to_binary(value, [:compact])

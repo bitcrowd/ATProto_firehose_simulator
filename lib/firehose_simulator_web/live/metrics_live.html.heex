@@ -21,6 +21,15 @@
         <p id="metric-worker-window-p99-latency-ms">
           p99 latency (ms): {@metrics.worker_query_window_stats.p99_latency_ms}
         </p>
+        <p id="metric-worker-window-avg-lag-ms">
+          avg lag (ms): {@metrics.worker_query_window_stats.avg_lag_ms}
+        </p>
+        <p id="metric-worker-window-p95-lag-ms">
+          p95 lag (ms): {@metrics.worker_query_window_stats.p95_lag_ms}
+        </p>
+        <p id="metric-worker-window-max-lag-ms">
+          max lag (ms): {@metrics.worker_query_window_stats.max_lag_ms}
+        </p>
         <p id="metric-worker-window-error-rate">
           error rate (%): {@metrics.worker_query_window_stats.error_rate_pct}
         </p>
@@ -58,6 +67,19 @@
           lifetime avg latency (ms): {if @metrics.worker_query_total_count > 0 do
             Float.round(
               @metrics.worker_query_total_latency_ms / @metrics.worker_query_total_count,
+              2
+            )
+          else
+            0.0
+          end}
+        </p>
+        <p id="metric-worker-lifetime-lag-total-ms">
+          lifetime lag total (ms): {@metrics.worker_query_lag_total_ms}
+        </p>
+        <p id="metric-worker-lifetime-avg-lag-ms">
+          lifetime avg lag (ms): {if @metrics.worker_query_total_count > 0 do
+            Float.round(
+              @metrics.worker_query_lag_total_ms / @metrics.worker_query_total_count,
               2
             )
           else
@@ -130,7 +152,7 @@
         </p>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid gap-4 lg:grid-cols-3">
         <div id="metric-worker-query-by-status" class="rounded-box bg-base-200/60 p-3">
           <p class="text-xs uppercase tracking-wide text-base-content/60">
             Query count by status (lifetime)
@@ -143,6 +165,14 @@
           </p>
           <pre class="mt-2 overflow-auto text-xs">
             {inspect(@metrics.worker_cycle_by_partition, pretty: true)}
+          </pre>
+        </div>
+        <div id="metric-worker-query-lag-buckets" class="rounded-box bg-base-200/60 p-3">
+          <p class="text-xs uppercase tracking-wide text-base-content/60">
+            Query lag histogram buckets
+          </p>
+          <pre class="mt-2 overflow-auto text-xs">
+            {inspect(@metrics.worker_query_lag_bucket_counts, pretty: true)}
           </pre>
         </div>
       </div>

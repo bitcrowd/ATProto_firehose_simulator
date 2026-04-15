@@ -6,6 +6,7 @@ defmodule FirehoseSimulator.Metrics do
   require Logger
 
   @handler_id "firehose-simulator-metrics"
+  @worker_query_lag_buckets [0, 10, 50, 100, 500, 1_000, 5_000, 10_000]
   @telemetry_events [
     [:firehose_simulator, :event_feeder, :inject],
     [:firehose_simulator, :event_feeder, :posts, :dispatch],
@@ -176,21 +177,24 @@ defmodule FirehoseSimulator.Metrics do
     status = normalize_query_status(metadata)
     rows = measurement_value(measurements, :rows)
     latency_ms = measurement_value(measurements, :latency_ms)
-    sample = %{ts_ms: now_ms, latency_ms: latency_ms, status: status}
+    lag_ms = measurement_value(measurements, :lag_ms)
+    sample = %{ts_ms: now_ms, latency_ms: latency_ms, lag_ms: lag_ms, status: status}
 
     next_state =
       state
       |> Map.update!(:worker_query_total_count, &(&1 + 1))
       |> Map.update!(:worker_query_rows, &(&1 + rows))
       |> Map.update!(:worker_query_total_latency_ms, &(&1 + latency_ms))
+      |> Map.update!(:worker_query_lag_total_ms, &(&1 + lag_ms))
       |> Map.update!(:worker_query_by_status, fn acc ->
         Map.update(acc, status, 1, &(&1 + 1))
       end)
+      |> Map.update!(:worker_query_lag_bucket_counts, &increment_lag_buckets(&1, lag_ms))
       |> Map.update!(:worker_query_window, &:queue.in(sample, &1))
       |> prune_worker_query_window(now_ms)
 
     Logger.info(
-      "[metrics] worker.query total_count=#{next_state.worker_query_total_count} status=#{status} rows=#{rows} latency_ms=#{latency_ms}"
+      "[metrics] worker.query total_count=#{next_state.worker_query_total_count} status=#{status} rows=#{rows} latency_ms=#{latency_ms} lag_ms=#{lag_ms}"
     )
 
     {:noreply, next_state}
@@ -309,7 +313,9 @@ defmodule FirehoseSimulator.Metrics do
       worker_query_total_count: 0,
       worker_query_rows: 0,
       worker_query_total_latency_ms: 0,
+      worker_query_lag_total_ms: 0,
       worker_query_by_status: %{},
+      worker_query_lag_bucket_counts: lag_bucket_counts_template(),
       worker_query_window: :queue.new(),
       worker_cycle_count: 0,
       worker_cycle_session_count: 0,
@@ -369,7 +375,9 @@ defmodule FirehoseSimulator.Metrics do
     query_count = length(samples)
     status_counts = count_query_statuses(samples)
     latencies = Enum.map(samples, & &1.latency_ms)
+    lags = Enum.map(samples, & &1.lag_ms)
     sum_latency_ms = Enum.sum(latencies)
+    sum_lag_ms = Enum.sum(lags)
 
     %{
       window_ms: @worker_query_window_ms,
@@ -381,6 +389,9 @@ defmodule FirehoseSimulator.Metrics do
       avg_latency_ms: ratio(sum_latency_ms, query_count),
       p95_latency_ms: percentile(latencies, 0.95),
       p99_latency_ms: percentile(latencies, 0.99),
+      avg_lag_ms: ratio(sum_lag_ms, query_count),
+      p95_lag_ms: percentile(lags, 0.95),
+      max_lag_ms: Enum.max(lags, fn -> 0 end),
       error_rate_pct:
         ratio(
           Map.get(status_counts, "error", 0) +
@@ -409,6 +420,26 @@ defmodule FirehoseSimulator.Metrics do
 
   defp ratio(_numerator, 0), do: 0.0
   defp ratio(numerator, denominator), do: Float.round(numerator / denominator, 2)
+
+  defp lag_bucket_counts_template do
+    @worker_query_lag_buckets
+    |> Enum.map(&{Integer.to_string(&1), 0})
+    |> Kernel.++([{"+Inf", 0}])
+    |> Map.new()
+  end
+
+  defp increment_lag_buckets(counts, lag_ms) do
+    counts =
+      Enum.reduce(@worker_query_lag_buckets, counts, fn bucket, acc ->
+        if lag_ms <= bucket do
+          Map.update!(acc, Integer.to_string(bucket), &(&1 + 1))
+        else
+          acc
+        end
+      end)
+
+    Map.update!(counts, "+Inf", &(&1 + 1))
+  end
 
   defp metric_value(state, metric) do
     case metric do

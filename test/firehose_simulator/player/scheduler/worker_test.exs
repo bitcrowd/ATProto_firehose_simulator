@@ -61,6 +61,7 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
                     metadata}
 
     assert measurements.rows == 1
+    assert measurements.lag_ms >= 10
     assert metadata.status == :ok
     assert metadata.player_id == "player-test"
 
@@ -125,6 +126,7 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
                       metadata}
 
       assert measurements.rows == 0
+      assert measurements.lag_ms >= 10
       assert metadata.status == :error
       assert metadata.player_id == "player-error"
       assert [{2, _, _, _session}] = :ets.lookup(table, 2)

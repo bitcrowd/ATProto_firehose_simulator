@@ -261,11 +261,17 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert has_element?(view, "#metric-worker-window-query-count")
     assert has_element?(view, "#metric-worker-window-avg-latency-ms")
     assert has_element?(view, "#metric-worker-window-p95-latency-ms")
+    assert has_element?(view, "#metric-worker-window-avg-lag-ms")
+    assert has_element?(view, "#metric-worker-window-p95-lag-ms")
+    assert has_element?(view, "#metric-worker-window-max-lag-ms")
     assert has_element?(view, "#metric-worker-window-error-rate")
     assert has_element?(view, "#metric-worker-window-timeout-rate")
     assert has_element?(view, "#metric-worker-lifetime-query-count")
     assert has_element?(view, "#metric-worker-lifetime-avg-latency-ms")
+    assert has_element?(view, "#metric-worker-lifetime-lag-total-ms")
+    assert has_element?(view, "#metric-worker-lifetime-avg-lag-ms")
     assert has_element?(view, "#metric-worker-cycle-count")
+    assert has_element?(view, "#metric-worker-query-lag-buckets")
   end
 
   defmodule FakeSimulator do

@@ -33,7 +33,7 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
 
     :telemetry.execute(
       [:firehose_simulator, :worker, :query],
-      %{latency_ms: 10, rows: 2},
+      %{latency_ms: 10, rows: 2, lag_ms: 25},
       %{status: :ok, player_id: "player-1"}
     )
 
@@ -59,6 +59,15 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
     assert body =~ "firehose_simulator_event_feeder_follows_dispatch_total"
     assert body =~ "firehose_simulator_event_feeder_follows_complete_total"
     assert body =~ "firehose_simulator_worker_query_by_status{status=\"ok\"}"
+
+    assert body =~
+             "firehose_simulator_worker_query_lag_ms_bucket{kind=\"session_request\",le=\"50\"}"
+
+    assert body =~ "firehose_simulator_worker_query_lag_ms_count{kind=\"session_request\"}"
+    assert body =~ "firehose_simulator_worker_query_lag_ms_sum{kind=\"session_request\"}"
+    assert body =~ "firehose_simulator_worker_query_window_avg_lag_ms"
+    assert body =~ "firehose_simulator_worker_query_window_p95_lag_ms"
+    assert body =~ "firehose_simulator_worker_query_window_max_lag_ms"
     assert body =~ "firehose_simulator_worker_cycle_by_partition{partition=\"0\"}"
     assert body =~ "firehose_simulator_worker_query_window_p95_latency_ms"
     assert body =~ "firehose_simulator_worker_query_window_p99_latency_ms"
