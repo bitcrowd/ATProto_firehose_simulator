@@ -38,37 +38,32 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     socket = assign(socket, :load_form, to_form(params, as: :load))
 
     with {:ok, offset_ms} <- parse_offset_ms(params),
-         {:ok, selected_scenario} <- fetch_selected_scenario(socket) do
-      case simulator_module().load_with_offset(
+         {:ok, selected_scenario} <- fetch_selected_scenario(socket),
+         {:ok, player_id, _metadata} <-
+           simulator_module().load_with_offset(
              selected_scenario.scenario,
              offset_ms,
              scenario_id: selected_scenario.id
+           ),
+         {:ok, simulation_plan} <-
+           simulator_module().add_and_play_scenario(
+             selected_scenario.id,
+             selected_scenario.scenario,
+             offset_ms,
+             selected_scenario.scenario.source_path
            ) do
-        {:ok, player_id, _metadata} ->
-          {:ok, simulation_plan} =
-            simulator_module().add_and_play_scenario(
-              selected_scenario.id,
-              selected_scenario.scenario,
-              offset_ms,
-              selected_scenario.scenario.source_path
-            )
-
-          {:noreply,
-           socket
-           |> assign_players()
-           |> assign_current_simulation_plan(simulation_plan)
-           |> assign(
-             :last_action,
-             "Simulation loaded for #{player_id} with #{offset_ms} ms offset."
-           )
-           |> put_flash(:info, "Simulation loaded for #{player_id}.")}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Failed to load simulation: #{inspect(reason)}")}
-      end
+      {:noreply,
+       socket
+       |> assign_players()
+       |> assign_current_simulation_plan(simulation_plan)
+       |> assign(
+         :last_action,
+         "Simulation loaded for #{player_id} with #{offset_ms} ms offset."
+       )
+       |> put_flash(:info, "Simulation loaded for #{player_id}.")}
     else
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, reason)}
+        {:noreply, put_flash(socket, :error, format_load_error(reason))}
     end
   end
 
@@ -182,6 +177,9 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
         {:error, "Offset must be an integer number of milliseconds."}
     end
   end
+
+  defp format_load_error(reason) when is_binary(reason), do: reason
+  defp format_load_error(reason), do: "Failed to load simulation: #{inspect(reason)}"
 
   defp fetch_selected_scenario(socket) do
     case socket.assigns.selected_scenario_id do

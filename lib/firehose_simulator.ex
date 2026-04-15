@@ -261,7 +261,8 @@ defmodule FirehoseSimulator do
       when is_binary(scenario_name) and is_integer(submitted_offset_ms) do
     current_plan = State.get_simulation_plan()
 
-    with {:ok, simulation_plan, entry} <-
+    with {:ok, scenario_path, scenario} <- ensure_scenario_path(scenario, scenario_path),
+         {:ok, simulation_plan, entry} <-
            SimulationPlan.add_scenario(
              current_plan,
              scenario,
@@ -275,6 +276,30 @@ defmodule FirehoseSimulator do
       :ok = State.put_simulation_plan(simulation_plan)
       :ok = State.put_scenario(scenario_name, %{scenario | source_path: entry.scenario_path})
       {:ok, simulation_plan}
+    end
+  end
+
+  defp ensure_scenario_path(%Scenario{} = scenario, scenario_path)
+       when is_binary(scenario_path) do
+    case String.trim(scenario_path) do
+      "" -> export_generated_scenario(scenario)
+      path -> {:ok, path, %{scenario | source_path: path}}
+    end
+  end
+
+  defp ensure_scenario_path(%Scenario{} = scenario, _scenario_path),
+    do: export_generated_scenario(scenario)
+
+  defp export_generated_scenario(%Scenario{} = scenario) do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "firehose-scenario-#{System.unique_integer([:positive])}.json"
+      )
+
+    case export_scenario_to_json(scenario, path) do
+      :ok -> {:ok, path, %{scenario | source_path: path}}
+      {:error, reason} -> {:error, reason}
     end
   end
 

@@ -243,6 +243,43 @@ defmodule FirehoseSimulatorTest do
     end
 
     @tag :tmp_dir
+    test "add_and_play_scenario/4 exports generated scenarios when scenario_path is blank",
+         _context do
+      scenario = %Scenario{
+        posts: [%{offset_ms: 10, user_id: 1}],
+        sessions: nil,
+        follows: nil,
+        request_interval_ms: 30_000
+      }
+
+      assert {:ok, %SimulationPlan{} = simulation_plan} =
+               FirehoseSimulator.add_and_play_scenario(
+                 "generated-scenario",
+                 scenario,
+                 0,
+                 "   "
+               )
+
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "generated-scenario"
+      assert entry.offset_ms == 0
+      assert is_binary(entry.scenario_path)
+      assert entry.scenario_path != ""
+      assert String.starts_with?(entry.scenario_path, System.tmp_dir!())
+      assert File.exists?(entry.scenario_path)
+
+      assert %Scenario{source_path: source_path} =
+               FirehoseSimulator.State.list_scenarios()["generated-scenario"]
+
+      assert source_path == entry.scenario_path
+
+      assert {:ok, %Scenario{} = reloaded} =
+               FirehoseSimulator.import_scenario_from_json(entry.scenario_path)
+
+      assert %{reloaded | source_path: nil} == scenario
+    end
+
+    @tag :tmp_dir
     test "import_simulation_plan_from_json/1 loads plan entries, resolves relative paths, and stores the plan",
          %{tmp_dir: tmp_dir} do
       scenario_path =
