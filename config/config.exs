@@ -8,7 +8,10 @@
 import Config
 
 config :firehose_simulator,
-  generators: [timestamp_type: :utc_datetime]
+  ecto_repos: [FirehoseSimulator.Repo],
+  generators: [timestamp_type: :utc_datetime],
+  log_file_path: "log/firehose_simulator.log",
+  prometheus_exporter_port: 9568
 
 # Configure the endpoint
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
@@ -30,6 +33,16 @@ config :firehose_simulator, PLCWeb.Endpoint,
     layout: false
   ],
   pubsub_server: PLC.PubSub,
+  live_view: [signing_salt: "i6CxHF/S"]
+
+config :firehose_simulator, PDSWeb.Endpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: PDS.PubSub,
   live_view: [signing_salt: "i6CxHF/S"]
 
 # Configure esbuild (the version is required)

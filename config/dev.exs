@@ -1,5 +1,23 @@
 import Config
 
+config :firehose_simulator, :plc,
+  multikey: System.get_env("PLC_MULTIKEY", "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv"),
+  private_hex:
+    System.get_env(
+      "PLC_PRIVATE_HEX",
+      "bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a"
+    )
+
+config :firehose_simulator,
+       :dataplane_url,
+       System.get_env("DATAPLANE_URL", "http://localhost:2585")
+
+config :firehose_simulator, FirehoseSimulator.Repo,
+  url: "postgres://postgres:postgres@localhost:5432/dataplane",
+  pool_size: 10,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -27,6 +45,19 @@ config :firehose_simulator, PLCWeb.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "apBV7RYO0SMIcxQkDck4y/0cOxKX/WxaYO7uIu8OUpqgia/ti83YMX8q+N8F616i",
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:firehose_simulator, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:firehose_simulator, ~w(--watch)]}
+  ]
+
+config :firehose_simulator, PDSWeb.Endpoint,
+  # Binding to loopback ipv6 address prevents access from other machines.
+  # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
+  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}],
+  check_origin: false,
+  code_reloader: true,
+  debug_errors: true,
+  secret_key_base: "N4yhNYi3cwI7AbQeoMs6c4jLlBNX13Kj4j1y+qjnCkA8jAJbcn5xjEhud9PF8rT2",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:firehose_simulator, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:firehose_simulator, ~w(--watch)]}

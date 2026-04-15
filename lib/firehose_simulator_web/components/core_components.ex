@@ -328,6 +328,180 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   end
 
   @doc """
+  Renders a shared section surface for control panels and forms.
+  """
+  attr :id, :string, default: nil
+  attr :class, :any, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def panel(assigns) do
+    ~H"""
+    <section
+      id={@id}
+      class={[
+        "rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm shadow-base-300/20",
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </section>
+    """
+  end
+
+  @doc """
+  Renders a key/value metric card.
+  """
+  attr :id, :string, default: nil
+  attr :label, :string, required: true
+  attr :value_class, :any, default: nil
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def stat(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={[
+        "rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3",
+        @class
+      ]}
+    >
+      <dt class="text-sm text-base-content/60">{@label}</dt>
+      <dd class={["mt-1 text-sm text-base-content", @value_class]}>
+        {render_slot(@inner_block)}
+      </dd>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a status badge for summary rows.
+  """
+  attr :tone, :string, values: ~w(success neutral), default: "neutral"
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
+      @tone == "success" &&
+        "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      @tone == "neutral" && "border border-base-300 bg-base-300/60 text-base-content/70",
+      @class
+    ]}>
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  @doc """
+  Renders a themed result or status notice.
+  """
+  attr :id, :string, default: nil
+  attr :tone, :string, values: ~w(success info), default: "success"
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def notice(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={[
+        "rounded-2xl border p-4 text-sm shadow-sm",
+        @tone == "success" &&
+          "border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
+        @tone == "info" &&
+          "border-sky-500/20 bg-sky-500/10 text-sky-900 dark:text-sky-100",
+        @class
+      ]}
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a minimal tab navigation for LiveView sections.
+
+  ## Examples
+
+      <.tab_nav current_path={~p"/firehose"}>
+        <:tab label="Firehose Control" navigate={~p"/firehose"} />
+      </.tab_nav>
+  """
+  attr :id, :string, default: "tab-nav"
+  attr :current_path, :string, required: true
+  attr :class, :any, default: nil
+
+  slot :tab, required: true do
+    attr :label, :string, required: true
+    attr :navigate, :string, required: true
+  end
+
+  def tab_nav(assigns) do
+    ~H"""
+    <nav
+      id={@id}
+      aria-label="Section navigation"
+      class={[
+        "inline-flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-base-300 bg-base-100/80 p-2 shadow-sm shadow-base-300/30 backdrop-blur",
+        @class
+      ]}
+    >
+      <.link
+        :for={tab <- @tab}
+        navigate={tab.navigate}
+        aria-current={tab.navigate == @current_path && "page"}
+        class={[
+          "rounded-xl px-4 py-2 text-sm font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/30",
+          tab.navigate == @current_path && "bg-base-200 text-base-content shadow-sm"
+        ]}
+      >
+        {tab.label}
+      </.link>
+    </nav>
+    """
+  end
+
+  @doc """
+  Renders a simple card with optional actions.
+  """
+  attr :id, :string, default: nil
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+  slot :actions
+
+  def card(assigns) do
+    ~H"""
+    <article
+      id={@id}
+      class="rounded-box border border-base-300 bg-base-200/30 p-5"
+      {@rest}
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-base-content">{@title}</p>
+          <p :if={@subtitle} class="text-sm text-base-content/70">{@subtitle}</p>
+        </div>
+
+        <div :if={@actions != []} class="shrink-0">
+          {render_slot(@actions)}
+        </div>
+      </div>
+
+      <div class="mt-4">
+        {render_slot(@inner_block)}
+      </div>
+    </article>
+    """
+  end
+
+  @doc """
   Renders a table with generic styling.
 
   ## Examples

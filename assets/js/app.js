@@ -25,11 +25,56 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/firehose_simulator"
 import topbar from "../vendor/topbar"
 
+const SaveScenarioHook = {
+  mounted() {
+    this.handleEvent("save_scenario_json", payload => this.saveFile(payload))
+  },
+
+  async saveFile({filename, content}) {
+    const resolvedFilename =
+      typeof filename === "string" && filename.length > 0 ? filename : "scenario.json"
+    const resolvedContent = typeof content === "string" ? content : "{}"
+    const blob = new Blob([resolvedContent], {type: "application/json"})
+
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: resolvedFilename,
+          types: [
+            {
+              description: "JSON File",
+              accept: {"application/json": [".json"]},
+            },
+          ],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(blob)
+        await writable.close()
+        return
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          return
+        }
+        console.error("failed to save scenario via file picker", error)
+      }
+    }
+
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = downloadUrl
+    link.download = resolvedFilename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(downloadUrl)
+  },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, SaveScenario: SaveScenarioHook},
 })
 
 // Show progress bar on live navigation and form submits
@@ -80,4 +125,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

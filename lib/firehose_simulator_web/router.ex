@@ -17,13 +17,19 @@ defmodule FirehoseSimulatorWeb.Router do
   scope "/", FirehoseSimulatorWeb do
     pipe_through :browser
 
-    live "/", FirehoseControlLive
+    live "/setup", SetupLive
+    live "/vacuum", VacuumLive
+    live "/planning", PlanningLive
+    live "/simulation", SimulationLive
+    live "/metrics", MetricsLive
+    get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", FirehoseSimulatorWeb do
-  #   pipe_through :api
-  # end
+  scope "/xrpc", FirehoseSimulatorWeb do
+    pipe_through :api
+
+    get "/com.atproto.sync.listRepos", SyncController, :list_repos
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:firehose_simulator, :dev_routes) do

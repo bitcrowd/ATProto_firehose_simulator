@@ -1,0 +1,176 @@
+<Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <div id="planning-export-hook" phx-hook="SaveScenario" phx-update="ignore" class="hidden" />
+
+  <.header>
+    Planning
+    <:subtitle>
+      Generate scenarios from params JSON or import scenario and simulation plan JSON.
+    </:subtitle>
+  </.header>
+
+  <section id="planning-forms" class="grid gap-6 lg:grid-cols-3">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-sparkles" class="size-5 text-primary" /> Generate scenario
+        </div>
+
+        <.form
+          for={@generate_form}
+          id="planning-generate-form"
+          phx-change="validate_generate"
+          phx-submit="generate_scenario"
+          class="space-y-4"
+        >
+          <.input
+            field={@generate_form[:scenario_name]}
+            id="planning-generate-scenario-name"
+            type="text"
+            label="Scenario name (optional)"
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.scenario_params_json.ref} class="label">
+              Scenario Params JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.scenario_params_json}
+              id="planning-scenario-params-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-generate-submit" type="submit">Generate scenario</.button>
+        </.form>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-arrow-down-tray" class="size-5 text-primary" /> Import scenario
+        </div>
+
+        <.form
+          for={@import_form}
+          id="planning-import-form"
+          phx-change="validate_import"
+          phx-submit="import_scenario"
+          class="space-y-4"
+        >
+          <.input
+            field={@import_form[:scenario_name]}
+            id="planning-import-scenario-name"
+            type="text"
+            label="Scenario name override (optional)"
+            autocomplete="off"
+          />
+
+          <div class="space-y-2">
+            <label for={@uploads.scenario_json.ref} class="label">
+              Scenario JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.scenario_json}
+              id="planning-scenario-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-import-submit" type="submit" variant="primary">
+            Import scenario
+          </.button>
+        </.form>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body gap-5">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <.icon name="hero-folder-arrow-down" class="size-5 text-primary" />
+          Import simulation plan
+        </div>
+
+        <.form
+          for={@import_plan_form}
+          id="planning-import-plan-form"
+          phx-change="validate_import_plan"
+          phx-submit="import_simulation_plan"
+          class="space-y-4"
+        >
+          <div class="space-y-2">
+            <label for={@uploads.simulation_plan_json.ref} class="label">
+              Simulation Plan JSON
+            </label>
+            <.live_file_input
+              upload={@uploads.simulation_plan_json}
+              id="planning-simulation-plan-upload"
+              class="file-input w-full"
+            />
+          </div>
+
+          <.button id="planning-import-plan-submit" type="submit" variant="primary">
+            Import simulation plan
+          </.button>
+        </.form>
+      </div>
+    </div>
+  </section>
+
+  <section id="scenarios-list" class="card bg-base-100 border border-base-300 shadow-sm mt-6">
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <.icon name="hero-queue-list" class="size-5 text-primary" /> Available scenarios
+      </div>
+
+      <p :if={@scenarios == []} id="scenarios-empty" class="text-sm text-base-content/70">
+        No scenarios available yet.
+      </p>
+
+      <div :if={@scenarios != []} class="space-y-3">
+        <div
+          :for={scenario <- @scenarios}
+          id={"scenario-row-#{scenario.id}"}
+          class="rounded-box border border-base-300 p-4 transition-colors"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold" id={"scenario-id-#{scenario.id}"}>{scenario.id}</p>
+              <.scenario_summary
+                id={"scenario-summary-#{scenario.id}"}
+                scenario={scenario.scenario}
+                class="text-xs text-base-content/70"
+              />
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <.button
+                id={"export-scenario-#{scenario.id}"}
+                type="button"
+                phx-click="export_scenario"
+                phx-value-scenario_id={scenario.id}
+              >
+                Export
+              </.button>
+
+              <.button
+                id={"delete-scenario-#{scenario.id}"}
+                type="button"
+                phx-click="delete_scenario"
+                phx-value-scenario_id={scenario.id}
+                variant="primary"
+              >
+                Delete
+              </.button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p :if={@last_action} id="planning-last-action" class="text-sm text-base-content/80">
+        Last action: {@last_action}
+      </p>
+    </div>
+  </section>
+</Layouts.app>

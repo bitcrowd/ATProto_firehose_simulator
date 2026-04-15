@@ -1,0 +1,54 @@
+<Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
+  <.header>
+    Vacuum
+    <:subtitle>Run table cleanup actions against the configured database.</:subtitle>
+  </.header>
+
+  <section id="vacuum-maintenance" class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body gap-5">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <.icon name="hero-wrench-screwdriver" class="size-5 text-primary" /> Maintenance actions
+      </div>
+
+      <.form
+        for={@form}
+        id="vacuum-form"
+        phx-change="validate"
+        phx-submit="run_vacuum"
+        class="space-y-4"
+      >
+        <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-1">
+          <.input
+            field={@form[:delete_userbase]}
+            id="vacuum-delete-userbase"
+            type="checkbox"
+            label="Delete userbase tables (TRUNCATE bsky.follow, bsky.actor)"
+          />
+          <.input
+            field={@form[:delete_posts]}
+            id="vacuum-delete-posts"
+            type="checkbox"
+            label="Delete post tables (TRUNCATE bsky.feed_item, bsky.record, bsky.post)"
+          />
+        </div>
+
+        <.button id="vacuum-run-submit" type="submit" disabled={@running_vacuum?}>
+          <span :if={@running_vacuum?} class="inline-flex items-center gap-2">
+            <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+            Running vacuum actions...
+          </span>
+          <span :if={!@running_vacuum?}>Run vacuum</span>
+        </.button>
+      </.form>
+
+      <div
+        :if={@vacuum_result}
+        id="vacuum-result"
+        class="rounded-box border border-success/40 bg-success/10 p-4"
+      >
+        <p class="text-sm font-medium text-success">Latest vacuum result</p>
+        <pre class="mt-2 text-xs overflow-auto">{inspect(@vacuum_result, pretty: true)}</pre>
+      </div>
+    </div>
+  </section>
+</Layouts.app>

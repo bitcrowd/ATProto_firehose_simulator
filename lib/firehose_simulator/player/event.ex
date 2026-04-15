@@ -1,38 +1,41 @@
-defmodule FirehoseSimulator.Event do
+defmodule FirehoseSimulator.Player.Event do
   alias Aether.ATProto.TID
+  alias FirehoseSimulator.Data
+
   @clock_id 0
 
-  def next(did) do
-    record = create_record("app.bsky.feed.post", text: "hello")
+  def from_config(config) when is_map(config) do
+    {did, record} = build_record(config)
 
     {cid_link, ops} = cid_link_and_ops(record)
 
     commit_event(did, cid_link, ops, record)
   end
 
-  defp create_record(type, opts)
+  defp build_record(%{"type" => "app.bsky.graph.follow", "random" => true}) do
+    author_did = Data.random_did()
+    subject_did = Data.random_did(author_did)
 
-  defp create_record("app.bsky.graph.follow" = type, opts) do
-    subject = Keyword.fetch!(opts, :subject)
-    created_at = Keyword.get(opts, :created_at, DateTime.utc_now() |> DateTime.to_iso8601())
-
-    %{
-      "$type" => type,
-      "subject" => subject,
-      "createdAt" => created_at
-    }
+    {author_did, Data.create_record("app.bsky.graph.follow", subject: subject_did)}
   end
 
-  defp create_record("app.bsky.feed.post" = type, opts) do
-    text = Keyword.fetch!(opts, :text)
-    created_at = Keyword.get(opts, :created_at, DateTime.utc_now() |> DateTime.to_iso8601())
+  defp build_record(%{
+         "type" => "app.bsky.graph.follow",
+         "author_did" => author_did,
+         "subject_did" => subject_did
+       }) do
+    {author_did, Data.create_record("app.bsky.graph.follow", subject: subject_did)}
+  end
 
-    %{
-      "$type" => type,
-      "text" => text,
-      "langs" => ["en"],
-      "createdAt" => created_at
-    }
+  defp build_record(%{"type" => "app.bsky.feed.post", "random" => true}) do
+    author_did = Data.random_did()
+    text = random_post_text()
+
+    {author_did, Data.create_record("app.bsky.feed.post", text: text)}
+  end
+
+  defp build_record(%{"type" => "app.bsky.feed.post", "author_did" => author_did, "text" => text}) do
+    {author_did, Data.create_record("app.bsky.feed.post", text: text)}
   end
 
   defp cid_link_and_ops(record) do
@@ -159,5 +162,10 @@ defmodule FirehoseSimulator.Event do
       |> IO.iodata_to_binary()
 
     Aether.ATProto.Varint.encode(byte_size(header)) <> header <> encoded_blocks
+  end
+
+  defp random_post_text() do
+    suffix = System.unique_integer([:positive])
+    "Simulated post #{suffix}"
   end
 end

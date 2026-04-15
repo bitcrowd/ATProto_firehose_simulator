@@ -20,12 +20,13 @@ defmodule FirehoseSimulatorWeb.Layouts do
 
   ## Examples
 
-      <Layouts.app flash={@flash}>
+      <Layouts.app flash={@flash} current_path={~p"/"}>
         <h1>Content</h1>
       </Layouts.app>
 
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :current_path, :string, default: nil, doc: "the current request path for shared navigation"
 
   attr :current_scope, :map,
     default: nil,
@@ -63,7 +64,15 @@ defmodule FirehoseSimulatorWeb.Layouts do
     </header>
 
     <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
+      <div class="mx-auto max-w-5xl space-y-6">
+        <.tab_nav :if={@current_path} current_path={@current_path}>
+          <:tab label="Setup" navigate={~p"/setup"} />
+          <:tab label="Planning" navigate={~p"/planning"} />
+          <:tab label="Simulation" navigate={~p"/simulation"} />
+          <:tab label="Metrics" navigate={~p"/metrics"} />
+          <:tab label="Vacuum" navigate={~p"/vacuum"} />
+        </.tab_nav>
+
         {render_slot(@inner_block)}
       </div>
     </main>

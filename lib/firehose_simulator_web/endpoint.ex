@@ -16,7 +16,7 @@ defmodule FirehoseSimulatorWeb.Endpoint do
     longpoll: [connect_info: [session: @session_options]]
   )
 
-  socket("/xrpc/com.atproto.sync.subscribeRepos", FirehoseSimulatorWeb.SubscribeSocket,
+  socket("/xrpc/com.atproto.sync.subscribeRepos", FirehoseSimulatorWeb.SyncSocket,
     websocket: [path: "/"]
   )
 

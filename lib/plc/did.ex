@@ -1,8 +1,6 @@
 defmodule PLC.DID do
   @moduledoc "https://web.plc.directory/spec/v0.1/did-plc"
 
-  @default_multikey "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv"
-  # private_hex=bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a
   @pds_endpoint "http://127.0.0.1:2583"
 
   def document(did, op \\ nil) do
@@ -79,9 +77,14 @@ defmodule PLC.DID do
         multikey
 
       _ ->
-        @default_multikey
+        default_multikey()
     end
   end
 
-  defp public_key_multibase_from_op(_), do: @default_multikey
+  defp public_key_multibase_from_op(_), do: default_multikey()
+
+  defp default_multikey do
+    Application.get_env(:firehose_simulator, :plc, [])
+    |> Keyword.fetch!(:multikey)
+  end
 end

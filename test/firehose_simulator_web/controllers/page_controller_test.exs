@@ -3,6 +3,6 @@ defmodule FirehoseSimulatorWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Firehose Control"
+    assert redirected_to(conn) == ~p"/setup"
   end
 end

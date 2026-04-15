@@ -19,7 +19,11 @@ import Config
 if System.get_env("PHX_SERVER") do
   config :firehose_simulator, FirehoseSimulatorWeb.Endpoint, server: true
   config :firehose_simulator, PLCWeb.Endpoint, server: true
+  config :firehose_simulator, PDSWeb.Endpoint, server: true
 end
+
+config :firehose_simulator,
+  prometheus_exporter_port: String.to_integer(System.get_env("PROMETHEUS_PORT", "9568"))
 
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
@@ -27,7 +31,39 @@ config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
 config :firehose_simulator, PLCWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PLC_PORT", "4001"))]
 
+config :firehose_simulator, PDSWeb.Endpoint,
+  http: [port: String.to_integer(System.get_env("PDS_PORT", "4002"))]
+
 if config_env() == :prod do
+  database_url =
+    System.get_env("DATABASE_URL") ||
+      raise("""
+      environment variable DATABASE_URL is missing.
+      """)
+
+  config :firehose_simulator, FirehoseSimulator.Repo,
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+
+  config :firehose_simulator, :plc,
+    multikey:
+      System.get_env("PLC_MULTIKEY") ||
+        raise("""
+        environment variable PLC_MULTIKEY is missing.
+        """),
+    private_hex:
+      System.get_env("PLC_PRIVATE_HEX") ||
+        raise("""
+        environment variable PLC_PRIVATE_HEX is missing.
+        """)
+
+  config :firehose_simulator,
+         :dataplane_url,
+         System.get_env("DATAPLANE_URL") ||
+           raise("""
+           environment variable DATAPLANE_URL is missing.
+           """)
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -44,6 +80,13 @@ if config_env() == :prod do
     System.get_env("PLC_SECRET_KEY_BASE") ||
       raise """
       environment variable PLC_SECRET_KEY_BASE is missing.
+      You can generate one by calling: mix phx.gen.secret
+      """
+
+  pds_secret_key_base =
+    System.get_env("PDS_SECRET_KEY_BASE") ||
+      raise """
+      environment variable PDS_SECRET_KEY_BASE is missing.
       You can generate one by calling: mix phx.gen.secret
       """
 
@@ -72,6 +115,17 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0}
     ],
     secret_key_base: plc_secret_key_base
+
+  config :firehose_simulator, PDSWeb.Endpoint,
+    url: [host: host, port: 443, scheme: "https"],
+    http: [
+      # Enable IPv6 and bind on all interfaces.
+      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
+      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+    ],
+    secret_key_base: pds_secret_key_base
 
   # ## SSL Support
   #
