@@ -13,7 +13,7 @@ config :firehose_simulator,
        System.get_env("DATAPLANE_URL", "http://localhost:2585")
 
 config :firehose_simulator, FirehoseSimulator.Repo,
-  url: "postgres://postgres:postgres@localhost:5432/dataplane",
+  url: "postgres://postgres:postgres@localhost:5432/dataplane_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
 
