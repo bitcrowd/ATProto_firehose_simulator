@@ -1,91 +1,68 @@
 <Layouts.app flash={@flash} current_path={@current_path} current_scope={@current_scope}>
   <.header>
     Metrics
-    <:subtitle>Technical telemetry with rolling worker-query health (last 60s).</:subtitle>
+    <:subtitle>Technical telemetry.</:subtitle>
   </.header>
 
   <section id="metrics-worker-health" class="card bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body gap-3">
-      <h3 class="text-sm font-semibold">Worker query health (last 60s)</h3>
+      <h3 class="text-sm font-semibold">Timeline query health (last 60s)</h3>
 
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <h4 class="font-semibold">Counts</h4>
+      <div class="grid grid-cols-5">
         <p id="metric-worker-window-query-count">
           query count: {@metrics.worker_query_window_stats.query_count}
-        </p>
-        <p id="metric-worker-window-avg-latency-ms">
-          avg latency (ms): {@metrics.worker_query_window_stats.avg_latency_ms}
-        </p>
-        <p id="metric-worker-window-p95-latency-ms">
-          p95 latency (ms): {@metrics.worker_query_window_stats.p95_latency_ms}
-        </p>
-        <p id="metric-worker-window-p99-latency-ms">
-          p99 latency (ms): {@metrics.worker_query_window_stats.p99_latency_ms}
-        </p>
-        <p id="metric-worker-window-avg-lag-ms">
-          avg lag (ms): {@metrics.worker_query_window_stats.avg_lag_ms}
-        </p>
-        <p id="metric-worker-window-p95-lag-ms">
-          p95 lag (ms): {@metrics.worker_query_window_stats.p95_lag_ms}
-        </p>
-        <p id="metric-worker-window-max-lag-ms">
-          max lag (ms): {@metrics.worker_query_window_stats.max_lag_ms}
-        </p>
-        <p id="metric-worker-window-error-rate">
-          error rate (%): {@metrics.worker_query_window_stats.error_rate_pct}
-        </p>
-        <p id="metric-worker-window-timeout-rate">
-          timeout rate (%): {@metrics.worker_query_window_stats.timeout_rate_pct}
         </p>
         <p id="metric-worker-window-ok-count">
           ok count: {@metrics.worker_query_window_stats.ok_count}
         </p>
-        <p id="metric-worker-window-error-count">
-          error count: {@metrics.worker_query_window_stats.error_count}
-        </p>
-        <p id="metric-worker-window-timeout-count">
-          timeout count: {@metrics.worker_query_window_stats.timeout_count}
-        </p>
         <p id="metric-worker-window-exit-count">
           exit count: {@metrics.worker_query_window_stats.exit_count}
         </p>
+        <p id="metric-worker-window-error-count">
+          error count: {@metrics.worker_query_window_stats.error_count}
+        </p>
+        <p id="metric-worker-window-error-rate">
+          error rate (%): {@metrics.worker_query_window_stats.error_rate_pct}
+        </p>
       </div>
-    </div>
-  </section>
 
-  <section
-    id="metrics-worker-lifetime"
-    class="card bg-base-100 border border-base-300 shadow-sm mt-6"
-  >
-    <div class="card-body gap-3">
-      <h3 class="text-sm font-semibold">Worker query lifetime totals</h3>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <p id="metric-worker-lifetime-query-count">
-          total queries: {@metrics.worker_query_total_count}
-        </p>
-        <p id="metric-worker-lifetime-query-rows">total rows: {@metrics.worker_query_rows}</p>
-        <p id="metric-worker-lifetime-avg-latency-ms">
-          lifetime avg latency (ms): {if @metrics.worker_query_total_count > 0 do
-            Float.round(
-              @metrics.worker_query_total_latency_ms / @metrics.worker_query_total_count,
-              2
-            )
-          else
-            0.0
-          end}
-        </p>
-        <p id="metric-worker-lifetime-lag-total-ms">
-          lifetime lag total (ms): {@metrics.worker_query_lag_total_ms}
-        </p>
-        <p id="metric-worker-lifetime-avg-lag-ms">
-          lifetime avg lag (ms): {if @metrics.worker_query_total_count > 0 do
-            Float.round(
-              @metrics.worker_query_lag_total_ms / @metrics.worker_query_total_count,
-              2
-            )
-          else
-            0.0
-          end}
-        </p>
+      <div class="grid grid-cols-1 gap-4">
+        <h4 class="font-semibold">Latency</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-worker-window-avg-latency-ms">
+            avg latency (ms): {@metrics.worker_query_window_stats.avg_latency_ms}
+          </p>
+          <p id="metric-worker-window-p95-latency-ms">
+            p95 latency (ms): {@metrics.worker_query_window_stats.p95_latency_ms}
+          </p>
+          <p id="metric-worker-window-p99-latency-ms">
+            p99 latency (ms): {@metrics.worker_query_window_stats.p99_latency_ms}
+          </p>
+        </div>
+
+        <h4 class="font-semibold">Lag</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-worker-window-avg-lag-ms">
+            avg lag (ms): {@metrics.worker_query_window_stats.avg_lag_ms}
+          </p>
+          <p id="metric-worker-window-p95-lag-ms">
+            p95 lag (ms): {@metrics.worker_query_window_stats.p95_lag_ms}
+          </p>
+          <p id="metric-worker-window-max-lag-ms">
+            max lag (ms): {@metrics.worker_query_window_stats.max_lag_ms}
+          </p>
+        </div>
+
+        <h4 class="font-semibold">Timeouts</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-worker-window-timeout-count">
+            timeout count: {@metrics.worker_query_window_stats.timeout_count}
+          </p>
+          <p id="metric-worker-window-timeout-rate">
+            timeout rate (%): {@metrics.worker_query_window_stats.timeout_rate_pct}
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -96,39 +73,52 @@
   >
     <div class="card-body gap-3">
       <h3 class="text-sm font-semibold">Event feeder metrics</h3>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <p id="metric-event-feeder-inject-count">
-          inject count: {@metrics.event_feeder_inject_count}
-        </p>
-        <p id="metric-event-feeder-sessions-started">
-          sessions started: {@metrics.event_feeder_sessions_started}
-        </p>
-        <p id="metric-event-feeder-posts-dispatch-count">
-          posts dispatch count: {@metrics.event_feeder_posts_dispatch_count}
-        </p>
-        <p id="metric-event-feeder-posts-dispatched">
-          posts dispatched: {@metrics.event_feeder_posts_dispatched}
-        </p>
-        <p id="metric-event-feeder-posts-complete-count">
-          posts complete count: {@metrics.event_feeder_posts_complete_count}
-        </p>
-        <p id="metric-event-feeder-posts-ok">posts ok: {@metrics.event_feeder_posts_ok}</p>
-        <p id="metric-event-feeder-posts-error">
-          posts error: {@metrics.event_feeder_posts_error}
-        </p>
-        <p id="metric-event-feeder-follows-dispatch-count">
-          follows dispatch count: {@metrics.event_feeder_follows_dispatch_count}
-        </p>
-        <p id="metric-event-feeder-follows-dispatched">
-          follows dispatched: {@metrics.event_feeder_follows_dispatched}
-        </p>
-        <p id="metric-event-feeder-follows-complete-count">
-          follows complete count: {@metrics.event_feeder_follows_complete_count}
-        </p>
-        <p id="metric-event-feeder-follows-ok">follows ok: {@metrics.event_feeder_follows_ok}</p>
-        <p id="metric-event-feeder-follows-error">
-          follows error: {@metrics.event_feeder_follows_error}
-        </p>
+      <div class="grid gap-4 grid-cols-1">
+        <h4 class="font-semibold">Sessions</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-event-feeder-inject-count">
+            inject count: {@metrics.event_feeder_inject_count}
+          </p>
+          <p id="metric-event-feeder-sessions-started">
+            sessions started: {@metrics.event_feeder_sessions_started}
+          </p>
+        </div>
+
+        <h4 class="font-semibold">Posts</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-event-feeder-posts-dispatch-count">
+            posts dispatch count: {@metrics.event_feeder_posts_dispatch_count}
+          </p>
+          <p id="metric-event-feeder-posts-dispatched">
+            posts dispatched: {@metrics.event_feeder_posts_dispatched}
+          </p>
+          <p id="metric-event-feeder-posts-complete-count">
+            posts complete count: {@metrics.event_feeder_posts_complete_count}
+          </p>
+          <p id="metric-event-feeder-posts-ok">posts ok: {@metrics.event_feeder_posts_ok}</p>
+          <p id="metric-event-feeder-posts-error">
+            posts error: {@metrics.event_feeder_posts_error}
+          </p>
+        </div>
+
+        <h4 class="font-semibold">Follows</h4>
+        <div class="grid grid-cols-5">
+          <p id="metric-event-feeder-follows-dispatch-count">
+            follows dispatch count: {@metrics.event_feeder_follows_dispatch_count}
+          </p>
+          <p id="metric-event-feeder-follows-dispatched">
+            follows dispatched: {@metrics.event_feeder_follows_dispatched}
+          </p>
+          <p id="metric-event-feeder-follows-complete-count">
+            follows complete count: {@metrics.event_feeder_follows_complete_count}
+          </p>
+          <p id="metric-event-feeder-follows-ok">
+            follows ok: {@metrics.event_feeder_follows_ok}
+          </p>
+          <p id="metric-event-feeder-follows-error">
+            follows error: {@metrics.event_feeder_follows_error}
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -150,31 +140,6 @@
         <p id="metric-worker-cycle-duration-ms">
           cycle duration total (ms): {@metrics.worker_cycle_duration_ms}
         </p>
-      </div>
-
-      <div class="grid gap-4 lg:grid-cols-3">
-        <div id="metric-worker-query-by-status" class="rounded-box bg-base-200/60 p-3">
-          <p class="text-xs uppercase tracking-wide text-base-content/60">
-            Query count by status (lifetime)
-          </p>
-          <pre class="mt-2 overflow-auto text-xs">{inspect(@metrics.worker_query_by_status, pretty: true)}</pre>
-        </div>
-        <div id="metric-worker-cycle-by-partition" class="rounded-box bg-base-200/60 p-3">
-          <p class="text-xs uppercase tracking-wide text-base-content/60">
-            Cycle count by partition
-          </p>
-          <pre class="mt-2 overflow-auto text-xs">
-            {inspect(@metrics.worker_cycle_by_partition, pretty: true)}
-          </pre>
-        </div>
-        <div id="metric-worker-query-lag-buckets" class="rounded-box bg-base-200/60 p-3">
-          <p class="text-xs uppercase tracking-wide text-base-content/60">
-            Query lag histogram buckets
-          </p>
-          <pre class="mt-2 overflow-auto text-xs">
-            {inspect(@metrics.worker_query_lag_bucket_counts, pretty: true)}
-          </pre>
-        </div>
       </div>
     </div>
   </section>
