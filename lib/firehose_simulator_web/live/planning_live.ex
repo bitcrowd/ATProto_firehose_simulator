@@ -56,10 +56,14 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     socket = assign(socket, :generate_form, to_form(params, as: :generate))
 
     with :ok <-
-           ensure_upload_completed(socket, :scenario_params_json, "scenario params"),
+           ensure_upload_completed(
+             socket,
+             :scenario_params_json,
+             "scenario params"
+           ),
          {:ok, params_path, filename} <- consume_json_upload(socket, :scenario_params_json),
          {:ok, scenario} <-
-           simulator_module().generate_scenario_from_json(scenario_params: params_path) do
+           FirehoseSimulator.generate_scenario_from_json(scenario_params: params_path) do
       scenario_id = build_scenario_id(params["scenario_name"], filename)
       :ok = State.put_scenario(scenario_id, scenario)
 
@@ -83,7 +87,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
          {:ok, scenario_path, filename} <-
            consume_json_upload(socket, :scenario_json),
          {:ok, scenario} <-
-           simulator_module().import_scenario_from_json(scenario_path) do
+           FirehoseSimulator.import_scenario_from_json(scenario_path) do
       scenario_id = build_scenario_id(params["scenario_name"], filename)
       :ok = State.put_scenario(scenario_id, scenario)
 
@@ -112,7 +116,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
     with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
          {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
-         {:ok, simulation_plan} <- simulator_module().import_simulation_plan_from_json(plan_path) do
+         {:ok, simulation_plan} <- FirehoseSimulator.import_simulation_plan_from_json(plan_path) do
       {:noreply,
        socket
        |> assign(
@@ -132,7 +136,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   def handle_event("import_simulation_plan", _params, socket) do
     with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
          {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
-         {:ok, simulation_plan} <- simulator_module().import_simulation_plan_from_json(plan_path) do
+         {:ok, simulation_plan} <- FirehoseSimulator.import_simulation_plan_from_json(plan_path) do
       {:noreply,
        socket
        |> assign(
@@ -283,10 +287,6 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       end
 
     "#{sanitized}.json"
-  end
-
-  defp simulator_module do
-    Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
   end
 
   defp json_file_kind(:scenario_params_json), do: "scenario_params"

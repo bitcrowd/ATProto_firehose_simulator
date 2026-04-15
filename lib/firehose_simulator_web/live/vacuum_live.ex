@@ -30,7 +30,7 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
        socket
        |> assign(:running_vacuum?, true)
        |> start_async(:run_vacuum, fn ->
-         simulator_module().vacuum(
+         FirehoseSimulator.vacuum(
            delete_userbase?: delete_userbase?,
            delete_posts?: delete_posts?
          )
@@ -84,8 +84,4 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
 
   defp truthy_param?(value) when value in [true, "true", "on", "1"], do: true
   defp truthy_param?(_value), do: false
-
-  defp simulator_module do
-    Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
-  end
 end

@@ -40,13 +40,13 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     with {:ok, offset_ms} <- parse_offset_ms(params),
          {:ok, selected_scenario} <- fetch_selected_scenario(socket),
          {:ok, player_id, _metadata} <-
-           simulator_module().load_with_offset(
+           FirehoseSimulator.load_with_offset(
              selected_scenario.scenario,
              offset_ms,
              scenario_id: selected_scenario.id
            ),
          {:ok, simulation_plan} <-
-           simulator_module().add_and_play_scenario(
+           FirehoseSimulator.add_and_play_scenario(
              selected_scenario.id,
              selected_scenario.scenario,
              offset_ms,
@@ -72,7 +72,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   def handle_event("start", %{"player_id" => player_id}, socket) do
-    case simulator_module().start(player_id) do
+    case FirehoseSimulator.start(player_id) do
       :ok ->
         {:noreply,
          socket
@@ -86,7 +86,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
   end
 
   def handle_event("pause", %{"player_id" => player_id}, socket) do
-    case simulator_module().pause(player_id) do
+    case FirehoseSimulator.pause(player_id) do
       :ok ->
         {:noreply,
          socket
@@ -101,7 +101,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   @impl true
   def handle_event("stop", %{"player_id" => player_id}, socket) do
-    case simulator_module().stop(player_id) do
+    case FirehoseSimulator.stop(player_id) do
       :ok ->
         {:noreply,
          socket
@@ -120,32 +120,24 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   @impl true
   def handle_event("stop_all", _params, socket) do
-    case simulator_module().stop_all() do
-      :ok ->
-        {:noreply,
-         socket
-         |> assign_players()
-         |> assign(:last_action, "All simulation players stopped.")
-         |> put_flash(:info, "All simulation players stopped.")}
+    :ok = FirehoseSimulator.stop_all()
 
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to stop all players: #{inspect(reason)}")}
-    end
+    {:noreply,
+     socket
+     |> assign_players()
+     |> assign(:last_action, "All simulation players stopped.")
+     |> put_flash(:info, "All simulation players stopped.")}
   end
 
   @impl true
   def handle_event("reset_all", _params, socket) do
-    case simulator_module().reset_all() do
-      :ok ->
-        {:noreply,
-         socket
-         |> assign_players()
-         |> assign(:last_action, "All simulation players reset.")
-         |> put_flash(:info, "All simulation players reset.")}
+    :ok = FirehoseSimulator.reset_all()
 
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to reset all players: #{inspect(reason)}")}
-    end
+    {:noreply,
+     socket
+     |> assign_players()
+     |> assign(:last_action, "All simulation players reset.")
+     |> put_flash(:info, "All simulation players reset.")}
   end
 
   defp assign_scenarios(socket, selected_scenario_id) do
@@ -160,10 +152,6 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
     socket
     |> assign(:scenario_ids, scenario_ids)
     |> assign(:selected_scenario_id, selected_scenario_id)
-  end
-
-  defp simulator_module do
-    Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
   end
 
   defp parse_offset_ms(params) when is_map(params) do

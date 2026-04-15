@@ -70,19 +70,21 @@ userbase_path = "priv/simulation/userbase.json"
 Play the plan:
 
 ```elixir
-{:ok, player_id, _result} = FirehoseSimulator.play(scenario)
+:ok = FirehoseSimulator.reset()
+{:ok, player_id, _result} = FirehoseSimulator.load(scenario)
+:ok = FirehoseSimulator.start(player_id)
 ```
 
 You can play multiple plans at the same time: 
 ```elixir
-{:ok, player_id_2, _result} = FirehoseSimulator.play(scenario)
+{:ok, player_id_2, _result} = FirehoseSimulator.load(scenario)
+:ok = FirehoseSimulator.start(player_id_2)
 ```
 
 Stop and reset a specific player:
 
 ```elixir
 :ok = FirehoseSimulator.stop(player_id)
-:ok = FirehoseSimulator.reset(player_id)
 ```
 
 Stop/reset all running players:
@@ -127,7 +129,8 @@ Shift an in-memory scenario by a millisecond offset:
   )
 
 shifted_scenario = FirehoseSimulator.shift_scenario(scenario, 5_000)
-{:ok, _player_id, _result} = FirehoseSimulator.play(shifted_scenario)
+{:ok, shifted_player_id, _result} = FirehoseSimulator.load(shifted_scenario)
+:ok = FirehoseSimulator.start(shifted_player_id)
 ```
 
 Export and re-import full scenario as JSON:

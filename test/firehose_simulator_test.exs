@@ -332,6 +332,66 @@ defmodule FirehoseSimulatorTest do
     end
 
     @tag :tmp_dir
+    test "import_simulation_plan_from_json/1 applies elapsed plan time when a current plan has started",
+         %{tmp_dir: tmp_dir} do
+      scenario_path =
+        write_file!(
+          tmp_dir,
+          "started-import-scenario",
+          """
+          {
+            "posts": [],
+            "sessions": [],
+            "follows": [],
+            "request_interval_ms": 30000
+          }
+          """
+        )
+
+      plan_path =
+        write_file!(
+          tmp_dir,
+          "started-simulation-plan",
+          """
+          {
+            "name": "started-imported-plan",
+            "entries": [
+              {
+                "scenario_name": "started-imported-entry",
+                "scenario_path": "#{Path.basename(scenario_path)}",
+                "offset_ms": 250
+              }
+            ]
+          }
+          """
+        )
+
+      started_at = DateTime.add(DateTime.utc_now(), -2, :second)
+      :ok = FirehoseSimulator.State.put_simulation_plan(%SimulationPlan{started_at: started_at})
+
+      min_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) + 250
+
+      capture_log(fn ->
+        send(self(), {:result, FirehoseSimulator.import_simulation_plan_from_json(plan_path)})
+      end)
+
+      assert_receive {:result, {:ok, %SimulationPlan{} = simulation_plan}}
+
+      max_offset_ms = DateTime.diff(DateTime.utc_now(), started_at, :millisecond) + 250
+
+      assert simulation_plan.name == "started-imported-plan"
+      assert [%Entry{} = entry] = simulation_plan.entries
+      assert entry.scenario_name == "started-imported-entry"
+      assert entry.scenario_path == Path.expand(scenario_path)
+      assert entry.offset_ms >= min_offset_ms
+      assert entry.offset_ms <= max_offset_ms
+      assert %Scenario{source_path: source_path} = entry.scenario
+      assert source_path == entry.scenario_path
+      assert FirehoseSimulator.current_simulation_plan() == simulation_plan
+      assert map_size(FirehoseSimulator.State.list_players()) == 1
+    end
+
+    @tag :tmp_dir
     test "export_simulation_plan_to_json/2 writes a plan through the top-level api", %{
       tmp_dir: tmp_dir
     } do

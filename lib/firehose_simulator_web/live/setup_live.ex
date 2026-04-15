@@ -45,7 +45,7 @@ defmodule FirehoseSimulatorWeb.SetupLive do
        |> assign(:creating_userbase?, true)
        |> assign(:generate_form, to_form(params, as: :generate))
        |> start_async(:create_userbase, fn ->
-         simulator_module().create_userbase(userbase_path)
+         FirehoseSimulator.create_userbase(userbase_path)
        end)}
     else
       {:error, reason} ->
@@ -77,7 +77,7 @@ defmodule FirehoseSimulatorWeb.SetupLive do
        |> assign(:importing_userbase?, true)
        |> assign(:import_form, to_form(params, as: :import))
        |> start_async(:import_userbase, fn ->
-         simulator_module().import_userbase_from_csv(meta_path)
+         FirehoseSimulator.import_userbase_from_csv(meta_path)
        end)}
     else
       {:error, reason} ->
@@ -187,10 +187,6 @@ defmodule FirehoseSimulatorWeb.SetupLive do
 
   defp upload_token do
     System.unique_integer([:positive, :monotonic])
-  end
-
-  defp simulator_module do
-    Application.get_env(:firehose_simulator, :simulator_module, FirehoseSimulator)
   end
 
   defp json_file_kind(:userbase), do: "userbase"
