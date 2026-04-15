@@ -141,6 +141,11 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
           "firehose_simulator_worker_query_window_p95_latency_ms",
           snapshot.worker_query_window_stats.p95_latency_ms
         ),
+        "# TYPE firehose_simulator_worker_query_window_p99_latency_ms gauge\n",
+        metric(
+          "firehose_simulator_worker_query_window_p99_latency_ms",
+          snapshot.worker_query_window_stats.p99_latency_ms
+        ),
         "# TYPE firehose_simulator_worker_query_window_error_rate_pct gauge\n",
         metric(
           "firehose_simulator_worker_query_window_error_rate_pct",

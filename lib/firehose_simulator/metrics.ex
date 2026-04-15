@@ -379,7 +379,8 @@ defmodule FirehoseSimulator.Metrics do
       timeout_count: Map.get(status_counts, "timeout", 0),
       exit_count: Map.get(status_counts, "exit", 0),
       avg_latency_ms: ratio(sum_latency_ms, query_count),
-      p95_latency_ms: percentile_95(latencies),
+      p95_latency_ms: percentile(latencies, 0.95),
+      p99_latency_ms: percentile(latencies, 0.99),
       error_rate_pct:
         ratio(
           Map.get(status_counts, "error", 0) +
@@ -397,12 +398,12 @@ defmodule FirehoseSimulator.Metrics do
     end)
   end
 
-  defp percentile_95([]), do: 0
+  defp percentile([], _quantile), do: 0
 
-  defp percentile_95(latencies) do
+  defp percentile(latencies, quantile) do
     sorted = Enum.sort(latencies)
     n = length(sorted)
-    rank = max(1, ceil(n * 0.95))
+    rank = max(1, ceil(n * quantile))
     Enum.at(sorted, rank - 1, 0)
   end
 

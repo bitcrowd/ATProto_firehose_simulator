@@ -61,6 +61,7 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
     assert body =~ "firehose_simulator_worker_query_by_status{status=\"ok\"}"
     assert body =~ "firehose_simulator_worker_cycle_by_partition{partition=\"0\"}"
     assert body =~ "firehose_simulator_worker_query_window_p95_latency_ms"
+    assert body =~ "firehose_simulator_worker_query_window_p99_latency_ms"
     assert body =~ "firehose_simulator_active_sessions"
   end
 end

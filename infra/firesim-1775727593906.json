@@ -395,7 +395,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_p95_latency_ms",
+          "expr": "firehose_simulator_worker_query_window_p99_latency_ms",
           "instant": false,
           "legendFormat": "p99 get_timeline",
           "range": true,
@@ -554,7 +554,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "   rate(firehose_simulator_worker_cycle_duration_ms_total[1m]) / rate(firehose_simulator_worker_cycle_total[1m])",
+          "expr": "firehose_simulator_worker_query_window_p99_latency_ms",
           "instant": false,
           "legendFormat": "P99",
           "range": true,
