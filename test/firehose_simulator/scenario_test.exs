@@ -66,15 +66,8 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert Enum.all?(follows, &(&1.offset_ms < 3_600_000))
     end
 
-    test "returns nil for sections without a path" do
-      assert {:ok,
-              %Scenario{
-                posts: nil,
-                sessions: nil,
-                follows: nil,
-                request_interval_ms: 30_000,
-                timeline_limit: 20
-              }} =
+    test "requires a scenario_params path" do
+      assert {:error, "scenario_params path is required"} =
                Scenario.generate_from_json([])
     end
 

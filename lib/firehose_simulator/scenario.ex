@@ -42,10 +42,8 @@ defmodule FirehoseSimulator.Scenario do
 
   @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json(opts) when is_list(opts) do
-    params_path =
-      Keyword.get(opts, :scenario_params) || Keyword.get(opts, :params)
-
-    with {:ok, params} <- load_scenario_params(params_path) do
+    with {:ok, params_path} <- scenario_params_path(opts),
+         {:ok, params} <- load_scenario_params(params_path) do
       seed = seed(params)
       time_units = time_units(params)
       unit_duration_ms = time_unit_duration_ms(params)
@@ -105,8 +103,6 @@ defmodule FirehoseSimulator.Scenario do
     }
   end
 
-  defp load_scenario_params(nil), do: {:ok, %ScenarioParams{}}
-
   defp load_scenario_params(path) when is_binary(path) do
     Logger.info("loading scenario params json file: #{path}")
     :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "scenario_params"})
@@ -119,6 +115,13 @@ defmodule FirehoseSimulator.Scenario do
 
   defp load_scenario_params(_path),
     do: {:error, "scenario_params path must be a string"}
+
+  defp scenario_params_path(opts) when is_list(opts) do
+    case Keyword.get(opts, :scenario_params) do
+      path when is_binary(path) -> {:ok, path}
+      _other -> {:error, "scenario_params path is required"}
+    end
+  end
 
   defp build_posts(
          %ScenarioParams{posts_params: nil},

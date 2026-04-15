@@ -16,11 +16,19 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.SimulationPlan.JSON
 
   setup do
+    runs_root =
+      Path.join(
+        System.tmp_dir!(),
+        "firehose-simulator-runs-#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    Application.put_env(:firehose_simulator, :runs_root, runs_root)
     :ok = FirehoseSimulator.stop_all()
     :ok = FirehoseSimulator.State.clear_players()
     :ok = FirehoseSimulator.State.reset_all()
 
     on_exit(fn ->
+      Application.delete_env(:firehose_simulator, :runs_root)
       :ok = FirehoseSimulator.stop_all()
       :ok = FirehoseSimulator.State.clear_players()
       :ok = FirehoseSimulator.State.reset_all()
@@ -90,7 +98,8 @@ defmodule FirehoseSimulatorTest do
                FirehoseSimulator.import_scenario_from_json(output_path)
 
       assert %{reloaded | source_path: nil} == %{scenario | source_path: nil}
-      assert reloaded.source_path == Path.expand(output_path)
+      assert String.contains?(reloaded.source_path, "firehose-simulator-runs-")
+      assert File.exists?(reloaded.source_path)
     end
   end
 
@@ -237,14 +246,18 @@ defmodule FirehoseSimulatorTest do
 
       assert simulation_plan.export_path
       assert File.exists?(simulation_plan.export_path)
+      assert String.contains?(simulation_plan.export_path, "firehose-simulator-runs-")
       assert FirehoseSimulator.current_simulation_plan() == simulation_plan
 
-      assert %Scenario{source_path: ^scenario_path} =
+      assert %Scenario{source_path: stored_scenario_path} =
                FirehoseSimulator.State.list_scenarios()["added-scenario"]
+
+      assert String.contains?(stored_scenario_path, "firehose-simulator-runs-")
+      assert File.exists?(stored_scenario_path)
 
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "added-scenario"
-      assert entry.scenario_path == scenario_path
+      assert entry.scenario_path == stored_scenario_path
       assert entry.offset_ms == 250
     end
 
@@ -271,7 +284,7 @@ defmodule FirehoseSimulatorTest do
       assert entry.offset_ms == 0
       assert is_binary(entry.scenario_path)
       assert entry.scenario_path != ""
-      assert String.starts_with?(entry.scenario_path, System.tmp_dir!())
+      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
       assert File.exists?(entry.scenario_path)
 
       assert %Scenario{source_path: source_path} =
@@ -330,7 +343,8 @@ defmodule FirehoseSimulatorTest do
 
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "imported-entry"
-      assert entry.scenario_path == Path.expand(scenario_path)
+      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert File.exists?(entry.scenario_path)
       assert %Scenario{source_path: source_path} = entry.scenario
       assert source_path == entry.scenario_path
       assert FirehoseSimulator.current_simulation_plan() == simulation_plan
@@ -384,7 +398,8 @@ defmodule FirehoseSimulatorTest do
       assert simulation_plan.name == "started-imported-plan"
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "started-imported-entry"
-      assert entry.scenario_path == Path.expand(scenario_path)
+      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert File.exists?(entry.scenario_path)
       assert entry.offset_ms >= min_offset_ms
       assert entry.offset_ms <= max_offset_ms
       assert %Scenario{source_path: source_path} = entry.scenario
@@ -437,7 +452,7 @@ defmodule FirehoseSimulatorTest do
       assert simulation_plan.name == "preloaded-imported-plan"
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "preloaded-entry"
-      assert entry.scenario_path == Path.expand(scenario_path)
+      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
       assert entry.offset_ms == -100_000
       assert map_size(FirehoseSimulator.State.list_players()) == 0
       assert row_delta(before_counts, Actor) == 2

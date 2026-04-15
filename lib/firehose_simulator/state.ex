@@ -3,6 +3,7 @@ defmodule FirehoseSimulator.State do
 
   use GenServer
 
+  alias FirehoseSimulator.RunStorage
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
 
@@ -10,6 +11,7 @@ defmodule FirehoseSimulator.State do
           scenarios: %{optional(String.t()) => Scenario.t()},
           players: %{optional(String.t()) => map()},
           simulation_plan: SimulationPlan.t(),
+          run_storage_directory: String.t(),
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -47,6 +49,11 @@ defmodule FirehoseSimulator.State do
   @spec get_simulation_plan() :: SimulationPlan.t()
   def get_simulation_plan do
     GenServer.call(__MODULE__, :get_simulation_plan)
+  end
+
+  @spec get_run_storage_directory() :: %{run_dir: String.t()} | nil
+  def get_run_storage_directory do
+    GenServer.call(__MODULE__, :get_run_storage_directory)
   end
 
   def put_simulation_plan(%SimulationPlan{} = simulation_plan) do
@@ -133,6 +140,10 @@ defmodule FirehoseSimulator.State do
     {:reply, state.simulation_plan, state}
   end
 
+  def handle_call(:get_run_storage_directory, _from, state) do
+    {:reply, state.run_storage_directory, state}
+  end
+
   def handle_call({:put_simulation_plan, simulation_plan}, _from, state) do
     {:reply, :ok, %{state | simulation_plan: simulation_plan}}
   end
@@ -175,11 +186,14 @@ defmodule FirehoseSimulator.State do
 
   defp default_state do
     {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
+    run_storage_directory = RunStorage.timestamped_directory()
+    File.mkdir_p!(run_storage_directory)
 
     %{
       scenarios: %{},
       players: %{},
       simulation_plan: simulation_plan,
+      run_storage_directory: run_storage_directory,
       userbase_uploaded?: false,
       userbase_result: nil
     }

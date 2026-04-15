@@ -10,6 +10,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.BaseData.UserbaseExport
   alias FirehoseSimulator.BaseData.UserbaseImport
   alias FirehoseSimulator.Player
+  alias FirehoseSimulator.RunStorage
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
@@ -25,7 +26,9 @@ defmodule FirehoseSimulator do
 
   @spec create_userbase(String.t()) :: {:ok, map()} | {:error, String.t()}
   def create_userbase(path) when is_binary(path) do
-    with {:ok, userbase} <- load_userbase(path),
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, userbase} <- load_userbase(path),
+         {:ok, _stored_path} <- RunStorage.store_userbase_file(run_directory, path),
          {:ok, result} <- do_create_userbase(userbase) do
       {:ok, result}
     end
@@ -33,7 +36,10 @@ defmodule FirehoseSimulator do
 
   @spec export_userbase_to_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
   def export_userbase_to_csv(path) when is_binary(path) do
-    export_userbase_to_csv(path, UserbaseExport.default_export_root())
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, export_root} <- RunStorage.default_userbase_export_root(run_directory) do
+      export_userbase_to_csv(path, export_root)
+    end
   end
 
   @spec export_userbase_to_csv(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
@@ -54,7 +60,11 @@ defmodule FirehoseSimulator do
 
   @spec import_userbase_from_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
   def import_userbase_from_csv(meta_path) when is_binary(meta_path) do
-    do_import_userbase_from_csv(meta_path)
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, result} <- do_import_userbase_from_csv(meta_path),
+         {:ok, stored_path} <- RunStorage.store_userbase_manifest(run_directory, meta_path) do
+      {:ok, Map.put(result, :run_userbase_meta_path, stored_path)}
+    end
   end
 
   @spec bulk_create_scenario(Scenario.t()) :: {:ok, map()} | {:error, String.t()}
@@ -168,11 +178,19 @@ defmodule FirehoseSimulator do
   def generate_scenario_from_json(opts) do
     Logger.info("generating scenario from params json file: #{inspect(opts)}")
 
-    case Scenario.generate_from_json(opts) do
-      {:ok, scenario} ->
-        Logger.info("generated scenario sections")
-        {:ok, scenario}
-
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, params_path} <- scenario_params_path(opts),
+         {:ok, scenario} <- Scenario.generate_from_json(opts),
+         {:ok, _params_copy} <- store_scenario_params(run_directory, params_path),
+         {:ok, scenario_path} <-
+           RunStorage.store_scenario(
+             run_directory,
+             scenario,
+             scenario_name_from_path(params_path)
+           ) do
+      Logger.info("generated scenario sections")
+      {:ok, %{scenario | source_path: scenario_path}}
+    else
       {:error, reason} ->
         Logger.error("failed to generate scenario from json: #{reason}")
         {:error, reason}
@@ -183,7 +201,13 @@ defmodule FirehoseSimulator do
           {:ok, Scenario.t()} | {:error, String.t()}
   def import_scenario_from_json(path) when is_binary(path) do
     Logger.info("importing scenario from json file: #{path}")
-    Scenario.from_json_file(path)
+
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, scenario} <- Scenario.from_json_file(path),
+         {:ok, scenario_path} <-
+           RunStorage.store_scenario(run_directory, scenario, scenario_name_from_path(path)) do
+      {:ok, %{scenario | source_path: scenario_path}}
+    end
   end
 
   @spec export_scenario_to_json(Scenario.t(), String.t()) ::
@@ -224,16 +248,31 @@ defmodule FirehoseSimulator do
 
     with {:ok, simulation_plan, imported_entries} <-
            SimulationPlan.JSON.import_from_json(path, current_plan, offset_ms),
+         {:ok, run_directory} <- run_storage_directory(),
+         {:ok, simulation_plan} <-
+           RunStorage.localize_plan_entries(run_directory, simulation_plan),
+         imported_entries <-
+           localize_imported_entries(imported_entries, simulation_plan, current_plan),
          {past_entries, future_entries} <- split_past_and_future_entries(imported_entries),
          :ok <- bulk_create_entries(past_entries, offset_ms),
-         :ok <- load_entries(future_entries, offset_ms) do
-      :ok = State.put_simulation_plan(simulation_plan)
-      {:ok, simulation_plan}
+         :ok <- load_entries(future_entries, offset_ms),
+         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan) do
+      updated_plan = %{simulation_plan | export_path: export_path}
+      :ok = State.put_simulation_plan(updated_plan)
+      {:ok, updated_plan}
     else
       {:error, reason} = error ->
         Logger.error("failed to import simulation plan from json #{path}: #{inspect(reason)}")
         error
     end
+  end
+
+  defp localize_imported_entries(imported_entries, simulation_plan, current_plan) do
+    localized_entries = Enum.drop(simulation_plan.entries, length(current_plan.entries))
+
+    Enum.zip_with(imported_entries, localized_entries, fn imported_entry, localized_entry ->
+      %{preload?: imported_entry.preload?, entry: localized_entry}
+    end)
   end
 
   defp split_past_and_future_entries(entries) do
@@ -326,7 +365,8 @@ defmodule FirehoseSimulator do
       when is_binary(scenario_name) and is_integer(submitted_offset_ms) do
     current_plan = State.get_simulation_plan()
 
-    with {:ok, scenario_path, scenario} <- ensure_scenario_path(scenario, scenario_path),
+    with {:ok, scenario_path, scenario} <-
+           ensure_scenario_path(scenario, scenario_path, scenario_name),
          {:ok, simulation_plan, entry} <-
            SimulationPlan.add_scenario(
              current_plan,
@@ -335,8 +375,8 @@ defmodule FirehoseSimulator do
              submitted_offset_ms,
              scenario_path
            ),
-         {:ok, export_path} <-
-           SimulationPlan.JSON.export_to_file(simulation_plan) do
+         {:ok, run_directory} <- run_storage_directory(),
+         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan) do
       simulation_plan = %{simulation_plan | export_path: export_path}
       :ok = State.put_simulation_plan(simulation_plan)
       :ok = State.put_scenario(scenario_name, %{scenario | source_path: entry.scenario_path})
@@ -344,28 +384,46 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp ensure_scenario_path(%Scenario{} = scenario, scenario_path)
+  defp ensure_scenario_path(%Scenario{} = scenario, scenario_path, scenario_name)
        when is_binary(scenario_path) do
     case String.trim(scenario_path) do
-      "" -> export_generated_scenario(scenario)
-      path -> {:ok, path, %{scenario | source_path: path}}
+      "" -> export_generated_scenario(scenario, scenario_name)
+      _path -> export_generated_scenario(scenario, scenario_name)
     end
   end
 
-  defp ensure_scenario_path(%Scenario{} = scenario, _scenario_path),
-    do: export_generated_scenario(scenario)
+  defp ensure_scenario_path(%Scenario{} = scenario, _scenario_path, scenario_name),
+    do: export_generated_scenario(scenario, scenario_name)
 
-  defp export_generated_scenario(%Scenario{} = scenario) do
-    path =
-      Path.join(
-        System.tmp_dir!(),
-        "firehose-scenario-#{System.unique_integer([:positive])}.json"
-      )
-
-    case export_scenario_to_json(scenario, path) do
-      :ok -> {:ok, path, %{scenario | source_path: path}}
-      {:error, reason} -> {:error, reason}
+  defp export_generated_scenario(%Scenario{} = scenario, scenario_name) do
+    with {:ok, run_directory} <- run_storage_directory(),
+         {:ok, path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
+      {:ok, path, %{scenario | source_path: path}}
     end
+  end
+
+  defp store_scenario_params(run_directory, path)
+       when is_binary(run_directory) and is_binary(path) do
+    RunStorage.store_scenario_params(run_directory, path, name: scenario_name_from_path(path))
+  end
+
+  defp scenario_params_path(opts) when is_list(opts) do
+    case Keyword.get(opts, :scenario_params) do
+      path when is_binary(path) -> {:ok, path}
+      _other -> {:error, "scenario_params path is required"}
+    end
+  end
+
+  defp scenario_name_from_path(nil), do: nil
+
+  defp scenario_name_from_path(path) when is_binary(path) do
+    path
+    |> Path.basename()
+    |> Path.rootname()
+  end
+
+  defp run_storage_directory do
+    {:ok, State.get_run_storage_directory()}
   end
 
   # Player

@@ -9,9 +9,17 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   alias FirehoseSimulator.State
 
   setup do
+    runs_root =
+      Path.join(
+        System.tmp_dir!(),
+        "firehose-simulator-live-runs-#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    Application.put_env(:firehose_simulator, :runs_root, runs_root)
     :ok = State.reset_all()
 
     on_exit(fn ->
+      Application.delete_env(:firehose_simulator, :runs_root)
       :ok = State.reset_all()
     end)
 
