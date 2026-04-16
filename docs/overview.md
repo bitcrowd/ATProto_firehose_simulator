@@ -49,7 +49,7 @@ Example:
  ```elixir
 simulation_plan = [
    %{scenario_name: "saturday morning", path: "saturday_morning.json", offset_ms: 0},
-   %{scenario_name: "shitstorm", path: "shitstom.json", offset_ms: 100_000}
+   %{scenario_name: "shitstorm", path: "shitstorm.json", offset_ms: 100_000}
 ]
 ```
 
