@@ -27,7 +27,7 @@ config :firehose_simulator, FirehoseSimulator.Repo,
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
   # Binding to loopback ipv6 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}],
+  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -40,7 +40,7 @@ config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
 config :firehose_simulator, PLCWeb.Endpoint,
   # Binding to loopback ipv6 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}],
+  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -53,7 +53,7 @@ config :firehose_simulator, PLCWeb.Endpoint,
 config :firehose_simulator, PDSWeb.Endpoint,
   # Binding to loopback ipv6 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {0, 0, 0, 0, 0, 0, 0, 1}],
+  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

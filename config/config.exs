@@ -15,7 +15,7 @@ config :firehose_simulator,
 
 # Configure the endpoint
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "127.0.0.1"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
@@ -26,7 +26,7 @@ config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
 
 # Configure the endpoint
 config :firehose_simulator, PLCWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "127.0.0.1"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: PLCWeb.ErrorHTML, json: PLCWeb.ErrorJSON],
@@ -36,7 +36,7 @@ config :firehose_simulator, PLCWeb.Endpoint,
   live_view: [signing_salt: "i6CxHF/S"]
 
 config :firehose_simulator, PDSWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "127.0.0.1"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
