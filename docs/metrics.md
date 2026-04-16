@@ -1,77 +1,102 @@
 # Metrics
 
-## Purpose
+The simulator provides metrics for plan loading, player lifecycle, event feeding, worker throughput, and worker lag.
+A Prometheus and Grafana setup with Docker compose and a Grafana dashboard are available under `infra/`.
 
-Metrics provide runtime observability for plan loading and live playback activity.
+## Prometheus Metrics
 
-## Modules and Assets
+### Lifecycle And Player State
 
-- `FirehoseSimulator.Metrics`
-- `FirehoseSimulator.PrometheusExporter`
-- `FirehoseSimulatorWeb.MetricsLive`
-- `infra/prometheus.yml`
-- `infra/docker-compose.yml` (Prometheus/Grafana local stack)
-- `infra/firesim-1775727593906.json` (portable Grafana dashboard import)
+| Metric                                                       | Type    | Meaning                                                                                              |
+| ---                                                          | ---     | ---                                                                                                  |
+| `firehose_simulator_json_files_loaded_total`                 | counter | Number of JSON plan files loaded into the app.                                                       |
+| `firehose_simulator_player_load_total`                       | counter | Number of player load actions processed.                                                             |
+| `firehose_simulator_player_start_total`                      | counter | Number of player start actions processed.                                                            |
+| `firehose_simulator_player_pause_total`                      | counter | Number of player pause actions processed.                                                            |
+| `firehose_simulator_player_stop_total`                       | counter | Number of player stop actions processed.                                                             |
+| `firehose_simulator_active_sessions`                         | gauge   | Current total number of active sessions across all players derived from telemetry-fed metrics state. |
+| `firehose_simulator_player_active_sessions{player_id="..."}` | gauge   | Current number of active sessions for one player derived from telemetry-fed metrics state.           |
 
-## Public Interfaces
+### Event Feeder Metrics
 
-- `FirehoseSimulator.Metrics.increment/2`
-- `FirehoseSimulator.Metrics.snapshot/0`
-- HTTP `GET /metrics` served by `FirehoseSimulator.PrometheusExporter`
+| Metric                                                     | Type    | Meaning                                                            |
+| ---                                                        | ---     | ---                                                                |
+| `firehose_simulator_event_feeder_inject_total`             | counter | Number of event feeder inject cycles run.                          |
+| `firehose_simulator_event_feeder_sessions_started_total`   | counter | Total sessions started by inject cycles.                           |
+| `firehose_simulator_event_feeder_posts_dispatch_total`     | counter | Number of post dispatch batches attempted.                         |
+| `firehose_simulator_event_feeder_posts_dispatched_total`   | counter | Total post events dispatched across all post dispatch batches.     |
+| `firehose_simulator_event_feeder_posts_complete_total`     | counter | Number of post completion batches recorded.                        |
+| `firehose_simulator_event_feeder_posts_ok_total`           | counter | Total post events completed successfully.                          |
+| `firehose_simulator_event_feeder_posts_error_total`        | counter | Total post events completed with error.                            |
+| `firehose_simulator_event_feeder_follows_dispatch_total`   | counter | Number of follow dispatch batches attempted.                       |
+| `firehose_simulator_event_feeder_follows_dispatched_total` | counter | Total follow events dispatched across all follow dispatch batches. |
+| `firehose_simulator_event_feeder_follows_complete_total`   | counter | Number of follow completion batches recorded.                      |
+| `firehose_simulator_event_feeder_follows_ok_total`         | counter | Total follow events completed successfully.                        |
+| `firehose_simulator_event_feeder_follows_error_total`      | counter | Total follow events completed with error.                          |
 
-## Telemetry and Metric Parameters
+### Worker Query Totals
 
-Detailed emitted telemetry event inventory and event-to-metric mapping:
+| Metric                                                                            | Type    | Meaning                                                      |
+| ---                                                                               | ---     | ---                                                          |
+| `firehose_simulator_worker_query_total`                                           | counter | Total worker query executions.                               |
+| `firehose_simulator_worker_query_rows_total`                                      | counter | Total rows returned across worker queries.                   |
+| `firehose_simulator_worker_query_latency_ms_total`                                | counter | Sum of worker query latency in milliseconds.                 |
+| `firehose_simulator_worker_query_by_status{status="ok\\|timeout\\|exit\\|error"}` | gauge   | Current cumulative query count grouped by normalized status. |
 
-- `docs/telemetry-events.md`
+### Worker Query Lag Histogram
 
-### Telemetry Events Consumed
+| Metric                                                                           | Type             | Meaning                                                                        |
+| ---                                                                              | ---              | ---                                                                            |
+| `firehose_simulator_worker_query_lag_ms_bucket{kind="session_request",le="..."}` | histogram bucket | Cumulative count of worker query lag samples at or below each bucket boundary. |
+| `firehose_simulator_worker_query_lag_ms_count{kind="session_request"}`           | histogram count  | Total number of worker query lag samples.                                      |
+| `firehose_simulator_worker_query_lag_ms_sum{kind="session_request"}`             | histogram sum    | Sum of all worker query lag values in milliseconds.                            |
 
-- `[:firehose_simulator, :event_feeder, :inject]`
-- `[:firehose_simulator, :event_feeder, :posts, :dispatch]`
-- `[:firehose_simulator, :event_feeder, :posts, :complete]`
-- `[:firehose_simulator, :event_feeder, :follows, :dispatch]`
-- `[:firehose_simulator, :event_feeder, :follows, :complete]`
-- `[:firehose_simulator, :worker, :query]`
-- `[:firehose_simulator, :worker, :cycle]`
+Histogram bucket boundaries:
 
-### Core Counters
+| `le` value |
+| ---        |
+| `0`        |
+| `10`       |
+| `50`       |
+| `100`      |
+| `500`      |
+| `1000`     |
+| `5000`     |
+| `10000`    |
+| `+Inf`     |
 
-- JSON load count
-- Player start/stop/reset counts
-- Event feeder session injection totals
-- Event feeder post/follow dispatch and completion totals
-- Worker query totals (count, rows, latency, lag)
-- Worker cycle totals (count, session_count, ok/errors/completed/timeouts, duration)
+Lag here means how far behind schedule the worker was when handling a due session request.
 
-### Labelled and Windowed Metrics
+### Worker Cycle Totals
 
-- query totals by status (`ok`, `timeout`, `exit`, `error`)
-- worker query lag histogram with `kind="session_request"` buckets at `0`, `10`, `50`, `100`, `500`, `1000`, `5000`, `10000`, and `+Inf`
-- cycle totals by partition
-- rolling worker query window stats over the configured window (`@worker_query_window_ms`, currently 60_000 ms), including latency and lag summaries
+| Metric                                                          | Type    | Meaning                                                            |
+| ---                                                             | ---     | ---                                                                |
+| `firehose_simulator_worker_cycle_total`                         | counter | Total worker cycles run.                                           |
+| `firehose_simulator_worker_cycle_session_count_total`           | counter | Total due sessions processed across worker cycles.                 |
+| `firehose_simulator_worker_cycle_ok_total`                      | counter | Total successful session operations across worker cycles.          |
+| `firehose_simulator_worker_cycle_errors_total`                  | counter | Total errored session operations across worker cycles.             |
+| `firehose_simulator_worker_cycle_completed_total`               | counter | Total sessions marked completed across worker cycles.              |
+| `firehose_simulator_worker_cycle_timeouts_total`                | counter | Total timed-out session operations across worker cycles.           |
+| `firehose_simulator_worker_cycle_duration_ms_total`             | counter | Sum of worker cycle durations in milliseconds.                     |
+| `firehose_simulator_worker_cycle_by_partition{partition="..."}` | gauge   | Current cumulative worker cycle count grouped by worker partition. |
 
-## Runtime Behavior
+### Rolling Worker Query Window
 
-1. `Metrics` starts as a GenServer and attaches telemetry handlers.
-2. Application code and telemetry events update counters through async casts.
-3. `snapshot/0` prunes stale query-window samples and returns a presentable state map.
-4. `PrometheusExporter` converts snapshot values into Prometheus text format.
-5. `/metrics` returns `text/plain` with counters and gauges; unknown routes return 404 in the plug.
+These gauges are computed from the last 60 seconds of worker query samples at scrape time.
 
-## Failure and Edge Behavior
+| Metric                                                    | Type  | Meaning                                                                                        |
+| ---                                                       | ---   | ---                                                                                            |
+| `firehose_simulator_worker_query_window_query_count`      | gauge | Number of worker query samples currently in the 60-second window.                              |
+| `firehose_simulator_worker_query_window_avg_latency_ms`   | gauge | Average worker query latency in the current window.                                            |
+| `firehose_simulator_worker_query_window_p95_latency_ms`   | gauge | 95th percentile worker query latency in the current window.                                    |
+| `firehose_simulator_worker_query_window_p99_latency_ms`   | gauge | 99th percentile worker query latency in the current window.                                    |
+| `firehose_simulator_worker_query_window_avg_lag_ms`       | gauge | Average worker query lag in the current window.                                                |
+| `firehose_simulator_worker_query_window_p95_lag_ms`       | gauge | 95th percentile worker query lag in the current window.                                        |
+| `firehose_simulator_worker_query_window_max_lag_ms`       | gauge | Maximum worker query lag in the current window.                                                |
+| `firehose_simulator_worker_query_window_error_rate_pct`   | gauge | Error rate for the current window, where `error`, `timeout`, and `exit` all count as failures. |
+| `firehose_simulator_worker_query_window_timeout_rate_pct` | gauge | Timeout rate for the current window.                                                           |
+| `firehose_simulator_worker_query_window_ok_count`         | gauge | Number of `ok` query samples in the current window.                                            |
+| `firehose_simulator_worker_query_window_error_count`      | gauge | Number of `error` query samples in the current window.                                         |
+| `firehose_simulator_worker_query_window_timeout_count`    | gauge | Number of `timeout` query samples in the current window.                                       |
+| `firehose_simulator_worker_query_window_exit_count`       | gauge | Number of `exit` query samples in the current window.                                          |
 
-- Telemetry handler re-attachment handles `:already_exists` by detach/attach.
-- Empty labelled maps are exported as a sentinel label/value pair (`...{label="none"} 0`).
-- Non-integer measurement inputs are normalized to `0` in aggregation helpers.
-- Query lag is measured as `max(now_ms - session.next_request_at, 0)` when the worker starts handling the due session.
-
-## Grafana Dashboard Import
-
-- Import `infra/firesim-1775727593906.json` through Grafana's dashboard import flow.
-- The dashboard uses Grafana's `${DS_PROMETHEUS}` datasource input placeholder instead of a hardcoded datasource UID.
-- On import, map `DS_PROMETHEUS` to the Prometheus datasource available in that Grafana instance.
-- If you re-export the dashboard from Grafana, check the JSON before committing it:
-  - there should be no concrete Prometheus datasource UIDs
-  - the file should still contain `${DS_PROMETHEUS}`
-  - panel targets should inherit the panel datasource instead of carrying their own datasource overrides
