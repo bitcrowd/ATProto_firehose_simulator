@@ -59,6 +59,12 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       summary("vm.total_run_queue_lengths.io"),
 
       # Firehose Simulator Metrics
+      counter("firehose_simulator.json.file.loaded.count"),
+      counter("firehose_simulator.player.load.count"),
+      counter("firehose_simulator.player.start.count"),
+      counter("firehose_simulator.player.pause.count"),
+      counter("firehose_simulator.player.stop.count"),
+      sum("firehose_simulator.player.stop.active_sessions_cleared"),
       counter("firehose_simulator.event_feeder.inject.count"),
       sum("firehose_simulator.event_feeder.inject.sessions_started"),
       summary("firehose_simulator.event_feeder.inject.elapsed_ms",

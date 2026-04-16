@@ -8,6 +8,11 @@ defmodule FirehoseSimulator.Metrics do
   @handler_id "firehose-simulator-metrics"
   @worker_query_lag_buckets [0, 10, 50, 100, 500, 1_000, 5_000, 10_000]
   @telemetry_events [
+    [:firehose_simulator, :json, :file, :loaded],
+    [:firehose_simulator, :player, :load],
+    [:firehose_simulator, :player, :start],
+    [:firehose_simulator, :player, :pause],
+    [:firehose_simulator, :player, :stop],
     [:firehose_simulator, :event_feeder, :inject],
     [:firehose_simulator, :event_feeder, :posts, :dispatch],
     [:firehose_simulator, :event_feeder, :posts, :complete],
@@ -28,11 +33,6 @@ defmodule FirehoseSimulator.Metrics do
   @spec snapshot() :: snapshot()
   def snapshot do
     GenServer.call(__MODULE__, :snapshot)
-  end
-
-  @spec increment(atom(), map()) :: :ok
-  def increment(metric, metadata \\ %{}) when is_atom(metric) and is_map(metadata) do
-    GenServer.cast(__MODULE__, {:increment, metric, metadata})
   end
 
   @impl true
@@ -75,41 +75,74 @@ defmodule FirehoseSimulator.Metrics do
   end
 
   @impl true
-  def handle_cast({:increment, metric, metadata}, state) do
+  def handle_cast({:telemetry_json_file_loaded, measurements, metadata}, state) do
     next_state =
-      case metric do
-        :json_files_loaded ->
-          Map.update!(state, :json_files_loaded, &(&1 + 1))
-
-        :player_load ->
-          Map.update!(state, :player_load, &(&1 + 1))
-
-        :player_start ->
-          Map.update!(state, :player_start, &(&1 + 1))
-
-        :player_pause ->
-          Map.update!(state, :player_pause, &(&1 + 1))
-
-        :player_stop ->
-          Map.update!(state, :player_stop, &(&1 + 1))
-
-        _other ->
-          state
-      end
+      Map.update!(state, :json_files_loaded, &(&1 + measurement_value(measurements, :count)))
 
     Logger.info(
-      "[metrics] #{metric}=#{metric_value(next_state, metric)} metadata=#{inspect(metadata)}"
+      "[metrics] json.file.loaded total=#{next_state.json_files_loaded} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
     {:noreply, next_state}
   end
 
   @impl true
+  def handle_cast({:telemetry_player_load, measurements, metadata}, state) do
+    next_state =
+      Map.update!(state, :player_load, &(&1 + measurement_value(measurements, :count)))
+
+    Logger.info(
+      "[metrics] player.load total=#{next_state.player_load} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_player_start, measurements, metadata}, state) do
+    next_state =
+      Map.update!(state, :player_start, &(&1 + measurement_value(measurements, :count)))
+
+    Logger.info(
+      "[metrics] player.start total=#{next_state.player_start} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_player_pause, measurements, metadata}, state) do
+    next_state =
+      Map.update!(state, :player_pause, &(&1 + measurement_value(measurements, :count)))
+
+    Logger.info(
+      "[metrics] player.pause total=#{next_state.player_pause} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
+  def handle_cast({:telemetry_player_stop, measurements, metadata}, state) do
+    cleared = measurement_value(measurements, :active_sessions_cleared)
+
+    next_state =
+      state
+      |> Map.update!(:player_stop, &(&1 + measurement_value(measurements, :count)))
+      |> drop_active_sessions(player_id(metadata), cleared)
+
+    Logger.info(
+      "[metrics] player.stop total=#{next_state.player_stop} cleared=#{cleared} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+    )
+
+    {:noreply, next_state}
+  end
+
   def handle_cast({:telemetry_event_feeder_inject, measurements, metadata}, state) do
+    sessions_started = measurement_value(measurements, :sessions_started)
+
     next_state =
       state
       |> Map.update!(:event_feeder_inject_count, &(&1 + 1))
       |> add_measurement(:event_feeder_sessions_started, measurements, :sessions_started)
+      |> update_active_sessions(player_id(metadata), sessions_started)
 
     Logger.info(
       "[metrics] event_feeder.inject count=#{next_state.event_feeder_inject_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
@@ -202,6 +235,7 @@ defmodule FirehoseSimulator.Metrics do
 
   def handle_cast({:telemetry_worker_cycle, measurements, metadata}, state) do
     partition = normalize_partition(metadata)
+    completed = measurement_value(measurements, :completed)
 
     next_state =
       state
@@ -215,6 +249,7 @@ defmodule FirehoseSimulator.Metrics do
       |> Map.update!(:worker_cycle_by_partition, fn acc ->
         Map.update(acc, partition, 1, &(&1 + 1))
       end)
+      |> update_active_sessions(player_id(metadata), -completed)
 
     Logger.info(
       "[metrics] worker.cycle count=#{next_state.worker_cycle_count} partition=#{partition} measurements=#{inspect(measurements)}"
@@ -224,6 +259,51 @@ defmodule FirehoseSimulator.Metrics do
   end
 
   @doc false
+  def handle_telemetry(
+        [:firehose_simulator, :json, :file, :loaded],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_json_file_loaded, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :player, :load],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_player_load, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :player, :start],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_player_start, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :player, :pause],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_player_pause, measurements, metadata})
+  end
+
+  def handle_telemetry(
+        [:firehose_simulator, :player, :stop],
+        measurements,
+        metadata,
+        _config
+      ) do
+    GenServer.cast(__MODULE__, {:telemetry_player_stop, measurements, metadata})
+  end
+
   def handle_telemetry(
         [:firehose_simulator, :event_feeder, :inject],
         measurements,
@@ -298,6 +378,8 @@ defmodule FirehoseSimulator.Metrics do
       player_start: 0,
       player_pause: 0,
       player_stop: 0,
+      active_sessions_total: 0,
+      active_sessions_by_player: %{},
       event_feeder_inject_count: 0,
       event_feeder_sessions_started: 0,
       event_feeder_posts_dispatch_count: 0,
@@ -352,6 +434,13 @@ defmodule FirehoseSimulator.Metrics do
     metadata
     |> Map.get(:partition, "unknown")
     |> to_string()
+  end
+
+  defp player_id(metadata) do
+    case Map.get(metadata, :player_id) do
+      player_id when is_binary(player_id) -> player_id
+      _other -> nil
+    end
   end
 
   defp prune_worker_query_window(state, now_ms) do
@@ -441,14 +530,31 @@ defmodule FirehoseSimulator.Metrics do
     Map.update!(counts, "+Inf", &(&1 + 1))
   end
 
-  defp metric_value(state, metric) do
-    case metric do
-      :json_files_loaded -> state.json_files_loaded
-      :player_load -> state.player_load
-      :player_start -> state.player_start
-      :player_pause -> state.player_pause
-      :player_stop -> state.player_stop
-      _other -> "n/a"
-    end
+  defp update_active_sessions(state, nil, _delta), do: state
+
+  defp update_active_sessions(state, _player_id, 0), do: state
+
+  defp update_active_sessions(state, player_id, delta) when is_binary(player_id) do
+    next_total = max(state.active_sessions_total + delta, 0)
+
+    next_by_player =
+      case max(Map.get(state.active_sessions_by_player, player_id, 0) + delta, 0) do
+        0 -> Map.delete(state.active_sessions_by_player, player_id)
+        count -> Map.put(state.active_sessions_by_player, player_id, count)
+      end
+
+    %{state | active_sessions_total: next_total, active_sessions_by_player: next_by_player}
+  end
+
+  defp drop_active_sessions(state, nil, cleared) do
+    %{state | active_sessions_total: max(state.active_sessions_total - cleared, 0)}
+  end
+
+  defp drop_active_sessions(state, player_id, cleared) when is_binary(player_id) do
+    %{
+      state
+      | active_sessions_total: max(state.active_sessions_total - cleared, 0),
+        active_sessions_by_player: Map.delete(state.active_sessions_by_player, player_id)
+    }
   end
 end

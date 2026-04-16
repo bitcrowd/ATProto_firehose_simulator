@@ -5,7 +5,6 @@ defmodule FirehoseSimulator.Scenario do
 
   use Ecto.Schema
 
-  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
   alias FirehoseSimulator.Scenario.Params.ScenarioParams
@@ -74,7 +73,12 @@ defmodule FirehoseSimulator.Scenario do
   @spec from_json_file(String.t()) :: {:ok, t()} | {:error, String.t()}
   def from_json_file(path) when is_binary(path) do
     Logger.info("loading scenario json file: #{path}")
-    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "scenario"})
+
+    :telemetry.execute(
+      [:firehose_simulator, :json, :file, :loaded],
+      %{count: 1},
+      %{path: path, kind: "scenario"}
+    )
 
     with {:ok, json} <- File.read(path),
          {:ok, scenario} <- from_json(json) do
@@ -105,7 +109,12 @@ defmodule FirehoseSimulator.Scenario do
 
   defp load_scenario_params(path) when is_binary(path) do
     Logger.info("loading scenario params json file: #{path}")
-    :ok = Metrics.increment(:json_files_loaded, %{path: path, kind: "scenario_params"})
+
+    :telemetry.execute(
+      [:firehose_simulator, :json, :file, :loaded],
+      %{count: 1},
+      %{path: path, kind: "scenario_params"}
+    )
 
     case ScenarioParams.load_file(path) do
       {:ok, params} -> {:ok, params}

@@ -7,7 +7,6 @@ defmodule FirehoseSimulator.Player do
 
   require Logger
 
-  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.Player.Scheduler.Supervisor, as: SchedulerSupervisor
   alias FirehoseSimulator.Player.Scheduler.Worker
@@ -92,7 +91,18 @@ defmodule FirehoseSimulator.Player do
         }
 
         :ok = State.put_player(player_id, metadata)
-        :ok = Metrics.increment(:player_load, %{player_id: player_id})
+
+        :telemetry.execute(
+          [:firehose_simulator, :player, :load],
+          %{count: 1},
+          %{
+            player_id: player_id,
+            scenario_id: scenario_id,
+            schedulers: scheduler_count,
+            request_interval_ms: request_interval_ms,
+            timeline_limit: timeline_limit
+          }
+        )
 
         Logger.info("[player #{player_id}] loaded scheduler_count=#{scheduler_count}")
 
@@ -128,7 +138,12 @@ defmodule FirehoseSimulator.Player do
         end
 
       :ok = State.put_player(player_id, next_metadata)
-      :ok = Metrics.increment(:player_start, %{player_id: player_id, from_state: state})
+
+      :telemetry.execute(
+        [:firehose_simulator, :player, :start],
+        %{count: 1},
+        %{player_id: player_id, from_state: state}
+      )
 
       Logger.info("[player #{player_id}] started from=#{state}")
       :ok
@@ -149,7 +164,12 @@ defmodule FirehoseSimulator.Player do
         |> Map.put(:paused_at, now)
 
       :ok = State.put_player(player_id, next_metadata)
-      :ok = Metrics.increment(:player_pause, %{player_id: player_id})
+
+      :telemetry.execute(
+        [:firehose_simulator, :player, :pause],
+        %{count: 1},
+        %{player_id: player_id}
+      )
 
       Logger.info("[player #{player_id}] paused")
       :ok
@@ -158,10 +178,18 @@ defmodule FirehoseSimulator.Player do
 
   @spec stop(String.t()) :: :ok | {:error, term()}
   def stop(player_id) when is_binary(player_id) do
+    active_sessions_cleared = safe_store_count(via(player_id, :store), :active)
+
     with {:ok, supervisor_pid} <- scheduler_pid(player_id),
          :ok <- DynamicSupervisor.terminate_child(PlayerSupervisor, supervisor_pid) do
       :ok = State.delete_player(player_id)
-      :ok = Metrics.increment(:player_stop, %{player_id: player_id})
+
+      :telemetry.execute(
+        [:firehose_simulator, :player, :stop],
+        %{count: 1, active_sessions_cleared: active_sessions_cleared},
+        %{player_id: player_id}
+      )
+
       Logger.info("[player #{player_id}] stopped")
       :ok
     else

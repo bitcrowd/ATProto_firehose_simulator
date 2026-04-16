@@ -4,14 +4,11 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
   import Plug.Conn
 
   alias FirehoseSimulator.Metrics
-  alias FirehoseSimulator.Player
 
   def init(opts), do: opts
 
   def call(%Plug.Conn{method: "GET", request_path: "/metrics"} = conn, _opts) do
     snapshot = Metrics.snapshot()
-    active_sessions_total = Player.active_sessions_total()
-    active_sessions_by_player = Player.active_sessions_by_player()
 
     body =
       [
@@ -201,12 +198,12 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
           snapshot.worker_query_window_stats.exit_count
         ),
         "# TYPE firehose_simulator_active_sessions gauge\n",
-        metric("firehose_simulator_active_sessions", active_sessions_total),
+        metric("firehose_simulator_active_sessions", snapshot.active_sessions_total),
         "# TYPE firehose_simulator_player_active_sessions gauge\n",
         labelled_metrics(
           "firehose_simulator_player_active_sessions",
           "player_id",
-          active_sessions_by_player
+          snapshot.active_sessions_by_player
         )
       ]
       |> IO.iodata_to_binary()

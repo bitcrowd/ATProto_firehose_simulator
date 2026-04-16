@@ -3,7 +3,6 @@ defmodule FirehoseSimulatorWeb.SetupLive do
 
   require Logger
 
-  alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.State
 
   @impl true
@@ -160,12 +159,15 @@ defmodule FirehoseSimulatorWeb.SetupLive do
            copied_path = copy_upload_to_tmp(path, entry)
            Logger.info("loaded json file: #{entry.client_name} -> #{copied_path}")
 
-           :ok =
-             Metrics.increment(:json_files_loaded, %{
+           :telemetry.execute(
+             [:firehose_simulator, :json, :file, :loaded],
+             %{count: 1},
+             %{
                filename: entry.client_name,
                path: copied_path,
                kind: json_file_kind(upload_name)
-             })
+             }
+           )
 
            {:ok, copied_path}
          end) do
