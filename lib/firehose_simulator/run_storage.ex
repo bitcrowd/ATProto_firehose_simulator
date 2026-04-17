@@ -6,6 +6,7 @@ defmodule FirehoseSimulator.RunStorage do
   alias FirehoseSimulator.SimulationPlan.Entry
 
   @default_runs_root "runs"
+  @default_log_file "firehose_simulator.log"
 
   @spec timestamped_directory() :: String.t()
   def timestamped_directory do
@@ -64,6 +65,12 @@ defmodule FirehoseSimulator.RunStorage do
   @spec default_userbase_export_root(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def default_userbase_export_root(run_directory) when is_binary(run_directory) do
     {:ok, Path.join([run_directory, "userbase"])}
+  end
+
+  @spec default_log_file_path(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def default_log_file_path(run_directory, basename \\ @default_log_file)
+      when is_binary(run_directory) and is_binary(basename) do
+    {:ok, Path.join([run_directory, "logs", basename])}
   end
 
   @spec localize_plan_entries(String.t(), SimulationPlan.t()) ::

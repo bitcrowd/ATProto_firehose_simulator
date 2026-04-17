@@ -5,14 +5,15 @@ defmodule FirehoseSimulator.Application do
 
   use Application
 
+  alias FirehoseSimulator.RunStorage
+
   require Logger
 
   @file_log_handler :firehose_simulator_file_log
-  @default_log_file "log/firehose_simulator.log"
 
   @impl true
   def start(_type, _args) do
-    configure_file_logging()
+    run_storage_directory = configure_file_logging()
 
     prometheus_port = Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port)
     finch_pool_size = Application.fetch_env!(:firehose_simulator, :finch_pool_size)
@@ -32,7 +33,7 @@ defmodule FirehoseSimulator.Application do
         {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
         {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
         {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
-        FirehoseSimulator.State,
+        {FirehoseSimulator.State, run_storage_directory: run_storage_directory},
         FirehoseSimulator.Metrics,
         {Bandit,
          plug: FirehoseSimulator.Metrics.PrometheusExporter,
@@ -60,17 +61,16 @@ defmodule FirehoseSimulator.Application do
     :ok
   end
 
-  defp configure_file_logging do
-    log_file_path =
-      Application.get_env(:firehose_simulator, :log_file_path, @default_log_file)
-      |> timestamped_log_file_path()
+  defp configure_file_logging() do
+    run_storage_directory = RunStorage.timestamped_directory()
 
-    with :ok <- File.mkdir_p(Path.dirname(log_file_path)),
-         :ok <- ensure_file_handler(log_file_path) do
+    with :ok <- File.mkdir_p!(run_storage_directory),
+         path <- RunStorage.default_log_file_path(run_storage_directory),
+         :ok <- ensure_file_handler(path) do
       :ok
     else
       {:error, reason} ->
-        Logger.warning("failed to enable file logging at #{log_file_path}: #{inspect(reason)}")
+        Logger.warning("failed to enable file logging: #{inspect(reason)}")
         :ok
     end
   end
@@ -91,13 +91,5 @@ defmodule FirehoseSimulator.Application do
       {:error, _reason} = error ->
         error
     end
-  end
-
-  defp timestamped_log_file_path(log_file_path) do
-    timestamp = DateTime.utc_now() |> Calendar.strftime("%Y%m%dT%H%M%SZ")
-    directory = Path.dirname(log_file_path)
-    basename = Path.basename(log_file_path)
-
-    Path.join(directory, "#{timestamp}_#{basename}")
   end
 end

@@ -18,7 +18,8 @@ defmodule FirehoseSimulator.State do
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, :ok, Keyword.put_new(opts, :name, __MODULE__))
+    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   @spec get() :: state()
@@ -102,8 +103,9 @@ defmodule FirehoseSimulator.State do
   end
 
   @impl true
-  def init(:ok) do
-    {:ok, default_state()}
+  def init(opts) do
+    run_storage_directory = Keyword.fetch!(opts, :run_storage_directory)
+    {:ok, default_state(run_storage_directory)}
   end
 
   @impl true
@@ -175,10 +177,8 @@ defmodule FirehoseSimulator.State do
      %{state | userbase_uploaded?: userbase_uploaded?, userbase_result: userbase_result}}
   end
 
-  defp default_state do
+  defp default_state(run_storage_directory) do
     {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    run_storage_directory = RunStorage.timestamped_directory()
-    File.mkdir_p!(run_storage_directory)
 
     %{
       scenarios: %{},
