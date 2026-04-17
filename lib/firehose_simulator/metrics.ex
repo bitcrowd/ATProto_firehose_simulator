@@ -79,7 +79,7 @@ defmodule FirehoseSimulator.Metrics do
     next_state =
       Map.update!(state, :json_files_loaded, &(&1 + measurement_value(measurements, :count)))
 
-    Logger.info(
+    Logger.debug(
       "[metrics] json.file.loaded total=#{next_state.json_files_loaded} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -91,7 +91,7 @@ defmodule FirehoseSimulator.Metrics do
     next_state =
       Map.update!(state, :player_load, &(&1 + measurement_value(measurements, :count)))
 
-    Logger.info(
+    Logger.debug(
       "[metrics] player.load total=#{next_state.player_load} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -102,7 +102,7 @@ defmodule FirehoseSimulator.Metrics do
     next_state =
       Map.update!(state, :player_start, &(&1 + measurement_value(measurements, :count)))
 
-    Logger.info(
+    Logger.debug(
       "[metrics] player.start total=#{next_state.player_start} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -113,7 +113,7 @@ defmodule FirehoseSimulator.Metrics do
     next_state =
       Map.update!(state, :player_pause, &(&1 + measurement_value(measurements, :count)))
 
-    Logger.info(
+    Logger.debug(
       "[metrics] player.pause total=#{next_state.player_pause} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -128,7 +128,7 @@ defmodule FirehoseSimulator.Metrics do
       |> Map.update!(:player_stop, &(&1 + measurement_value(measurements, :count)))
       |> drop_active_sessions(player_id(metadata), cleared)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] player.stop total=#{next_state.player_stop} cleared=#{cleared} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -144,7 +144,7 @@ defmodule FirehoseSimulator.Metrics do
       |> add_measurement(:event_feeder_sessions_started, measurements, :sessions_started)
       |> update_active_sessions(player_id(metadata), sessions_started)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] event_feeder.inject count=#{next_state.event_feeder_inject_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -157,7 +157,7 @@ defmodule FirehoseSimulator.Metrics do
       |> Map.update!(:event_feeder_posts_dispatch_count, &(&1 + 1))
       |> add_measurement(:event_feeder_posts_dispatched, measurements, :events_dispatched)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] event_feeder.posts.dispatch count=#{next_state.event_feeder_posts_dispatch_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -171,7 +171,7 @@ defmodule FirehoseSimulator.Metrics do
       |> add_measurement(:event_feeder_posts_ok, measurements, :ok)
       |> add_measurement(:event_feeder_posts_error, measurements, :error)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] event_feeder.posts.complete count=#{next_state.event_feeder_posts_complete_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -184,7 +184,7 @@ defmodule FirehoseSimulator.Metrics do
       |> Map.update!(:event_feeder_follows_dispatch_count, &(&1 + 1))
       |> add_measurement(:event_feeder_follows_dispatched, measurements, :events_dispatched)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] event_feeder.follows.dispatch count=#{next_state.event_feeder_follows_dispatch_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -198,7 +198,7 @@ defmodule FirehoseSimulator.Metrics do
       |> add_measurement(:event_feeder_follows_ok, measurements, :ok)
       |> add_measurement(:event_feeder_follows_error, measurements, :error)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] event_feeder.follows.complete count=#{next_state.event_feeder_follows_complete_count} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
@@ -226,7 +226,7 @@ defmodule FirehoseSimulator.Metrics do
       |> Map.update!(:worker_query_window, &:queue.in(sample, &1))
       |> prune_worker_query_window(now_ms)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] worker.query total_count=#{next_state.worker_query_total_count} status=#{status} rows=#{rows} latency_ms=#{latency_ms} lag_ms=#{lag_ms}"
     )
 
@@ -251,7 +251,7 @@ defmodule FirehoseSimulator.Metrics do
       end)
       |> update_active_sessions(player_id(metadata), -completed)
 
-    Logger.info(
+    Logger.debug(
       "[metrics] worker.cycle count=#{next_state.worker_cycle_count} partition=#{partition} measurements=#{inspect(measurements)}"
     )
 
