@@ -7,10 +7,12 @@ const main = async () => {
   const port = parseInt(process.env.BSKY_DATAPLANE_PORT || "2585", 10);
   const plcUrl = process.env.BSKY_DID_PLC_URL;
   const relayWebsocket = process.env.BSKY_RELAY_WEBSOCKET;
+  const poolSize = parseInt(process.env.BSKY_DB_POOL_SIZE || "20", 10);
 
   console.log("Starting DataPlane server...");
   const redactedDbUrl = dbUrl ? dbUrl.replace(/:[^:@]+@/, ":****@") : "(unset)";
   console.log("Database URL:", dbUrl);
+  console.log("DB Pool Size:", poolSize);
   console.log("Schema:", dbSchema);
   console.log("Port:", port);
   console.log("Relay WebSocket:", relayWebsocket);
@@ -18,7 +20,7 @@ const main = async () => {
   const db = new Database({
     url: dbUrl,
     schema: dbSchema,
-    poolSize: 20,
+    poolSize: poolSize,
   });
 
   // Run migrations
