@@ -40,6 +40,7 @@ defmodule FirehoseSimulator.Player do
     request_interval_ms = scenario.request_interval_ms || 30_000
     timeline_limit = scenario.timeline_limit || 20
     worker_max_concurrency = Keyword.get(opts, :worker_max_concurrency)
+    worker_batch_size = Keyword.get(opts, :worker_batch_size, Keyword.get(opts, :batch_size))
     scenario_id = Keyword.get(opts, :scenario_id)
 
     event_feeder_opts = [
@@ -62,6 +63,13 @@ defmodule FirehoseSimulator.Player do
     scheduler_opts =
       if is_integer(worker_max_concurrency) and worker_max_concurrency > 0 do
         Keyword.put(scheduler_opts, :worker_max_concurrency, worker_max_concurrency)
+      else
+        scheduler_opts
+      end
+
+    scheduler_opts =
+      if is_integer(worker_batch_size) and worker_batch_size > 0 do
+        Keyword.put(scheduler_opts, :worker_batch_size, worker_batch_size)
       else
         scheduler_opts
       end

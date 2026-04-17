@@ -30,15 +30,8 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
     partition = Keyword.fetch!(opts, :partition)
     num_partitions = Keyword.fetch!(opts, :num_partitions)
     timeline_limit = Keyword.fetch!(opts, :timeline_limit)
-    configured_max_concurrency = Keyword.get(opts, :max_concurrency)
-
-    max_concurrency =
-      if is_integer(configured_max_concurrency) and configured_max_concurrency > 0 do
-        configured_max_concurrency
-      else
-        pool_size = 50
-        max(div(pool_size, num_partitions), 1)
-      end
+    max_concurrency = Keyword.fetch!(opts, :max_concurrency)
+    batch_size = Keyword.fetch!(opts, :batch_size)
 
     table = store |> Store.partition_tables() |> Map.fetch!(partition)
     completed_table = Store.completed_table(store)
@@ -51,7 +44,7 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
       table: table,
       completed_table: completed_table,
       max_concurrency: max_concurrency,
-      batch_size: max_concurrency,
+      batch_size: batch_size,
       timeline_limit: timeline_limit,
       lifecycle_state: :loaded
     }
