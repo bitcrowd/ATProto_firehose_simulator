@@ -158,9 +158,10 @@ defmodule FirehoseSimulator do
          {:ok, scenario} <- Scenario.generate_from_json_string(json),
          {:ok, _params_copy} <-
            RunStorage.store_scenario_params_json(run_directory, json, name: scenario_name),
-         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
+         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name),
+         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path) do
       Logger.info("generated scenario sections")
-      {:ok, %{scenario | source_path: scenario_path}}
+      {:ok, scenario}
     else
       {:error, reason} ->
         Logger.error("failed to generate scenario from json: #{reason}")
@@ -186,8 +187,9 @@ defmodule FirehoseSimulator do
 
     with {:ok, run_directory} <- run_storage_directory(),
          {:ok, scenario} <- Scenario.from_json(json),
-         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
-      {:ok, %{scenario | source_path: scenario_path}}
+         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name),
+         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path) do
+      {:ok, scenario}
     end
   end
 
@@ -237,8 +239,14 @@ defmodule FirehoseSimulator do
          {past_entries, future_entries} <- split_past_and_future_entries(imported_entries),
          :ok <- bulk_create_entries(past_entries, offset_ms),
          :ok <- load_entries(future_entries, offset_ms),
-         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan) do
-      updated_plan = %{simulation_plan | export_path: export_path}
+         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan),
+         {:ok, updated_plan} <-
+           SimulationPlan.update(simulation_plan, %{
+             name: simulation_plan.name,
+             started_at: simulation_plan.started_at,
+             export_path: export_path,
+             entries: simulation_plan.entries
+           }) do
       :ok = State.put_simulation_plan(updated_plan)
       {:ok, updated_plan}
     else
@@ -357,10 +365,17 @@ defmodule FirehoseSimulator do
              scenario_path
            ),
          {:ok, run_directory} <- run_storage_directory(),
-         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan) do
-      simulation_plan = %{simulation_plan | export_path: export_path}
+         {:ok, export_path} <- RunStorage.persist_simulation_plan(run_directory, simulation_plan),
+         {:ok, simulation_plan} <-
+           SimulationPlan.update(simulation_plan, %{
+             name: simulation_plan.name,
+             started_at: simulation_plan.started_at,
+             export_path: export_path,
+             entries: simulation_plan.entries
+           }) do
       :ok = State.put_simulation_plan(simulation_plan)
-      :ok = State.put_scenario(scenario_name, %{scenario | source_path: entry.scenario_path})
+      {:ok, scenario} = Scenario.put_source_path(scenario, entry.scenario_path)
+      :ok = State.put_scenario(scenario_name, scenario)
       {:ok, simulation_plan}
     end
   end
@@ -378,8 +393,9 @@ defmodule FirehoseSimulator do
 
   defp export_generated_scenario(%Scenario{} = scenario, scenario_name) do
     with {:ok, run_directory} <- run_storage_directory(),
-         {:ok, path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
-      {:ok, path, %{scenario | source_path: path}}
+         {:ok, path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name),
+         {:ok, scenario} <- Scenario.put_source_path(scenario, path) do
+      {:ok, path, scenario}
     end
   end
 

@@ -41,6 +41,13 @@ defmodule FirehoseSimulator.SimulationPlan.Entry do
     |> apply_action(:insert)
   end
 
+  @spec update(t(), map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def update(%__MODULE__{} = entry, attrs) when is_map(attrs) do
+    entry
+    |> changeset(attrs)
+    |> apply_action(:update)
+  end
+
   defp put_scenario(changeset, %{"scenario" => %Scenario{} = scenario}) do
     put_change(changeset, :scenario, scenario)
   end

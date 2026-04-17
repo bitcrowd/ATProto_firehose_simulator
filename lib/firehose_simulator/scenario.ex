@@ -1,6 +1,8 @@
 defmodule FirehoseSimulator.Scenario do
   @moduledoc false
 
+  import Ecto.Changeset
+
   require Logger
 
   use Ecto.Schema
@@ -47,6 +49,40 @@ defmodule FirehoseSimulator.Scenario do
     end
   end
 
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
+  def changeset(scenario, attrs) do
+    scenario
+    |> cast(attrs, [
+      :posts,
+      :sessions,
+      :follows,
+      :request_interval_ms,
+      :timeline_limit,
+      :source_path
+    ])
+    |> update_change(:source_path, &String.trim/1)
+    |> validate_source_path(attrs)
+    |> validate_number(:request_interval_ms, greater_than: 0)
+    |> validate_number(:timeline_limit, greater_than: 0)
+    |> validate_change(:posts, &validate_event_rows/2)
+    |> validate_change(:sessions, &validate_event_rows/2)
+    |> validate_change(:follows, &validate_event_rows/2)
+  end
+
+  @spec new(map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def new(attrs) when is_map(attrs) do
+    %__MODULE__{}
+    |> changeset(attrs)
+    |> apply_action(:insert)
+  end
+
+  @spec put_source_path(t(), String.t() | nil) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def put_source_path(%__MODULE__{} = scenario, path) when is_binary(path) or is_nil(path) do
+    scenario
+    |> changeset(%{source_path: path})
+    |> apply_action(:update)
+  end
+
   @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json_string(json) when is_binary(json) do
     with {:ok, params} <- load_scenario_params_json(json) do
@@ -70,8 +106,9 @@ defmodule FirehoseSimulator.Scenario do
     )
 
     with {:ok, json} <- File.read(path),
-         {:ok, scenario} <- from_json(json) do
-      {:ok, %{scenario | source_path: path}}
+         {:ok, scenario} <- from_json(json),
+         {:ok, scenario} <- put_source_path(scenario, path) do
+      {:ok, scenario}
     else
       {:error, :enoent} -> {:error, "cannot read scenario json at #{path}"}
       {:error, reason} when is_binary(reason) -> {:error, reason}
@@ -86,7 +123,7 @@ defmodule FirehoseSimulator.Scenario do
 
   @spec shift(t(), integer()) :: t()
   def shift(%__MODULE__{} = scenario, offset_ms) when is_integer(offset_ms) do
-    %__MODULE__{
+    attrs = %{
       posts: shift_events(scenario.posts, offset_ms),
       sessions: shift_events(scenario.sessions, offset_ms),
       follows: shift_events(scenario.follows, offset_ms),
@@ -94,6 +131,14 @@ defmodule FirehoseSimulator.Scenario do
       timeline_limit: scenario.timeline_limit,
       source_path: scenario.source_path
     }
+
+    case new(attrs) do
+      {:ok, shifted} ->
+        shifted
+
+      {:error, changeset} ->
+        raise ArgumentError, "invalid shifted scenario: #{inspect(changeset.errors)}"
+    end
   end
 
   defp load_scenario_params(path) when is_binary(path) do
@@ -189,15 +234,14 @@ defmodule FirehoseSimulator.Scenario do
     with {:ok, posts} <- build_posts(params, seed, time_units, unit_duration_ms),
          {:ok, sessions} <- build_sessions(params, seed, time_units, unit_duration_ms),
          {:ok, follows} <- build_follows(params, seed, time_units, unit_duration_ms) do
-      {:ok,
-       %__MODULE__{
-         posts: posts,
-         sessions: sessions,
-         follows: follows,
-         request_interval_ms: request_interval_ms,
-         timeline_limit: timeline_limit,
-         source_path: nil
-       }}
+      new(%{
+        posts: posts,
+        sessions: sessions,
+        follows: follows,
+        request_interval_ms: request_interval_ms,
+        timeline_limit: timeline_limit,
+        source_path: nil
+      })
     end
   end
 
@@ -242,5 +286,35 @@ defmodule FirehoseSimulator.Scenario do
     Enum.map(events, fn event ->
       Map.update!(event, :offset_ms, &(&1 + offset_ms))
     end)
+  end
+
+  defp validate_event_rows(_field, nil), do: []
+
+  defp validate_event_rows(field, rows) when is_list(rows) do
+    if Enum.all?(rows, &is_map/1) do
+      []
+    else
+      [{field, "must be a list of maps"}]
+    end
+  end
+
+  defp validate_event_rows(field, _value), do: [{field, "must be a list of maps"}]
+
+  defp validate_source_path(changeset, attrs) do
+    case source_path_attr(attrs) do
+      path when is_binary(path) ->
+        if String.trim(path) == "" do
+          add_error(changeset, :source_path, "should be at least 1 character(s)")
+        else
+          changeset
+        end
+
+      _other ->
+        changeset
+    end
+  end
+
+  defp source_path_attr(attrs) when is_map(attrs) do
+    Map.get(attrs, :source_path) || Map.get(attrs, "source_path")
   end
 end

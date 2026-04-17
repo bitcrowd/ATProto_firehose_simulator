@@ -113,6 +113,48 @@ defmodule FirehoseSimulator.ScenarioTest do
     end
   end
 
+  describe "new/1" do
+    test "builds a validated scenario" do
+      assert {:ok, %Scenario{} = scenario} =
+               Scenario.new(%{
+                 posts: [%{offset_ms: 10, user_id: 1}],
+                 sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
+                 follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
+                 request_interval_ms: 45_000,
+                 timeline_limit: 35
+               })
+
+      assert scenario.request_interval_ms == 45_000
+      assert scenario.timeline_limit == 35
+    end
+
+    test "rejects non-positive top-level numeric fields" do
+      assert {:error, changeset} =
+               Scenario.new(%{
+                 request_interval_ms: 0,
+                 timeline_limit: -1
+               })
+
+      assert "must be greater than 0" in errors_on(changeset).request_interval_ms
+      assert "must be greater than 0" in errors_on(changeset).timeline_limit
+    end
+  end
+
+  describe "put_source_path/2" do
+    test "trims valid source paths" do
+      scenario = %Scenario{}
+
+      assert {:ok, %Scenario{source_path: "/tmp/scenario.json"}} =
+               Scenario.put_source_path(scenario, "  /tmp/scenario.json  ")
+    end
+
+    test "rejects blank source paths" do
+      assert {:error, changeset} = Scenario.put_source_path(%Scenario{}, "   ")
+
+      assert "should be at least 1 character(s)" in errors_on(changeset).source_path
+    end
+  end
+
   describe "to_json/1 and from_json/1" do
     test "round-trips a full scenario struct" do
       scenario = %Scenario{
@@ -150,7 +192,8 @@ defmodule FirehoseSimulator.ScenarioTest do
         sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
         follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
         request_interval_ms: 15_000,
-        timeline_limit: 12
+        timeline_limit: 12,
+        source_path: "/tmp/scenario.json"
       }
 
       shifted = Scenario.shift(scenario, 250)
@@ -160,6 +203,7 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert shifted.follows == [%{offset_ms: 280, actor_id: 2, subject_id: 1}]
       assert shifted.request_interval_ms == 15_000
       assert shifted.timeline_limit == 12
+      assert shifted.source_path == "/tmp/scenario.json"
     end
 
     test "keeps nil sections unchanged" do
@@ -168,5 +212,13 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert %Scenario{posts: nil, sessions: nil, follows: nil} =
                Scenario.shift(scenario, 123)
     end
+  end
+
+  defp errors_on(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+      Enum.reduce(opts, message, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
   end
 end

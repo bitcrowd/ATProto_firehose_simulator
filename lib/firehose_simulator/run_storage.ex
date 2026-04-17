@@ -127,7 +127,12 @@ defmodule FirehoseSimulator.RunStorage do
     end)
     |> case do
       {:ok, entries} ->
-        {:ok, %{simulation_plan | entries: Enum.reverse(entries)}}
+        SimulationPlan.update(simulation_plan, %{
+          name: simulation_plan.name,
+          started_at: simulation_plan.started_at,
+          export_path: simulation_plan.export_path,
+          entries: Enum.reverse(entries)
+        })
 
       {:error, _reason} = error ->
         error
@@ -139,9 +144,16 @@ defmodule FirehoseSimulator.RunStorage do
          %Entry{scenario: %Scenario{} = scenario, scenario_name: scenario_name} = entry
        )
        when is_binary(run_directory) do
-    with {:ok, scenario_path} <- store_scenario(run_directory, scenario, scenario_name) do
-      {:ok,
-       %{entry | scenario_path: scenario_path, scenario: %{scenario | source_path: scenario_path}}}
+    with {:ok, scenario_path} <- store_scenario(run_directory, scenario, scenario_name),
+         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path),
+         {:ok, entry} <-
+           Entry.update(entry, %{
+             scenario_name: entry.scenario_name,
+             scenario_path: scenario_path,
+             offset_ms: entry.offset_ms,
+             scenario: scenario
+           }) do
+      {:ok, entry}
     end
   end
 

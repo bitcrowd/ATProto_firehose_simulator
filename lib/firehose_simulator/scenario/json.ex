@@ -29,15 +29,22 @@ defmodule FirehoseSimulator.Scenario.JSON do
          {:ok, sessions} <- decode_sessions(Map.get(attrs, "sessions")),
          {:ok, follows} <- decode_follows(Map.get(attrs, "follows")),
          {:ok, request_interval_ms} <- decode_request_interval_ms(attrs),
-         {:ok, timeline_limit} <- decode_timeline_limit(attrs) do
-      {:ok,
-       %Scenario{
-         posts: posts,
-         sessions: sessions,
-         follows: follows,
-         request_interval_ms: request_interval_ms,
-         timeline_limit: timeline_limit
-       }}
+         {:ok, timeline_limit} <- decode_timeline_limit(attrs),
+         {:ok, scenario} <-
+           Scenario.new(%{
+             posts: posts,
+             sessions: sessions,
+             follows: follows,
+             request_interval_ms: request_interval_ms,
+             timeline_limit: timeline_limit
+           }) do
+      {:ok, scenario}
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, "invalid scenario json: #{format_changeset_errors(changeset)}"}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -146,5 +153,15 @@ defmodule FirehoseSimulator.Scenario.JSON do
     else
       {:error, "#{key} must be an integer"}
     end
+  end
+
+  defp format_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+      Enum.reduce(opts, message, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map(fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
+    |> Enum.join("; ")
   end
 end
