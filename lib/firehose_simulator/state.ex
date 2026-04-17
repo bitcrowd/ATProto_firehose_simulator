@@ -3,7 +3,6 @@ defmodule FirehoseSimulator.State do
 
   use GenServer
 
-  alias FirehoseSimulator.RunStorage
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
 

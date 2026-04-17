@@ -13,27 +13,22 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     actor_csv_path = Path.join(run_dir, "actor.csv")
     follow_csv_path = Path.join(run_dir, "follow.csv")
     meta_path = Path.join(run_dir, "userbase_meta.json")
-    indexed_at = Keyword.get_lazy(opts, :indexed_at, &current_indexed_at/0)
-    base_time = Keyword.get_lazy(opts, :base_time, &current_base_time/0)
 
-    with :ok <- File.mkdir_p(run_dir),
-         actor_rows <- actor_rows(userbase, indexed_at),
-         {:ok, follow_rows} <- follow_rows(userbase, base_time),
-         {:ok, actor_count} <- write_actor_csv(actor_csv_path, actor_rows),
-         {:ok, follow_count} <- write_follow_csv(follow_csv_path, follow_rows),
-         meta =
-           build_meta(
+    with {:ok, export_data} <-
+           export_content(
              userbase,
-             run_id,
-             actor_csv_path,
-             actor_count,
-             follow_csv_path,
-             follow_count
+             Keyword.merge(
+               opts,
+               actor_csv_path: actor_csv_path,
+               follow_csv_path: follow_csv_path
+             )
            ),
-         :ok <- UserbaseMeta.write_file(meta, meta_path) do
+         {:ok, actor_count} <- write_actor_csv(actor_csv_path, export_data.actor_rows),
+         {:ok, follow_count} <- write_follow_csv(follow_csv_path, export_data.follow_rows),
+         :ok <- File.write(meta_path, export_data.meta_json) do
       {:ok,
        %{
-         run_id: run_id,
+         run_id: export_data.run_id,
          export_dir: run_dir,
          meta_path: meta_path,
          actor_csv_path: actor_csv_path,
@@ -46,6 +41,43 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     else
       {:error, reason} ->
         {:error, "#{reason} (run_dir=#{run_dir})"}
+    end
+  end
+
+  @spec export_content(Userbase.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
+  def export_content(%Userbase{} = userbase, opts \\ []) when is_list(opts) do
+    run_id = Keyword.get_lazy(opts, :run_id, fn -> default_run_id(userbase.name) end)
+    indexed_at = Keyword.get_lazy(opts, :indexed_at, &current_indexed_at/0)
+    base_time = Keyword.get_lazy(opts, :base_time, &current_base_time/0)
+    actor_csv_path = Keyword.get(opts, :actor_csv_path, "/tmp/actor.csv")
+    follow_csv_path = Keyword.get(opts, :follow_csv_path, "/tmp/follow.csv")
+
+    with actor_rows <- actor_rows(userbase, indexed_at),
+         {:ok, follow_rows} <- follow_rows(userbase, base_time),
+         actor_csv <- actor_rows_to_csv(actor_rows),
+         follow_csv <- follow_rows_to_csv(follow_rows),
+         meta <-
+           build_meta(
+             userbase,
+             run_id,
+             actor_csv_path,
+             length(actor_rows),
+             follow_csv_path,
+             length(follow_rows)
+           ),
+         {:ok, meta_json} <- UserbaseMeta.encode(meta) do
+      {:ok,
+       %{
+         run_id: run_id,
+         actor_rows: actor_rows,
+         follow_rows: follow_rows,
+         actor_csv: actor_csv,
+         follow_csv: follow_csv,
+         actor_row_count: length(actor_rows),
+         follow_row_count: length(follow_rows),
+         meta: meta,
+         meta_json: meta_json
+       }}
     end
   end
 
@@ -111,6 +143,22 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
         File.close(device)
       end
     end
+  end
+
+  @spec actor_rows_to_csv([map()]) :: String.t()
+  def actor_rows_to_csv(actor_rows) when is_list(actor_rows) do
+    Enum.map_join(actor_rows, "", fn row ->
+      row
+      |> actor_csv_row()
+    end)
+  end
+
+  @spec follow_rows_to_csv([map()]) :: String.t()
+  def follow_rows_to_csv(follow_rows) when is_list(follow_rows) do
+    Enum.map_join(follow_rows, "", fn row ->
+      row
+      |> follow_csv_row()
+    end)
   end
 
   defp write_follow_csv(path, follow_rows) when is_list(follow_rows) do

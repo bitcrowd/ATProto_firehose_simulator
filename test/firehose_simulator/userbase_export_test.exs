@@ -5,8 +5,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
   alias FirehoseSimulator.BaseData.UserbaseExport
   alias FirehoseSimulator.BaseData.UserbaseMeta
 
-  @tag :tmp_dir
-  test "exports actor and follow csv files with a manifest", %{tmp_dir: tmp_dir} do
+  test "exports actor and follow csv content with a manifest" do
     userbase = %Userbase{
       name: "Demo Export",
       num_users: 4,
@@ -18,22 +17,20 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     base_time = DateTime.from_naive!(~N[2025-01-01 00:00:00.000000], "Etc/UTC")
 
     assert {:ok, result} =
-             UserbaseExport.export(userbase, tmp_dir,
+             UserbaseExport.export_content(userbase,
                run_id: "demo-run",
                indexed_at: indexed_at,
-               base_time: base_time
+               base_time: base_time,
+               actor_csv_path: "/tmp/actor.csv",
+               follow_csv_path: "/tmp/follow.csv"
              )
 
     assert result.actor_row_count == 4
     assert result.follow_row_count == 4
-    assert File.exists?(result.actor_csv_path)
-    assert File.exists?(result.follow_csv_path)
-    assert File.exists?(result.meta_path)
+    assert 4 == count_lines(result.actor_csv)
+    assert 4 == count_lines(result.follow_csv)
 
-    assert 4 == count_lines(result.actor_csv_path)
-    assert 4 == count_lines(result.follow_csv_path)
-
-    assert {:ok, meta} = UserbaseMeta.load_file(result.meta_path)
+    assert {:ok, meta} = UserbaseMeta.load(result.meta_json, validate_files: false)
     assert meta.files.actor.row_count == 4
     assert meta.files.follow.row_count == 4
   end
@@ -52,9 +49,8 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     assert length(follow_rows) == 7
   end
 
-  defp count_lines(path) do
-    path
-    |> File.read!()
+  defp count_lines(content) do
+    content
     |> String.split("\n", trim: true)
     |> length()
   end

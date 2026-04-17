@@ -60,9 +60,12 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
              :scenario_params_json,
              "scenario params"
            ),
-         {:ok, params_path, filename} <- consume_json_upload(socket, :scenario_params_json),
+         {:ok, params_json, filename} <- consume_json_upload(socket, :scenario_params_json),
          {:ok, scenario} <-
-           FirehoseSimulator.generate_scenario_from_json(scenario_params: params_path) do
+           FirehoseSimulator.generate_scenario_from_json_string(
+             params_json,
+             name: Path.rootname(filename)
+           ) do
       scenario_id = build_scenario_id(params["scenario_name"], filename)
       :ok = State.put_scenario(scenario_id, scenario)
 
@@ -83,10 +86,12 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     socket = assign(socket, :import_form, to_form(params, as: :import))
 
     with :ok <- ensure_upload_completed(socket, :scenario_json, "scenario"),
-         {:ok, scenario_path, filename} <-
-           consume_json_upload(socket, :scenario_json),
+         {:ok, scenario_json, filename} <- consume_json_upload(socket, :scenario_json),
          {:ok, scenario} <-
-           FirehoseSimulator.import_scenario_from_json(scenario_path) do
+           FirehoseSimulator.import_scenario_from_json_string(
+             scenario_json,
+             name: Path.rootname(filename)
+           ) do
       scenario_id = build_scenario_id(params["scenario_name"], filename)
       :ok = State.put_scenario(scenario_id, scenario)
 
@@ -114,8 +119,8 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
     socket = assign(socket, :import_plan_form, to_form(params, as: :import_plan))
 
     with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
-         {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
-         {:ok, simulation_plan} <- FirehoseSimulator.import_simulation_plan_from_json(plan_path) do
+         {:ok, simulation_plan, _filename} <-
+           consume_simulation_plan_upload(socket, :simulation_plan_json) do
       {:noreply,
        socket
        |> assign(
@@ -134,8 +139,8 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   def handle_event("import_simulation_plan", _params, socket) do
     with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
-         {:ok, plan_path, _filename} <- consume_json_upload(socket, :simulation_plan_json),
-         {:ok, simulation_plan} <- FirehoseSimulator.import_simulation_plan_from_json(plan_path) do
+         {:ok, simulation_plan, _filename} <-
+           consume_simulation_plan_upload(socket, :simulation_plan_json) do
       {:noreply,
        socket
        |> assign(
@@ -199,40 +204,58 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   defp consume_json_upload(socket, upload_name) do
     case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
-           copied_path = copy_upload_to_tmp(path, entry)
+           {:ok, content} = File.read(path)
            file_kind = json_file_kind(upload_name)
-           Logger.info("loaded json file: #{entry.client_name} -> #{copied_path} (#{file_kind})")
+           Logger.info("loaded json file: #{entry.client_name} -> #{path} (#{file_kind})")
 
            :telemetry.execute(
              [:firehose_simulator, :json, :file, :loaded],
              %{count: 1},
              %{
                filename: entry.client_name,
-               path: copied_path,
+               path: path,
                kind: file_kind
              }
            )
 
-           {:ok, {copied_path, entry.client_name}}
+           {:ok, {content, entry.client_name}}
          end) do
-      [{copied_path, filename}] ->
-        {:ok, copied_path, filename}
+      [{content, filename}] ->
+        {:ok, content, filename}
 
       [] ->
         {:error, "Please upload a JSON file first"}
     end
   end
 
-  defp copy_upload_to_tmp(source_path, entry) do
-    extension = Path.extname(entry.client_name)
-    tmp_name = "firehose-scenario-#{upload_token()}#{extension}"
-    tmp_path = Path.join(System.tmp_dir!(), tmp_name)
-    File.cp!(source_path, tmp_path)
-    tmp_path
-  end
+  defp consume_simulation_plan_upload(socket, upload_name) do
+    case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
+           Logger.info("loaded json file: #{entry.client_name} -> #{path} (simulation_plan)")
 
-  defp upload_token do
-    System.unique_integer([:positive, :monotonic])
+           :telemetry.execute(
+             [:firehose_simulator, :json, :file, :loaded],
+             %{count: 1},
+             %{
+               filename: entry.client_name,
+               path: path,
+               kind: "simulation_plan"
+             }
+           )
+
+           case FirehoseSimulator.import_simulation_plan_from_json(path) do
+             {:ok, simulation_plan} -> {:ok, {:ok, simulation_plan, entry.client_name}}
+             {:error, reason} -> {:ok, {:error, reason}}
+           end
+         end) do
+      [{:ok, simulation_plan, filename}] ->
+        {:ok, simulation_plan, filename}
+
+      [{:error, reason}] ->
+        {:error, reason}
+
+      [] ->
+        {:error, "Please upload a JSON file first"}
+    end
   end
 
   defp assign_scenarios(socket) do
@@ -275,6 +298,10 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
       end
 
     "#{slug}-#{upload_token()}"
+  end
+
+  defp upload_token do
+    System.unique_integer([:positive, :monotonic])
   end
 
   defp export_filename(scenario_id) do

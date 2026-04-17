@@ -65,13 +65,13 @@ defmodule FirehoseSimulator.Application do
     run_storage_directory = RunStorage.timestamped_directory()
 
     with :ok <- File.mkdir_p!(run_storage_directory),
-         path <- RunStorage.default_log_file_path(run_storage_directory),
+         {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory),
          :ok <- ensure_file_handler(path) do
-      :ok
+      run_storage_directory
     else
       {:error, reason} ->
         Logger.warning("failed to enable file logging: #{inspect(reason)}")
-        :ok
+        run_storage_directory
     end
   end
 

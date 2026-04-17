@@ -5,20 +5,19 @@ defmodule FirehoseSimulator do
 
   require Logger
 
-  alias FirehoseSimulator.BulkCreation
-  alias FirehoseSimulator.BulkCreation.Vacuum
+  alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BaseData.UserbaseExport
   alias FirehoseSimulator.BaseData.UserbaseImport
+  alias FirehoseSimulator.BulkCreation
+  alias FirehoseSimulator.BulkCreation.Vacuum
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.RunStorage
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
-  alias FirehoseSimulator.BaseData.Userbase
 
   @default_userbase_filename "priv/simulation/userbase.json"
 
-  # Bulk Creation
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do
     create_userbase(userbase_filename())
@@ -26,9 +25,16 @@ defmodule FirehoseSimulator do
 
   @spec create_userbase(String.t()) :: {:ok, map()} | {:error, String.t()}
   def create_userbase(path) when is_binary(path) do
+    with {:ok, json} <- read_userbase_file(path) do
+      create_userbase_from_json(json)
+    end
+  end
+
+  @spec create_userbase_from_json(String.t()) :: {:ok, map()} | {:error, String.t()}
+  def create_userbase_from_json(json) when is_binary(json) do
     with {:ok, run_directory} <- run_storage_directory(),
-         {:ok, userbase} <- load_userbase(path),
-         {:ok, _stored_path} <- RunStorage.store_userbase_file(run_directory, path),
+         {:ok, userbase} <- load_userbase_json(json),
+         {:ok, _stored_path} <- RunStorage.store_userbase_json(run_directory, json),
          {:ok, result} <- do_create_userbase(userbase) do
       {:ok, result}
     end
@@ -52,7 +58,16 @@ defmodule FirehoseSimulator do
           {:ok, map()} | {:error, String.t()}
   def export_userbase_to_csv(path, export_dir, opts)
       when is_binary(path) and is_binary(export_dir) and is_list(opts) do
-    with {:ok, userbase} <- load_userbase(path),
+    with {:ok, json} <- read_userbase_file(path) do
+      export_userbase_to_csv_from_json(json, export_dir, opts)
+    end
+  end
+
+  @spec export_userbase_to_csv_from_json(String.t(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, String.t()}
+  def export_userbase_to_csv_from_json(json, export_dir, opts \\ [])
+      when is_binary(json) and is_binary(export_dir) and is_list(opts) do
+    with {:ok, userbase} <- load_userbase_json(json),
          {:ok, result} <- do_export_userbase_to_csv(userbase, export_dir, opts) do
       {:ok, result}
     end
@@ -60,9 +75,22 @@ defmodule FirehoseSimulator do
 
   @spec import_userbase_from_csv(String.t()) :: {:ok, map()} | {:error, String.t()}
   def import_userbase_from_csv(meta_path) when is_binary(meta_path) do
+    with {:ok, meta_json} <- read_userbase_manifest_file(meta_path),
+         {:ok, result} <- import_userbase_from_csv_json(meta_json) do
+      {:ok, Map.put(result, :meta_path, meta_path)}
+    end
+  end
+
+  @spec import_userbase_from_csv_json(String.t(), keyword()) ::
+          {:ok, map()} | {:error, String.t()}
+  def import_userbase_from_csv_json(meta_json, opts \\ [])
+      when is_binary(meta_json) and is_list(opts) do
+    repo = Keyword.get(opts, :repo, FirehoseSimulator.Repo)
+    import_opts = Keyword.drop(opts, [:repo])
+
     with {:ok, run_directory} <- run_storage_directory(),
-         {:ok, result} <- do_import_userbase_from_csv(meta_path),
-         {:ok, stored_path} <- RunStorage.store_userbase_manifest(run_directory, meta_path) do
+         {:ok, result} <- do_import_userbase_from_csv_json(meta_json, repo, import_opts),
+         {:ok, stored_path} <- RunStorage.store_userbase_manifest_json(run_directory, meta_json) do
       {:ok, Map.put(result, :run_userbase_meta_path, stored_path)}
     end
   end
@@ -102,92 +130,35 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp userbase_filename do
-    System.get_env("USERBASE_JSON", @default_userbase_filename)
-  end
-
-  defp load_userbase(path) do
-    Logger.info("loading userbase from #{path}")
-
-    case(Userbase.load_file(path)) do
-      {:ok, userbase} ->
-        Logger.info(
-          "loaded userbase #{userbase.name} from #{path} with #{userbase.num_users} users"
-        )
-
-        {:ok, userbase}
-
-      {:error, reason} ->
-        Logger.error("failed to load userbase from #{path}: #{reason}")
-        {:error, reason}
-    end
-  end
-
-  defp do_create_userbase(userbase) do
-    Logger.info("creating userbase #{userbase.name} in database for #{userbase.num_users} users")
-
-    case BulkCreation.create_userbase(userbase) do
-      {:ok, result} ->
-        Logger.info("created userbase \"#{userbase.name}\": #{inspect(result)}")
-        {:ok, result}
-
-      {:error, reason} ->
-        Logger.error("failed to create userbase #{userbase.name}: #{reason}")
-        {:error, reason}
-    end
-  end
-
-  defp do_export_userbase_to_csv(userbase, export_dir, opts) do
-    Logger.info("exporting userbase #{userbase.name} to csv under #{export_dir}")
-
-    case UserbaseExport.export(userbase, export_dir, opts) do
-      {:ok, result} = ok ->
-        Logger.info("exported userbase \"#{userbase.name}\": #{inspect(result)}")
-        ok
-
-      {:error, reason} = error ->
-        Logger.error("failed to export userbase #{userbase.name}: #{reason}")
-        error
-    end
-  end
-
-  defp do_import_userbase_from_csv(meta_path) do
-    Logger.info("importing userbase from csv manifest #{meta_path}")
-
-    case UserbaseImport.import(meta_path) do
-      {:ok, result} = ok ->
-        Logger.info("imported userbase from csv manifest #{meta_path}: #{inspect(result)}")
-        ok
-
-      {:error, reason} = error ->
-        Logger.error("failed to import userbase from csv manifest #{meta_path}: #{reason}")
-        error
-    end
-  end
-
-  # Scenario
-
   @spec generate_scenario_from_json(String.t()) ::
           {:ok, Scenario.t()} | {:error, String.t()}
   def generate_scenario_from_json(path) when is_binary(path) do
-    generate_scenario_from_json(scenario_params: path)
+    with {:ok, json} <- read_scenario_params_file(path) do
+      generate_scenario_from_json_string(json, name: scenario_name_from_path(path))
+    end
   end
 
   @spec generate_scenario_from_json(keyword(String.t())) ::
           {:ok, Scenario.t()} | {:error, String.t()}
-  def generate_scenario_from_json(opts) do
-    Logger.info("generating scenario from params json file: #{inspect(opts)}")
+  def generate_scenario_from_json(opts) when is_list(opts) do
+    with {:ok, params_path} <- scenario_params_path(opts),
+         {:ok, json} <- read_scenario_params_file(params_path) do
+      generate_scenario_from_json_string(json, name: scenario_name_from_path(params_path))
+    end
+  end
+
+  @spec generate_scenario_from_json_string(String.t(), keyword()) ::
+          {:ok, Scenario.t()} | {:error, String.t()}
+  def generate_scenario_from_json_string(json, opts \\ [])
+      when is_binary(json) and is_list(opts) do
+    Logger.info("generating scenario from params json content")
+    scenario_name = Keyword.get(opts, :name)
 
     with {:ok, run_directory} <- run_storage_directory(),
-         {:ok, params_path} <- scenario_params_path(opts),
-         {:ok, scenario} <- Scenario.generate_from_json(opts),
-         {:ok, _params_copy} <- store_scenario_params(run_directory, params_path),
-         {:ok, scenario_path} <-
-           RunStorage.store_scenario(
-             run_directory,
-             scenario,
-             scenario_name_from_path(params_path)
-           ) do
+         {:ok, scenario} <- Scenario.generate_from_json_string(json),
+         {:ok, _params_copy} <-
+           RunStorage.store_scenario_params_json(run_directory, json, name: scenario_name),
+         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
       Logger.info("generated scenario sections")
       {:ok, %{scenario | source_path: scenario_path}}
     else
@@ -202,10 +173,20 @@ defmodule FirehoseSimulator do
   def import_scenario_from_json(path) when is_binary(path) do
     Logger.info("importing scenario from json file: #{path}")
 
+    with {:ok, json} <- read_scenario_file(path) do
+      import_scenario_from_json_string(json, name: scenario_name_from_path(path))
+    end
+  end
+
+  @spec import_scenario_from_json_string(String.t(), keyword()) ::
+          {:ok, Scenario.t()} | {:error, String.t()}
+  def import_scenario_from_json_string(json, opts \\ [])
+      when is_binary(json) and is_list(opts) do
+    scenario_name = Keyword.get(opts, :name)
+
     with {:ok, run_directory} <- run_storage_directory(),
-         {:ok, scenario} <- Scenario.from_json_file(path),
-         {:ok, scenario_path} <-
-           RunStorage.store_scenario(run_directory, scenario, scenario_name_from_path(path)) do
+         {:ok, scenario} <- Scenario.from_json(json),
+         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
       {:ok, %{scenario | source_path: scenario_path}}
     end
   end
@@ -402,15 +383,111 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp store_scenario_params(run_directory, path)
-       when is_binary(run_directory) and is_binary(path) do
-    RunStorage.store_scenario_params(run_directory, path, name: scenario_name_from_path(path))
-  end
-
   defp scenario_params_path(opts) when is_list(opts) do
     case Keyword.get(opts, :scenario_params) do
       path when is_binary(path) -> {:ok, path}
       _other -> {:error, "scenario_params path is required"}
+    end
+  end
+
+  defp userbase_filename do
+    System.get_env("USERBASE_JSON", @default_userbase_filename)
+  end
+
+  defp load_userbase_json(json) do
+    Logger.info("loading userbase from json content")
+
+    case Userbase.load(json) do
+      {:ok, userbase} ->
+        Logger.info("loaded userbase #{userbase.name} with #{userbase.num_users} users")
+        {:ok, userbase}
+
+      {:error, reason} ->
+        Logger.error("failed to load userbase from json: #{reason}")
+        {:error, reason}
+    end
+  end
+
+  defp read_userbase_file(path) do
+    Logger.info("loading userbase from #{path}")
+
+    case File.read(path) do
+      {:ok, json} -> {:ok, json}
+      {:error, _reason} -> {:error, "cannot read userbase file at #{path}"}
+    end
+  end
+
+  defp read_userbase_manifest_file(path) do
+    Logger.info("importing userbase from csv manifest #{path}")
+
+    case File.read(path) do
+      {:ok, json} -> {:ok, json}
+      {:error, _reason} -> {:error, "cannot read userbase meta file at #{path}"}
+    end
+  end
+
+  defp read_scenario_params_file(path) do
+    Logger.info("generating scenario from params json file: #{path}")
+
+    case File.read(path) do
+      {:ok, json} ->
+        {:ok, json}
+
+      {:error, :enoent} ->
+        {:error, "cannot read scenario params file at #{path}"}
+
+      {:error, reason} ->
+        {:error, "failed to read scenario params file #{path}: #{inspect(reason)}"}
+    end
+  end
+
+  defp read_scenario_file(path) do
+    case File.read(path) do
+      {:ok, json} -> {:ok, json}
+      {:error, :enoent} -> {:error, "cannot read scenario json at #{path}"}
+      {:error, reason} -> {:error, "failed to read scenario json #{path}: #{inspect(reason)}"}
+    end
+  end
+
+  defp do_create_userbase(userbase) do
+    Logger.info("creating userbase #{userbase.name} in database for #{userbase.num_users} users")
+
+    case BulkCreation.create_userbase(userbase) do
+      {:ok, result} ->
+        Logger.info("created userbase \"#{userbase.name}\": #{inspect(result)}")
+        {:ok, result}
+
+      {:error, reason} ->
+        Logger.error("failed to create userbase #{userbase.name}: #{reason}")
+        {:error, reason}
+    end
+  end
+
+  defp do_export_userbase_to_csv(userbase, export_dir, opts) do
+    Logger.info("exporting userbase #{userbase.name} to csv under #{export_dir}")
+
+    case UserbaseExport.export(userbase, export_dir, opts) do
+      {:ok, result} = ok ->
+        Logger.info("exported userbase \"#{userbase.name}\": #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to export userbase #{userbase.name}: #{reason}")
+        error
+    end
+  end
+
+  defp do_import_userbase_from_csv_json(meta_json, repo, opts) do
+    Logger.info("importing userbase from csv manifest json")
+
+    case UserbaseImport.import_from_meta_json(meta_json, repo, opts) do
+      {:ok, result} = ok ->
+        Logger.info("imported userbase from csv manifest json: #{inspect(result)}")
+        ok
+
+      {:error, reason} = error ->
+        Logger.error("failed to import userbase from csv manifest json: #{reason}")
+        error
     end
   end
 

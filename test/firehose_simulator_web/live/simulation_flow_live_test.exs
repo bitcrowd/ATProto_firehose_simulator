@@ -339,7 +339,6 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     :ok = FirehoseSimulator.stop_all()
     :ok = State.clear_scenarios()
     :ok = State.clear_players()
-    _run_dir = State.refresh_run_storage_directory()
     :ok = State.put_simulation_plan(simulation_plan)
     :ok = State.put_userbase_result(false, nil)
     :ok

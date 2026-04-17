@@ -38,13 +38,13 @@ defmodule FirehoseSimulatorWeb.SetupLive do
         socket
       ) do
     with :ok <- ensure_upload_completed(socket, :userbase, "userbase"),
-         {:ok, userbase_path} <- consume_json_upload(socket, :userbase) do
+         {:ok, userbase_json} <- consume_json_upload(socket, :userbase) do
       {:noreply,
        socket
        |> assign(:creating_userbase?, true)
        |> assign(:generate_form, to_form(params, as: :generate))
        |> start_async(:create_userbase, fn ->
-         FirehoseSimulator.create_userbase(userbase_path)
+         FirehoseSimulator.create_userbase_from_json(userbase_json)
        end)}
     else
       {:error, reason} ->
@@ -70,13 +70,13 @@ defmodule FirehoseSimulatorWeb.SetupLive do
         socket
       ) do
     with :ok <- ensure_upload_completed(socket, :userbase_meta, "userbase meta"),
-         {:ok, meta_path} <- consume_json_upload(socket, :userbase_meta) do
+         {:ok, meta_json} <- consume_json_upload(socket, :userbase_meta) do
       {:noreply,
        socket
        |> assign(:importing_userbase?, true)
        |> assign(:import_form, to_form(params, as: :import))
        |> start_async(:import_userbase, fn ->
-         FirehoseSimulator.import_userbase_from_csv(meta_path)
+         FirehoseSimulator.import_userbase_from_csv_json(meta_json)
        end)}
     else
       {:error, reason} ->
@@ -156,39 +156,27 @@ defmodule FirehoseSimulatorWeb.SetupLive do
 
   defp consume_json_upload(socket, upload_name) do
     case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
-           copied_path = copy_upload_to_tmp(path, entry)
-           Logger.info("loaded json file: #{entry.client_name} -> #{copied_path}")
+           {:ok, content} = File.read(path)
+           Logger.info("loaded json file: #{entry.client_name} -> #{path}")
 
            :telemetry.execute(
              [:firehose_simulator, :json, :file, :loaded],
              %{count: 1},
              %{
                filename: entry.client_name,
-               path: copied_path,
+               path: path,
                kind: json_file_kind(upload_name)
              }
            )
 
-           {:ok, copied_path}
+           {:ok, content}
          end) do
-      [copied_path] ->
-        {:ok, copied_path}
+      [content] ->
+        {:ok, content}
 
       [] ->
         {:error, "Please upload a JSON file first"}
     end
-  end
-
-  defp copy_upload_to_tmp(source_path, entry) do
-    extension = Path.extname(entry.client_name)
-    tmp_name = "firehose-sim-#{upload_token()}#{extension}"
-    tmp_path = Path.join(System.tmp_dir!(), tmp_name)
-    File.cp!(source_path, tmp_path)
-    tmp_path
-  end
-
-  defp upload_token do
-    System.unique_integer([:positive, :monotonic])
   end
 
   defp json_file_kind(:userbase), do: "userbase"

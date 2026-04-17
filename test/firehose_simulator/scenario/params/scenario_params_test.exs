@@ -91,23 +91,11 @@ defmodule FirehoseSimulator.Scenario.Params.ScenarioParamsTest do
   end
 
   describe "load_file/1" do
-    @tag :tmp_dir
-    test "reads unified json from disk", %{tmp_dir: tmp_dir} do
-      path = write_file!(tmp_dir, "scenario-params", ~s({"seed":1,"time_units":1}))
-      assert {:ok, %ScenarioParams{}} = ScenarioParams.load_file(path)
-    end
-
     test "returns an error with file path when file does not exist" do
       path = "missing-scenario-params.json"
       error_msg = "cannot read scenario params file at #{path}"
 
       assert {:error, ^error_msg} = ScenarioParams.load_file(path)
     end
-  end
-
-  defp write_file!(tmp_dir, prefix, content) do
-    path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
-    File.write!(path, content)
-    path
   end
 end

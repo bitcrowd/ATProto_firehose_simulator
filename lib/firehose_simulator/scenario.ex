@@ -43,25 +43,14 @@ defmodule FirehoseSimulator.Scenario do
   def generate_from_json(opts) when is_list(opts) do
     with {:ok, params_path} <- scenario_params_path(opts),
          {:ok, params} <- load_scenario_params(params_path) do
-      seed = seed(params)
-      time_units = time_units(params)
-      unit_duration_ms = time_unit_duration_ms(params)
-      request_interval_ms = request_interval_ms(params)
-      timeline_limit = timeline_limit(params)
+      build_scenario(params)
+    end
+  end
 
-      with {:ok, posts} <- build_posts(params, seed, time_units, unit_duration_ms),
-           {:ok, sessions} <- build_sessions(params, seed, time_units, unit_duration_ms),
-           {:ok, follows} <- build_follows(params, seed, time_units, unit_duration_ms) do
-        {:ok,
-         %__MODULE__{
-           posts: posts,
-           sessions: sessions,
-           follows: follows,
-           request_interval_ms: request_interval_ms,
-           timeline_limit: timeline_limit,
-           source_path: nil
-         }}
-      end
+  @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def generate_from_json_string(json) when is_binary(json) do
+    with {:ok, params} <- load_scenario_params_json(json) do
+      build_scenario(params)
     end
   end
 
@@ -125,6 +114,13 @@ defmodule FirehoseSimulator.Scenario do
   defp load_scenario_params(_path),
     do: {:error, "scenario_params path must be a string"}
 
+  defp load_scenario_params_json(json) when is_binary(json) do
+    case ScenarioParams.load(json) do
+      {:ok, params} -> {:ok, params}
+      {:error, _reason} = error -> error
+    end
+  end
+
   defp scenario_params_path(opts) when is_list(opts) do
     case Keyword.get(opts, :scenario_params) do
       path when is_binary(path) -> {:ok, path}
@@ -181,6 +177,28 @@ defmodule FirehoseSimulator.Scenario do
          time_unit_duration_ms
        ) do
     {:ok, Follows.generate(follows_params, seed, time_units, time_unit_duration_ms)}
+  end
+
+  defp build_scenario(%ScenarioParams{} = params) do
+    seed = seed(params)
+    time_units = time_units(params)
+    unit_duration_ms = time_unit_duration_ms(params)
+    request_interval_ms = request_interval_ms(params)
+    timeline_limit = timeline_limit(params)
+
+    with {:ok, posts} <- build_posts(params, seed, time_units, unit_duration_ms),
+         {:ok, sessions} <- build_sessions(params, seed, time_units, unit_duration_ms),
+         {:ok, follows} <- build_follows(params, seed, time_units, unit_duration_ms) do
+      {:ok,
+       %__MODULE__{
+         posts: posts,
+         sessions: sessions,
+         follows: follows,
+         request_interval_ms: request_interval_ms,
+         timeline_limit: timeline_limit,
+         source_path: nil
+       }}
+    end
   end
 
   defp seed(%ScenarioParams{seed: seed}), do: seed

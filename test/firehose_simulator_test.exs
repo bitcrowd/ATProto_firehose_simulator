@@ -34,31 +34,24 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "generate_scenario_from_json/1" do
-    @tag :tmp_dir
-    test "loads scenario params json through the top-level api", %{tmp_dir: tmp_dir} do
-      params_path =
-        write_file!(
-          tmp_dir,
-          "scenario-params",
-          """
-          {
-            "seed": 1,
-            "time_units": 1,
-            "posts_params": {
-              "num_users": 10,
-              "max_active_user_id": 5,
-              "tiers": [
-                {"max_followers": 1000, "posts_per_time_unit": 0.25}
-              ]
-            }
-          }
-          """
-        )
-
+    test "loads scenario params json through the top-level content api" do
       capture_log(fn ->
         send(
           self(),
-          {:result, FirehoseSimulator.generate_scenario_from_json(scenario_params: params_path)}
+          {:result,
+           FirehoseSimulator.generate_scenario_from_json_string("""
+           {
+             "seed": 1,
+             "time_units": 1,
+             "posts_params": {
+               "num_users": 10,
+               "max_active_user_id": 5,
+               "tiers": [
+                 {"max_followers": 1000, "posts_per_time_unit": 0.25}
+               ]
+             }
+           }
+           """)}
         )
       end)
 
@@ -69,22 +62,15 @@ defmodule FirehoseSimulatorTest do
 
   describe "import_scenario_from_json/1 + export_scenario_to_json/2" do
     @tag :tmp_dir
-    test "imports and exports full scenario json", %{tmp_dir: tmp_dir} do
-      input_path =
-        write_file!(
-          tmp_dir,
-          "scenario",
-          """
-          {
-            "posts": [{"offset_ms": 10, "user_id": 1}],
-            "sessions": [{"offset_ms": 20, "user_id": 2, "duration_ms": 30000}],
-            "follows": [{"offset_ms": 30, "actor_id": 2, "subject_id": 1}]
-          }
-          """
-        )
-
+    test "imports via content api and exports full scenario json", %{tmp_dir: tmp_dir} do
       assert {:ok, %Scenario{} = scenario} =
-               FirehoseSimulator.import_scenario_from_json(input_path)
+               FirehoseSimulator.import_scenario_from_json_string("""
+               {
+                 "posts": [{"offset_ms": 10, "user_id": 1}],
+                 "sessions": [{"offset_ms": 20, "user_id": 2, "duration_ms": 30000}],
+                 "follows": [{"offset_ms": 30, "actor_id": 2, "subject_id": 1}]
+               }
+               """)
 
       output_path = Path.join(tmp_dir, "exported-plan.json")
       assert :ok = FirehoseSimulator.export_scenario_to_json(scenario, output_path)
@@ -94,7 +80,7 @@ defmodule FirehoseSimulatorTest do
                FirehoseSimulator.import_scenario_from_json(output_path)
 
       assert %{reloaded | source_path: nil} == %{scenario | source_path: nil}
-      assert String.contains?(reloaded.source_path, "firehose-simulator-runs-")
+      assert String.starts_with?(reloaded.source_path, current_run_storage_directory())
       assert File.exists?(reloaded.source_path)
     end
   end
@@ -242,13 +228,13 @@ defmodule FirehoseSimulatorTest do
 
       assert simulation_plan.export_path
       assert File.exists?(simulation_plan.export_path)
-      assert String.contains?(simulation_plan.export_path, "firehose-simulator-runs-")
+      assert String.starts_with?(simulation_plan.export_path, current_run_storage_directory())
       assert FirehoseSimulator.current_simulation_plan() == simulation_plan
 
       assert %Scenario{source_path: stored_scenario_path} =
                FirehoseSimulator.State.list_scenarios()["added-scenario"]
 
-      assert String.contains?(stored_scenario_path, "firehose-simulator-runs-")
+      assert String.starts_with?(stored_scenario_path, current_run_storage_directory())
       assert File.exists?(stored_scenario_path)
 
       assert [%Entry{} = entry] = simulation_plan.entries
@@ -280,7 +266,7 @@ defmodule FirehoseSimulatorTest do
       assert entry.offset_ms == 0
       assert is_binary(entry.scenario_path)
       assert entry.scenario_path != ""
-      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert String.starts_with?(entry.scenario_path, current_run_storage_directory())
       assert File.exists?(entry.scenario_path)
 
       assert %Scenario{source_path: source_path} =
@@ -339,7 +325,7 @@ defmodule FirehoseSimulatorTest do
 
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "imported-entry"
-      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert String.starts_with?(entry.scenario_path, current_run_storage_directory())
       assert File.exists?(entry.scenario_path)
       assert %Scenario{source_path: source_path} = entry.scenario
       assert source_path == entry.scenario_path
@@ -394,7 +380,7 @@ defmodule FirehoseSimulatorTest do
       assert simulation_plan.name == "started-imported-plan"
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "started-imported-entry"
-      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert String.starts_with?(entry.scenario_path, current_run_storage_directory())
       assert File.exists?(entry.scenario_path)
       assert entry.offset_ms >= min_offset_ms
       assert entry.offset_ms <= max_offset_ms
@@ -448,7 +434,7 @@ defmodule FirehoseSimulatorTest do
       assert simulation_plan.name == "preloaded-imported-plan"
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "preloaded-entry"
-      assert String.contains?(entry.scenario_path, "firehose-simulator-runs-")
+      assert String.starts_with?(entry.scenario_path, current_run_storage_directory())
       assert entry.offset_ms == -100_000
       assert map_size(FirehoseSimulator.State.list_players()) == 0
       assert row_delta(before_counts, Actor) == 2
@@ -732,6 +718,23 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "create_userbase/1" do
+    test "loads userbase json through the top-level content api" do
+      capture_log(fn ->
+        assert {:ok, result} =
+                 FirehoseSimulator.create_userbase_from_json("""
+                 {
+                   "name": "created from json",
+                   "num_users": 4,
+                   "max_active_user_id": 4,
+                   "follower_density": 1.0
+                 }
+                 """)
+
+        assert result.inserted_actor_count == 4
+        assert result.inserted_follow_count == 4
+      end)
+    end
+
     test "returns file load errors before attempting database work" do
       capture_log(fn ->
         assert {:error, "cannot read userbase file at missing-userbase.json"} =
@@ -741,26 +744,23 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "export_userbase_to_csv/1" do
-    @tag :tmp_dir
-    test "exports under the current run directory by default", %{tmp_dir: tmp_dir} do
-      userbase_path =
-        write_file!(
-          tmp_dir,
-          "userbase",
-          """
-          {
-            "name": "default csv export",
-            "num_users": 4,
-            "max_active_user_id": 4,
-            "follower_density": 1.0
-          }
-          """
-        )
-
-      run_directory = FirehoseSimulator.State.refresh_run_storage_directory()
+    test "exports under the current run directory by default" do
+      run_directory = FirehoseSimulator.State.get_run_storage_directory()
 
       capture_log(fn ->
-        assert {:ok, result} = FirehoseSimulator.export_userbase_to_csv(userbase_path)
+        assert {:ok, result} =
+                 FirehoseSimulator.export_userbase_to_csv_from_json(
+                   """
+                   {
+                     "name": "default csv export",
+                     "num_users": 4,
+                     "max_active_user_id": 4,
+                     "follower_density": 1.0
+                   }
+                   """,
+                   Path.join(run_directory, "userbase")
+                 )
+
         assert File.exists?(result.meta_path)
         assert File.exists?(result.actor_csv_path)
         assert File.exists?(result.follow_csv_path)
@@ -773,23 +773,21 @@ defmodule FirehoseSimulatorTest do
 
   describe "export_userbase_to_csv/2" do
     @tag :tmp_dir
-    test "exports a userbase json through the top-level api", %{tmp_dir: tmp_dir} do
-      userbase_path =
-        write_file!(
-          tmp_dir,
-          "userbase",
-          """
-          {
-            "name": "csv export",
-            "num_users": 4,
-            "max_active_user_id": 4,
-            "follower_density": 1.0
-          }
-          """
-        )
-
+    test "exports a userbase json through the top-level content api", %{tmp_dir: tmp_dir} do
       capture_log(fn ->
-        assert {:ok, result} = FirehoseSimulator.export_userbase_to_csv(userbase_path, tmp_dir)
+        assert {:ok, result} =
+                 FirehoseSimulator.export_userbase_to_csv_from_json(
+                   """
+                   {
+                     "name": "csv export",
+                     "num_users": 4,
+                     "max_active_user_id": 4,
+                     "follower_density": 1.0
+                   }
+                   """,
+                   tmp_dir
+                 )
+
         assert File.exists?(result.meta_path)
         assert File.exists?(result.actor_csv_path)
         assert File.exists?(result.follow_csv_path)
@@ -798,6 +796,52 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "import_userbase_from_csv/1" do
+    test "imports manifest json through the top-level content api" do
+      meta_json = """
+      {
+        "version": 1,
+        "kind": "userbase",
+        "run_id": "test-run",
+        "exported_at": "2025-01-01T00:00:00Z",
+        "userbase": {
+          "name": "imported userbase",
+          "num_users": 2,
+          "max_active_user_id": 2,
+          "follower_density": 1.0
+        },
+        "files": {
+          "actor": {
+            "path": "/tmp/actors.csv",
+            "row_count": 2
+          },
+          "follow": {
+            "path": "/tmp/follows.csv",
+            "row_count": 3
+          }
+        }
+      }
+      """
+
+      copy_fun = fn _repo, meta ->
+        assert meta.run_id == "test-run"
+        {:ok, :copied}
+      end
+
+      capture_log(fn ->
+        assert {:ok, result} =
+                 FirehoseSimulator.import_userbase_from_csv_json(
+                   meta_json,
+                   validate_files: false,
+                   copy_fun: copy_fun
+                 )
+
+        assert result.inserted_actor_count == 2
+        assert result.inserted_follow_count == 3
+        assert is_binary(result.run_userbase_meta_path)
+        assert File.exists?(result.run_userbase_meta_path)
+      end)
+    end
+
     test "returns manifest file errors before attempting database work" do
       capture_log(fn ->
         assert {:error, "cannot read userbase meta file at missing-userbase-meta.json"} =
@@ -852,7 +896,6 @@ defmodule FirehoseSimulatorTest do
     :ok = FirehoseSimulator.stop_all()
     :ok = FirehoseSimulator.State.clear_scenarios()
     :ok = FirehoseSimulator.State.clear_players()
-    _run_dir = FirehoseSimulator.State.refresh_run_storage_directory()
     :ok = FirehoseSimulator.State.put_simulation_plan(simulation_plan)
     :ok = FirehoseSimulator.State.put_userbase_result(false, nil)
     :ok
@@ -872,5 +915,9 @@ defmodule FirehoseSimulatorTest do
 
   defp unique_user_id do
     System.unique_integer([:positive]) + 2_000_000
+  end
+
+  defp current_run_storage_directory do
+    FirehoseSimulator.State.get_run_storage_directory()
   end
 end

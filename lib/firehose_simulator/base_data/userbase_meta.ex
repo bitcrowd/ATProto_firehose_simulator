@@ -46,11 +46,19 @@ defmodule FirehoseSimulator.BaseData.UserbaseMeta do
     }
   end
 
+  @spec encode(t()) :: {:ok, String.t()} | {:error, String.t()}
+  def encode(%__MODULE__{} = meta) do
+    case Jason.encode(to_map(meta), pretty: true) do
+      {:ok, json} -> {:ok, json <> "\n"}
+      {:error, reason} -> {:error, "failed to encode userbase meta json: #{inspect(reason)}"}
+    end
+  end
+
   @spec write_file(t(), String.t()) :: :ok | {:error, String.t()}
   def write_file(%__MODULE__{} = meta, path) when is_binary(path) do
     with :ok <- File.mkdir_p(Path.dirname(path)),
-         {:ok, json} <- Jason.encode(to_map(meta), pretty: true),
-         :ok <- File.write(path, json <> "\n") do
+         {:ok, json} <- encode(meta),
+         :ok <- File.write(path, json) do
       :ok
     else
       {:error, reason} when is_binary(reason) ->
@@ -61,13 +69,21 @@ defmodule FirehoseSimulator.BaseData.UserbaseMeta do
     end
   end
 
-  @spec load_file(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load_file(path) when is_binary(path) do
-    with {:ok, json} <- read_json_file(path),
-         {:ok, decoded} <- decode_json(json),
+  @spec load(String.t(), keyword()) :: {:ok, t()} | {:error, String.t()}
+  def load(json, opts \\ []) when is_binary(json) and is_list(opts) do
+    validate_files? = Keyword.get(opts, :validate_files, true)
+
+    with {:ok, decoded} <- decode_json(json),
          {:ok, meta} <- from_map(decoded),
-         :ok <- validate_files(meta) do
+         :ok <- maybe_validate_files(meta, validate_files?) do
       {:ok, meta}
+    end
+  end
+
+  @spec load_file(String.t(), keyword()) :: {:ok, t()} | {:error, String.t()}
+  def load_file(path, opts \\ []) when is_binary(path) and is_list(opts) do
+    with {:ok, json} <- read_json_file(path) do
+      load(json, opts)
     end
   end
 
@@ -111,6 +127,9 @@ defmodule FirehoseSimulator.BaseData.UserbaseMeta do
       :ok
     end
   end
+
+  defp maybe_validate_files(meta, true), do: validate_files(meta)
+  defp maybe_validate_files(_meta, false), do: :ok
 
   defp validate_file_path(path, name) do
     cond do

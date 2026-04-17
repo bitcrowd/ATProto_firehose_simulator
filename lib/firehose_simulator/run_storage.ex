@@ -19,11 +19,24 @@ defmodule FirehoseSimulator.RunStorage do
     copy_into_run(run_directory, path, "userbase", "userbase.json")
   end
 
+  @spec store_userbase_json(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def store_userbase_json(run_directory, json)
+      when is_binary(run_directory) and is_binary(json) do
+    write_into_run(run_directory, json, "userbase", "userbase.json")
+  end
+
   @spec store_userbase_manifest(String.t(), String.t()) ::
           {:ok, String.t()} | {:error, String.t()}
   def store_userbase_manifest(run_directory, path)
       when is_binary(run_directory) and is_binary(path) do
     copy_into_run(run_directory, path, "userbase", "userbase_meta.json")
+  end
+
+  @spec store_userbase_manifest_json(String.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def store_userbase_manifest_json(run_directory, json)
+      when is_binary(run_directory) and is_binary(json) do
+    write_into_run(run_directory, json, "userbase", "userbase_meta.json")
   end
 
   @spec store_scenario_params(String.t(), String.t(), keyword()) ::
@@ -32,6 +45,14 @@ defmodule FirehoseSimulator.RunStorage do
       when is_binary(run_directory) and is_binary(path) and is_list(opts) do
     filename = build_filename(path, Keyword.get(opts, :name), ".json")
     copy_into_run(run_directory, path, "scenario_params", filename)
+  end
+
+  @spec store_scenario_params_json(String.t(), String.t(), keyword()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def store_scenario_params_json(run_directory, json, opts \\ [])
+      when is_binary(run_directory) and is_binary(json) and is_list(opts) do
+    filename = build_filename("scenario_params.json", Keyword.get(opts, :name), ".json")
+    write_into_run(run_directory, json, "scenario_params", filename)
   end
 
   @spec store_scenario(String.t(), Scenario.t(), String.t() | nil) ::
@@ -115,6 +136,18 @@ defmodule FirehoseSimulator.RunStorage do
     else
       {:error, reason} ->
         {:error, "failed to copy #{source_path} to #{destination}: #{inspect(reason)}"}
+    end
+  end
+
+  defp write_into_run(run_directory, content, directory, file_name) do
+    destination = Path.join([run_directory, directory, file_name])
+
+    with :ok <- File.mkdir_p(Path.dirname(destination)),
+         :ok <- File.write(destination, content) do
+      {:ok, destination}
+    else
+      {:error, reason} when is_binary(reason) -> {:error, reason}
+      {:error, reason} -> {:error, "failed to write #{destination}: #{inspect(reason)}"}
     end
   end
 

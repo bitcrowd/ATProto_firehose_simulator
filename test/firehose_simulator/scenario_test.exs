@@ -3,48 +3,41 @@ defmodule FirehoseSimulator.ScenarioTest do
 
   alias FirehoseSimulator.Scenario
 
-  describe "generate_from_json/1" do
-    @tag :tmp_dir
-    test "loads unified params json and generates posts, sessions, and follows plans",
-         %{tmp_dir: tmp_dir} do
-      params_path =
-        write_file!(
-          tmp_dir,
-          "scenario-params",
-          """
-          {
-            "seed": 1,
-            "time_units": 1,
-            "time_unit_duration_ms": 3600000,
-            "posts_params": {
-              "num_users": 10,
-              "max_active_user_id": 5,
-              "follower_density": 2.0,
-              "tiers": [
-                {"max_followers": 1000, "posts_per_time_unit": 0.25}
-              ]
-            },
-            "sessions_params": {
-              "num_users": 10,
-              "max_active_user_id": 5,
-              "follower_density": 2.0,
-              "request_interval_ms": 25000,
-              "timeline_limit": 40,
-              "tiers": [
-                {"max_followers": 1000, "session_minutes": 240}
-              ]
-            },
-            "follows_params": {
-              "num_users": 10,
-              "max_active_user_id": 5,
-              "follower_density": 2.0,
-              "tiers": [
-                {"max_followers": 1000, "follows_per_time_unit": 0.25}
-              ]
-            }
-          }
-          """
-        )
+  describe "generate_from_json_string/1" do
+    test "loads unified params json and generates posts, sessions, and follows plans" do
+      params_json = """
+      {
+        "seed": 1,
+        "time_units": 1,
+        "time_unit_duration_ms": 3600000,
+        "posts_params": {
+          "num_users": 10,
+          "max_active_user_id": 5,
+          "follower_density": 2.0,
+          "tiers": [
+            {"max_followers": 1000, "posts_per_time_unit": 0.25}
+          ]
+        },
+        "sessions_params": {
+          "num_users": 10,
+          "max_active_user_id": 5,
+          "follower_density": 2.0,
+          "request_interval_ms": 25000,
+          "timeline_limit": 40,
+          "tiers": [
+            {"max_followers": 1000, "session_minutes": 240}
+          ]
+        },
+        "follows_params": {
+          "num_users": 10,
+          "max_active_user_id": 5,
+          "follower_density": 2.0,
+          "tiers": [
+            {"max_followers": 1000, "follows_per_time_unit": 0.25}
+          ]
+        }
+      }
+      """
 
       assert {:ok,
               %Scenario{
@@ -54,7 +47,7 @@ defmodule FirehoseSimulator.ScenarioTest do
                 request_interval_ms: request_interval_ms,
                 timeline_limit: timeline_limit
               }} =
-               Scenario.generate_from_json(scenario_params: params_path)
+               Scenario.generate_from_json_string(params_json)
 
       assert length(sessions) == 5
       assert is_list(posts)
@@ -66,45 +59,34 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert Enum.all?(follows, &(&1.offset_ms < 3_600_000))
     end
 
-    test "requires a scenario_params path" do
-      assert {:error, "scenario_params path is required"} =
-               Scenario.generate_from_json([])
-    end
-
-    @tag :tmp_dir
-    test "defaults time unit duration to one day when omitted", %{tmp_dir: tmp_dir} do
-      params_path =
-        write_file!(
-          tmp_dir,
-          "scenario-params-default-duration",
-          """
-          {
-            "seed": 1,
-            "time_units": 1,
-            "posts_params": {
-              "num_users": 10,
-              "max_active_user_id": 1,
-              "tiers": [
-                {"max_followers": 1000, "posts_per_time_unit": 1.0}
-              ]
-            },
-            "sessions_params": {
-              "num_users": 10,
-              "max_active_user_id": 1,
-              "tiers": [
-                {"max_followers": 1000, "session_minutes": 10}
-              ]
-            },
-            "follows_params": {
-              "num_users": 10,
-              "max_active_user_id": 1,
-              "tiers": [
-                {"max_followers": 1000, "follows_per_time_unit": 1.0}
-              ]
-            }
-          }
-          """
-        )
+    test "defaults time unit duration to one day when omitted" do
+      params_json = """
+      {
+        "seed": 1,
+        "time_units": 1,
+        "posts_params": {
+          "num_users": 10,
+          "max_active_user_id": 1,
+          "tiers": [
+            {"max_followers": 1000, "posts_per_time_unit": 1.0}
+          ]
+        },
+        "sessions_params": {
+          "num_users": 10,
+          "max_active_user_id": 1,
+          "tiers": [
+            {"max_followers": 1000, "session_minutes": 10}
+          ]
+        },
+        "follows_params": {
+          "num_users": 10,
+          "max_active_user_id": 1,
+          "tiers": [
+            {"max_followers": 1000, "follows_per_time_unit": 1.0}
+          ]
+        }
+      }
+      """
 
       assert {:ok,
               %Scenario{
@@ -114,13 +96,20 @@ defmodule FirehoseSimulator.ScenarioTest do
                 request_interval_ms: request_interval_ms,
                 timeline_limit: timeline_limit
               }} =
-               Scenario.generate_from_json(scenario_params: params_path)
+               Scenario.generate_from_json_string(params_json)
 
       assert request_interval_ms == 30_000
       assert timeline_limit == 20
       assert Enum.all?(sessions, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(posts, &(&1.offset_ms < 86_400_000))
       assert Enum.all?(follows, &(&1.offset_ms < 86_400_000))
+    end
+  end
+
+  describe "generate_from_json/1" do
+    test "requires a scenario_params path" do
+      assert {:error, "scenario_params path is required"} =
+               Scenario.generate_from_json([])
     end
   end
 
@@ -179,11 +168,5 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert %Scenario{posts: nil, sessions: nil, follows: nil} =
                Scenario.shift(scenario, 123)
     end
-  end
-
-  defp write_file!(tmp_dir, prefix, content) do
-    path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
-    File.write!(path, content)
-    path
   end
 end

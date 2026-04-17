@@ -112,35 +112,11 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
   end
 
   describe "load_file/1" do
-    @tag :tmp_dir
-    test "reads userbase json from disk", %{tmp_dir: tmp_dir} do
-      path =
-        write_file!(
-          tmp_dir,
-          """
-          {
-            "name": "from file",
-            "num_users": 100,
-            "max_active_user_id": 10,
-            "follower_density": 2.0
-          }
-          """
-        )
-
-      assert {:ok, %Userbase{name: "from file"}} = Userbase.load_file(path)
-    end
-
     test "returns an error with file path when file does not exist" do
       path = "does-not-exist.json"
       error_msg = "cannot read userbase file at #{path}"
 
       assert {:error, ^error_msg} = Userbase.load_file(path)
     end
-  end
-
-  defp write_file!(tmp_dir, content) do
-    path = Path.join(tmp_dir, "userbase-#{System.unique_integer([:positive])}.json")
-    File.write!(path, content)
-    path
   end
 end

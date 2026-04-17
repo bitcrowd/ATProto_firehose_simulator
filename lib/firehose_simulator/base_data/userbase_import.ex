@@ -18,6 +18,25 @@ defmodule FirehoseSimulator.BaseData.UserbaseImport do
     end
   end
 
+  @spec import_from_meta_json(String.t(), module(), keyword()) ::
+          {:ok, map()} | {:error, String.t()}
+  def import_from_meta_json(meta_json, repo \\ Repo, opts \\ [])
+      when is_binary(meta_json) and is_atom(repo) and is_list(opts) do
+    copy_fun = Keyword.get(opts, :copy_fun, &copy_userbase_files/2)
+
+    with {:ok, meta} <-
+           UserbaseMeta.load(meta_json, validate_files: Keyword.get(opts, :validate_files, true)),
+         {:ok, :copied} <- copy_fun.(repo, meta) do
+      {:ok,
+       %{
+         actor_csv_path: meta.files.actor.path,
+         follow_csv_path: meta.files.follow.path,
+         inserted_actor_count: meta.files.actor.row_count,
+         inserted_follow_count: meta.files.follow.row_count
+       }}
+    end
+  end
+
   @spec copy_actor_sql(String.t()) :: String.t()
   def copy_actor_sql(path) when is_binary(path) do
     "COPY bsky.actor (did, \"indexedAt\", \"trustedVerifier\") FROM " <>
