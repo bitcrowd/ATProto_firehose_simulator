@@ -1,10 +1,17 @@
 # FirehoseSimulator
 
+This project is a simulates incoming traffic and user requests for an atproto dataplane such as the one used by bluesky.
+
+![Overview of simulator](docs/overview.svg)
+
+Here is brief [overview](docs/overview.md) document that describes the functionality of the simulator.
+
 To start your Phoenix server:
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+* Run `MIX_ENV=prod mix setup` to install and setup dependencies
+* Start Phoenix endpoint with IEx with `MIX_ENV=prod iex -S mix phx.server`
 
+For configuration options read [docs/configuration-and-files.md](docs/configuration-and-files.md).
 
 The firehose simulator will start on [`localhost:4000`](http://localhost:4000).
 
@@ -12,25 +19,24 @@ The PLC stub will start on [`localhost:4001`](http://localhost:4001).
 
 The PDS stub will start on [`localhost:4002`](http://localhost:4002).
 
-Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator.
+Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator or work from withing IEx.
 
-## With Bluesky dataplane
+## Bluesky dataplane
+
+A small starter script for the open source implementation of the Bluesky dataplane is available.
+
+For configuration options read [configuration-and-files](docs/configuration-and-files.md).
 
 ```bash
 cd dataplane
 npm install
-npm start
+NODE_ENV=production npm start
 ```
 
-## Run simulation from IEx
-
-Start the server in IEx:
-
-```bash
-iex -S mix phx.server
-```
-
+## Metrics
 Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be visualized in Grafana using the dashboard assets under `infra/`.
+
+Read [metrics](docs/metrics.md) for a description of the metrics. 
 
 ```bash
 cd infra
@@ -45,8 +51,9 @@ Import [`infra/firesim-1775727593906.json`](/Users/joel/code/sim2/infra/firesim-
 
 1. `Setup`: create the userbase or import one using the configured database.
 2. `Planning`: generate scenarios from params JSON, import scenarios, or import a simulation plan JSON file.
-3. `Simulation`: select one available scenario and play/stop/reset while building up the active simulation plan.
-4. `Vacuum`: run cleanup actions for userbase and/or post tables.
+3. `Simulation`: select one available scenario and play/stop while building up the active simulation plan.
+4. `Metrics`: a summary of the most important metrics, use Grafana for better insights.
+5. `Vacuum`: run cleanup actions for userbase and/or post tables.
 
 ## In IEx
 
@@ -66,33 +73,31 @@ userbase_path = "priv/simulation/userbase.json"
   )
 ```
 
-
-Play the plan:
+Play the scenario:
 
 ```elixir
-:ok = FirehoseSimulator.reset()
 {:ok, player_id, _result} = FirehoseSimulator.load(scenario)
 :ok = FirehoseSimulator.start(player_id)
 ```
 
-You can play multiple plans at the same time: 
+You can play multiple scenarios at the same time: 
 ```elixir
 {:ok, player_id_2, _result} = FirehoseSimulator.load(scenario)
 :ok = FirehoseSimulator.start(player_id_2)
 ```
 
-Stop and reset a specific player:
+Stop a specific player:
 
 ```elixir
 :ok = FirehoseSimulator.stop(player_id)
 ```
 
-Stop/reset all running players:
+Stop all running players:
 
 ```elixir
 :ok = FirehoseSimulator.stop_all()
-:ok = FirehoseSimulator.reset_all()
 ```
+
 Use vacuum functions to truncate userbase and/or post tables:
 
 ```elixir
