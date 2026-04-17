@@ -101,11 +101,6 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, {:put_userbase_result, userbase_uploaded?, userbase_result})
   end
 
-  @spec reset_all() :: :ok
-  def reset_all do
-    GenServer.call(__MODULE__, :reset_all)
-  end
-
   @impl true
   def init(:ok) do
     {:ok, default_state()}
@@ -178,10 +173,6 @@ defmodule FirehoseSimulator.State do
   def handle_call({:put_userbase_result, userbase_uploaded?, userbase_result}, _from, state) do
     {:reply, :ok,
      %{state | userbase_uploaded?: userbase_uploaded?, userbase_result: userbase_result}}
-  end
-
-  def handle_call(:reset_all, _from, _state) do
-    {:reply, :ok, default_state()}
   end
 
   defp default_state do

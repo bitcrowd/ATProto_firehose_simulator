@@ -129,17 +129,6 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
      |> put_flash(:info, "All simulation players stopped.")}
   end
 
-  @impl true
-  def handle_event("reset_all", _params, socket) do
-    :ok = FirehoseSimulator.reset_all()
-
-    {:noreply,
-     socket
-     |> assign_players()
-     |> assign(:last_action, "All simulation players reset.")
-     |> put_flash(:info, "All simulation players reset.")}
-  end
-
   defp assign_scenarios(socket, selected_scenario_id) do
     scenario_ids =
       State.list_scenarios()

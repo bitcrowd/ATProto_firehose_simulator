@@ -219,11 +219,6 @@ defmodule FirehoseSimulator.Player do
     :ok
   end
 
-  @spec reset_all() :: :ok
-  def reset_all do
-    stop_all()
-  end
-
   @spec status(String.t()) :: map() | {:error, :not_loaded}
   def status(player_id) when is_binary(player_id) do
     with {:ok, metadata} <- player_metadata(player_id) do

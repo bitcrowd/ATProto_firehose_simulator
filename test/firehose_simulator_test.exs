@@ -23,15 +23,11 @@ defmodule FirehoseSimulatorTest do
       )
 
     Application.put_env(:firehose_simulator, :runs_root, runs_root)
-    :ok = FirehoseSimulator.stop_all()
-    :ok = FirehoseSimulator.State.clear_players()
-    :ok = FirehoseSimulator.State.reset_all()
+    clear_test_state()
 
     on_exit(fn ->
       Application.delete_env(:firehose_simulator, :runs_root)
-      :ok = FirehoseSimulator.stop_all()
-      :ok = FirehoseSimulator.State.clear_players()
-      :ok = FirehoseSimulator.State.reset_all()
+      clear_test_state()
     end)
 
     :ok
@@ -787,13 +783,6 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
-  describe "reset/0" do
-    test "exposes global reset from the top-level api" do
-      assert :ok = FirehoseSimulator.reset_all()
-      assert :ok = FirehoseSimulator.reset()
-    end
-  end
-
   describe "shift_scenario/2" do
     test "shifts offsets for all plan sections" do
       scenario = %Scenario{
@@ -825,6 +814,17 @@ defmodule FirehoseSimulatorTest do
     path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
     File.write!(path, content)
     path
+  end
+
+  defp clear_test_state do
+    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
+    :ok = FirehoseSimulator.stop_all()
+    :ok = FirehoseSimulator.State.clear_scenarios()
+    :ok = FirehoseSimulator.State.clear_players()
+    _run_dir = FirehoseSimulator.State.refresh_run_storage_directory()
+    :ok = FirehoseSimulator.State.put_simulation_plan(simulation_plan)
+    :ok = FirehoseSimulator.State.put_userbase_result(false, nil)
+    :ok
   end
 
   defp row_count(schema) do

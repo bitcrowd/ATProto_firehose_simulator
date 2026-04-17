@@ -16,11 +16,11 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
       )
 
     Application.put_env(:firehose_simulator, :runs_root, runs_root)
-    :ok = State.reset_all()
+    clear_test_state()
 
     on_exit(fn ->
       Application.delete_env(:firehose_simulator, :runs_root)
-      :ok = State.reset_all()
+      clear_test_state()
     end)
 
     :ok
@@ -224,9 +224,6 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     view |> element("#stop-all-button") |> render_click()
     assert render(view) =~ "All simulation players stopped."
-
-    view |> element("#reset-all-button") |> render_click()
-    assert render(view) =~ "All simulation players reset."
   end
 
   test "simulation liveview ignores missing selected scenario in url", %{conn: conn} do
@@ -335,5 +332,16 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     File.write!(path, content)
     path
+  end
+
+  defp clear_test_state do
+    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
+    :ok = FirehoseSimulator.stop_all()
+    :ok = State.clear_scenarios()
+    :ok = State.clear_players()
+    _run_dir = State.refresh_run_storage_directory()
+    :ok = State.put_simulation_plan(simulation_plan)
+    :ok = State.put_userbase_result(false, nil)
+    :ok
   end
 end

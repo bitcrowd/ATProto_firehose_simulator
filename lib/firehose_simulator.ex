@@ -512,19 +512,8 @@ defmodule FirehoseSimulator do
     :ok
   end
 
-  @spec reset() :: :ok
-  def reset do
-    Logger.info("resetting all simulation playback")
-    :ok = Player.reset_all()
-    Logger.info("all simulation playback reset")
-    :ok
-  end
-
   @spec stop_all() :: :ok
   def stop_all, do: stop()
-
-  @spec reset_all() :: :ok
-  def reset_all, do: reset()
 
   @spec status(String.t()) :: map() | {:error, term()}
   def status(player_id) when is_binary(player_id), do: Player.status(player_id)
