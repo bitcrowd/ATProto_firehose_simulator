@@ -740,6 +740,37 @@ defmodule FirehoseSimulatorTest do
     end
   end
 
+  describe "export_userbase_to_csv/1" do
+    @tag :tmp_dir
+    test "exports under the current run directory by default", %{tmp_dir: tmp_dir} do
+      userbase_path =
+        write_file!(
+          tmp_dir,
+          "userbase",
+          """
+          {
+            "name": "default csv export",
+            "num_users": 4,
+            "max_active_user_id": 4,
+            "follower_density": 1.0
+          }
+          """
+        )
+
+      run_directory = FirehoseSimulator.State.refresh_run_storage_directory()
+
+      capture_log(fn ->
+        assert {:ok, result} = FirehoseSimulator.export_userbase_to_csv(userbase_path)
+        assert File.exists?(result.meta_path)
+        assert File.exists?(result.actor_csv_path)
+        assert File.exists?(result.follow_csv_path)
+
+        assert String.starts_with?(result.export_dir, Path.join(run_directory, "userbase"))
+        refute String.contains?(result.export_dir, "/artifacts/userbase/")
+      end)
+    end
+  end
+
   describe "export_userbase_to_csv/2" do
     @tag :tmp_dir
     test "exports a userbase json through the top-level api", %{tmp_dir: tmp_dir} do

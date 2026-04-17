@@ -63,7 +63,7 @@ defmodule FirehoseSimulator.RunStorage do
 
   @spec default_userbase_export_root(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def default_userbase_export_root(run_directory) when is_binary(run_directory) do
-    {:ok, Path.join([run_directory, "artifacts", "userbase"])}
+    {:ok, Path.join([run_directory, "userbase"])}
   end
 
   @spec localize_plan_entries(String.t(), SimulationPlan.t()) ::

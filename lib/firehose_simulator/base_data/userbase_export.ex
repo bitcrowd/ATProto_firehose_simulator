@@ -4,8 +4,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.BulkCreation
 
-  @default_export_root "priv/userbases"
-
   @spec export(Userbase.t(), String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def export(%Userbase{} = userbase, export_root, opts \\ [])
       when is_binary(export_root) and is_list(opts) do
@@ -50,9 +48,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
         {:error, "#{reason} (run_dir=#{run_dir})"}
     end
   end
-
-  @spec default_export_root() :: String.t()
-  def default_export_root, do: @default_export_root
 
   @spec actor_rows(Userbase.t(), String.t()) :: [map()]
   def actor_rows(%Userbase{} = userbase, indexed_at) when is_binary(indexed_at) do
