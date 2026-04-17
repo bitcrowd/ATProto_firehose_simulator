@@ -1,6 +1,8 @@
 defmodule Dataplane do
+  @finch Dataplane.Finch
+
   def new(options \\ []) when is_list(options) do
-    Req.new(base_url: dataplane_url())
+    Req.new(base_url: dataplane_url(), finch: @finch)
     |> Req.merge(options)
   end
 

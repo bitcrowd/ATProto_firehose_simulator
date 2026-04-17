@@ -15,10 +15,16 @@ defmodule FirehoseSimulator.Application do
     configure_file_logging()
 
     prometheus_port = Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port)
+    finch_pool_size = Application.fetch_env!(:firehose_simulator, :finch_pool_size)
 
     children =
       [
         FirehoseSimulator.Repo,
+        {Finch,
+         name: Dataplane.Finch,
+         pools: %{
+           default: [size: finch_pool_size]
+         }},
         FirehoseSimulatorWeb.Telemetry,
         {DNSCluster,
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},

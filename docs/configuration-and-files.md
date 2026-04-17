@@ -13,6 +13,7 @@ You must configure the environment for the simulator and dataplane to work corre
 | `PORT`            | `4000`                                                             | Main simulator HTTP port, this is the port that exposes the firehose    |
 | `PLC_PORT`        | `4001`                                                             | Stub PLC HTTP port                                                      |
 | `PDS_PORT`        | `4002`                                                             | Stub PDS HTTP port                                                      |
+| `FINCH_POOL_SIZE` | `200`                                                              | Finch HTTP connection pool size used for dataplane requests             |
 | `PROMETHEUS_PORT` | `9568`                                                             | Standalone metrics exporter port                                        |
 | `USERBASE_JSON`   | `priv/simulation/userbase.json`                                    | Used as default path for userbase creation                              |
 
@@ -29,10 +30,11 @@ You must configure the environment for the simulator and dataplane to work corre
 
 ## Elixir configuration
 
-| Config key       | Notes                                      |
-|---               |---                                         |
-| `:log_file_path` | Runtime log file path                      |
-| `:runs_root`     | Root directory for generated run artifacts |
+| Config key          | Notes                                      |
+|---                  |---                                         |
+| `:finch_pool_size`  | Finch HTTP connection pool size            |
+| `:log_file_path`    | Runtime log file path                      |
+| `:runs_root`        | Root directory for generated run artifacts |
 
 ## JSON configuration options
 

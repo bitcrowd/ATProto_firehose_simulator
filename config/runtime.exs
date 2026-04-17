@@ -23,7 +23,8 @@ if System.get_env("PHX_SERVER") do
 end
 
 config :firehose_simulator,
-  prometheus_exporter_port: String.to_integer(System.get_env("PROMETHEUS_PORT", "9568"))
+  prometheus_exporter_port: String.to_integer(System.get_env("PROMETHEUS_PORT", "9568")),
+  finch_pool_size: String.to_integer(System.get_env("FINCH_POOL_SIZE", "200"))
 
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
