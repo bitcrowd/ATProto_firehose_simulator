@@ -156,9 +156,8 @@ defmodule FirehoseSimulator.RunStorage do
   end
 
   defp timestamped_run_dir_name do
-    timestamp = DateTime.utc_now() |> Calendar.strftime("%Y%m%dT%H%M%SZ")
-    unique = System.unique_integer([:positive, :monotonic])
-    "#{timestamp}_#{unique}"
+    timestamp = DateTime.utc_now() |> Calendar.strftime("%Y%m%dT%H%M%S.%f")
+    "#{timestamp}"
   end
 
   defp build_filename(source_path, provided_name, extension) do
