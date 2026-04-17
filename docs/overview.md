@@ -24,8 +24,6 @@ It describes the userbase that will exist before simulation playback begins.
 
 The simulator currently supports creating users ("actors") and follows between those users as base data.
 
-Details: [Base Data](./architecture/base-data.md)
-
 ### Scenario
 
 A scenario captures a series of user activity that will happen at defined time offsets during simulation.
@@ -38,8 +36,6 @@ At the moment three actions can be simulated:
 A single scenario can contain series for all three actions, but all of them are optional.
 
 Scenarios are intended to represent typical real world traffic, for instance a regular "saturday morning", or you know, a "shitstorm".
-
-Details: [Scenarios](./architecture/scenarios.md)
 
 ### Simulation Plan
 
