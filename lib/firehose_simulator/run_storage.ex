@@ -7,10 +7,30 @@ defmodule FirehoseSimulator.RunStorage do
 
   @default_runs_root "runs"
   @default_log_file "firehose_simulator.log"
+  @run_subdirectories ~w(logs userbase scenario_params scenarios)
 
   @spec timestamped_directory() :: String.t()
   def timestamped_directory do
     Path.join(runs_root(), timestamped_run_dir_name())
+  end
+
+  @spec ensure_run_directory(String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def ensure_run_directory(run_directory) when is_binary(run_directory) do
+    directories =
+      [run_directory | Enum.map(@run_subdirectories, &Path.join(run_directory, &1))]
+
+    case Enum.reduce_while(directories, :ok, fn directory, :ok ->
+           case File.mkdir_p(directory) do
+             :ok -> {:cont, :ok}
+             {:error, reason} -> {:halt, {:error, {directory, reason}}}
+           end
+         end) do
+      :ok ->
+        {:ok, run_directory}
+
+      {:error, {directory, reason}} ->
+        {:error, "failed to create run storage directory #{directory}: #{inspect(reason)}"}
+    end
   end
 
   @spec store_userbase_file(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}

@@ -64,7 +64,7 @@ defmodule FirehoseSimulator.Application do
   defp configure_file_logging() do
     run_storage_directory = RunStorage.timestamped_directory()
 
-    with :ok <- File.mkdir_p!(run_storage_directory),
+    with {:ok, _run_storage_directory} <- RunStorage.ensure_run_directory(run_storage_directory),
          {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory),
          :ok <- ensure_file_handler(path) do
       run_storage_directory

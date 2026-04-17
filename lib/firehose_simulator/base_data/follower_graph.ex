@@ -55,6 +55,72 @@ defmodule FirehoseSimulator.BaseData.FollowerGraph do
   end
 
   @doc """
+  Lazily streams follow-edge metadata for `n` users in deterministic export order.
+
+  Subjects are emitted in ascending user ID order, and follower IDs are emitted
+  in ascending order within each subject.
+  """
+  @spec stream_follows(pos_integer(), keyword()) :: Enumerable.t()
+  def stream_follows(n, opts \\ [])
+      when is_integer(n) and n >= 1 and is_list(opts) do
+    start_id = Keyword.get(opts, :start_id, 1)
+    follower_density = Keyword.get(opts, :follower_density, 1.0)
+
+    start_id..(start_id + n - 1)
+    |> Stream.with_index()
+    |> Stream.flat_map(fn {subject_id, subject_offset} ->
+      rank = subject_offset + 1
+      follower_count = follower_count(rank, n, follower_density)
+
+      (subject_id + 1)..(subject_id + follower_count)//1
+      |> Stream.with_index(1)
+      |> Stream.map(fn {actor_id, follower_offset} ->
+        %{
+          actor_id: actor_id,
+          subject_id: subject_id,
+          subject_offset: subject_offset,
+          follower_offset: follower_offset
+        }
+      end)
+    end)
+  end
+
+  @doc """
+  Lazily streams follow-edge metadata grouped by subject in deterministic export order.
+
+  Each emitted item is a non-empty list of follows for a single `subject_id`, with
+  follower IDs in ascending order inside the batch.
+  """
+  @spec stream_follow_batches_by_subject(pos_integer(), keyword()) :: Enumerable.t()
+  def stream_follow_batches_by_subject(n, opts \\ [])
+      when is_integer(n) and n >= 1 and is_list(opts) do
+    stream_follows(n, opts)
+    |> Stream.chunk_while(
+      [],
+      fn follow, batch ->
+        case batch do
+          [] ->
+            {:cont, [follow]}
+
+          [head | _rest] ->
+            if head.subject_id == follow.subject_id do
+              {:cont, [follow | batch]}
+            else
+              {:cont, Enum.reverse(batch), [follow]}
+            end
+        end
+      end,
+      fn
+        [] ->
+          {:cont, []}
+
+        batch ->
+          {:cont, Enum.reverse(batch), []}
+      end
+    )
+  end
+
+  @doc """
   Returns the follower count for a single user_id given n total users.
 
   ## Examples

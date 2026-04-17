@@ -765,7 +765,10 @@ defmodule FirehoseSimulatorTest do
         assert File.exists?(result.actor_csv_path)
         assert File.exists?(result.follow_csv_path)
 
-        assert String.starts_with?(result.export_dir, Path.join(run_directory, "userbase"))
+        assert result.export_dir == Path.join(run_directory, "userbase")
+        assert result.actor_csv_path == Path.join(run_directory, "userbase/actor.csv")
+        assert result.follow_csv_path == Path.join(run_directory, "userbase/follow.csv")
+        assert result.meta_path == Path.join(run_directory, "userbase/userbase_meta.json")
         refute String.contains?(result.export_dir, "/artifacts/userbase/")
       end)
     end

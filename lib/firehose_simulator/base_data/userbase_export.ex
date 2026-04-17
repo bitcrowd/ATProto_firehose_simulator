@@ -1,4 +1,6 @@
 defmodule FirehoseSimulator.BaseData.UserbaseExport do
+  require Logger
+
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BaseData.UserbaseMeta
@@ -8,27 +10,30 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   def export(%Userbase{} = userbase, export_root, opts \\ [])
       when is_binary(export_root) and is_list(opts) do
     run_id = Keyword.get_lazy(opts, :run_id, fn -> default_run_id(userbase.name) end)
-    export_root = Path.expand(export_root)
-    run_dir = Path.join(export_root, run_id)
+    indexed_at = Keyword.get_lazy(opts, :indexed_at, &current_indexed_at/0)
+    base_time = Keyword.get_lazy(opts, :base_time, &current_base_time/0)
+    run_dir = Path.expand(export_root)
     actor_csv_path = Path.join(run_dir, "actor.csv")
     follow_csv_path = Path.join(run_dir, "follow.csv")
     meta_path = Path.join(run_dir, "userbase_meta.json")
 
-    with {:ok, export_data} <-
-           export_content(
+    with :ok <- File.mkdir_p(run_dir),
+         {:ok, actor_count} <- write_actor_csv_stream(actor_csv_path, userbase, indexed_at),
+         {:ok, follow_count} <- write_follow_csv_stream(follow_csv_path, userbase, base_time),
+         meta <-
+           build_meta(
              userbase,
-             Keyword.merge(
-               opts,
-               actor_csv_path: actor_csv_path,
-               follow_csv_path: follow_csv_path
-             )
+             run_id,
+             actor_csv_path,
+             actor_count,
+             follow_csv_path,
+             follow_count
            ),
-         {:ok, actor_count} <- write_actor_csv(actor_csv_path, export_data.actor_rows),
-         {:ok, follow_count} <- write_follow_csv(follow_csv_path, export_data.follow_rows),
-         :ok <- File.write(meta_path, export_data.meta_json) do
+         {:ok, meta_json} <- UserbaseMeta.encode(meta),
+         :ok <- File.write(meta_path, meta_json) do
       {:ok,
        %{
-         run_id: export_data.run_id,
+         run_id: run_id,
          export_dir: run_dir,
          meta_path: meta_path,
          actor_csv_path: actor_csv_path,
@@ -39,72 +44,11 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
          last_user_id: userbase.num_users
        }}
     else
+      {:error, reason} when is_atom(reason) ->
+        {:error, "failed to create export directory #{run_dir}: #{inspect(reason)}"}
+
       {:error, reason} ->
         {:error, "#{reason} (run_dir=#{run_dir})"}
-    end
-  end
-
-  @spec export_content(Userbase.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
-  def export_content(%Userbase{} = userbase, opts \\ []) when is_list(opts) do
-    run_id = Keyword.get_lazy(opts, :run_id, fn -> default_run_id(userbase.name) end)
-    indexed_at = Keyword.get_lazy(opts, :indexed_at, &current_indexed_at/0)
-    base_time = Keyword.get_lazy(opts, :base_time, &current_base_time/0)
-    actor_csv_path = Keyword.get(opts, :actor_csv_path, "/tmp/actor.csv")
-    follow_csv_path = Keyword.get(opts, :follow_csv_path, "/tmp/follow.csv")
-
-    with actor_rows <- actor_rows(userbase, indexed_at),
-         {:ok, follow_rows} <- follow_rows(userbase, base_time),
-         actor_csv <- actor_rows_to_csv(actor_rows),
-         follow_csv <- follow_rows_to_csv(follow_rows),
-         meta <-
-           build_meta(
-             userbase,
-             run_id,
-             actor_csv_path,
-             length(actor_rows),
-             follow_csv_path,
-             length(follow_rows)
-           ),
-         {:ok, meta_json} <- UserbaseMeta.encode(meta) do
-      {:ok,
-       %{
-         run_id: run_id,
-         actor_rows: actor_rows,
-         follow_rows: follow_rows,
-         actor_csv: actor_csv,
-         follow_csv: follow_csv,
-         actor_row_count: length(actor_rows),
-         follow_row_count: length(follow_rows),
-         meta: meta,
-         meta_json: meta_json
-       }}
-    end
-  end
-
-  @spec actor_rows(Userbase.t(), String.t()) :: [map()]
-  def actor_rows(%Userbase{} = userbase, indexed_at) when is_binary(indexed_at) do
-    Enum.map(1..userbase.num_users, &BulkCreation.actor_row(&1, indexed_at))
-  end
-
-  @spec follow_rows(Userbase.t(), DateTime.t()) :: {:ok, [map()]} | {:error, String.t()}
-  def follow_rows(%Userbase{} = userbase, %DateTime{} = base_time) do
-    with {:ok, graph, _follows_count} <-
-           FollowerGraph.generate(userbase.num_users, follower_density: userbase.follower_density) do
-      {:ok,
-       graph
-       |> Enum.sort_by(fn {user_id, _followers} -> user_id end)
-       |> Enum.with_index()
-       |> Enum.flat_map(fn {{subject_id, follower_ids}, subject_offset} ->
-         Enum.with_index(follower_ids, 1)
-         |> Enum.map(fn {actor_id, follower_offset} ->
-           BulkCreation.follow_row(
-             actor_id,
-             subject_id,
-             base_time,
-             (subject_offset + follower_offset - 1) * 10
-           )
-         end)
-       end)}
     end
   end
 
@@ -125,18 +69,25 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     )
   end
 
-  defp write_actor_csv(path, actor_rows) when is_list(actor_rows) do
+  defp write_actor_csv_stream(path, %Userbase{} = userbase, indexed_at)
+       when is_binary(indexed_at) do
     with {:ok, device} <- open_file(path) do
       try do
-        actor_rows
-        |> Enum.reduce(0, fn row, count ->
+        counter = :counters.new(1, [])
+
+        1..userbase.num_users
+        |> Stream.map(&BulkCreation.actor_row(&1, indexed_at))
+        |> Stream.each(fn row ->
           row
           |> actor_csv_row()
           |> write_line(device)
 
-          count + 1
+          Logger.debug("wrote actor csv row for #{row.did}")
+          :counters.add(counter, 1, 1)
         end)
-        |> then(&{:ok, &1})
+        |> Stream.run()
+
+        {:ok, :counters.get(counter, 1)}
       rescue
         error in File.Error -> {:error, Exception.message(error)}
       after
@@ -145,34 +96,35 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     end
   end
 
-  @spec actor_rows_to_csv([map()]) :: String.t()
-  def actor_rows_to_csv(actor_rows) when is_list(actor_rows) do
-    Enum.map_join(actor_rows, "", fn row ->
-      row
-      |> actor_csv_row()
-    end)
-  end
-
-  @spec follow_rows_to_csv([map()]) :: String.t()
-  def follow_rows_to_csv(follow_rows) when is_list(follow_rows) do
-    Enum.map_join(follow_rows, "", fn row ->
-      row
-      |> follow_csv_row()
-    end)
-  end
-
-  defp write_follow_csv(path, follow_rows) when is_list(follow_rows) do
+  defp write_follow_csv_stream(path, %Userbase{} = userbase, %DateTime{} = base_time) do
     with {:ok, device} <- open_file(path) do
       try do
-        follow_rows
-        |> Enum.reduce(0, fn row, count ->
-          row
-          |> follow_csv_row()
+        counter = :counters.new(1, [])
+
+        userbase.num_users
+        |> FollowerGraph.stream_follow_batches_by_subject(
+          follower_density: userbase.follower_density
+        )
+        |> Stream.each(fn follows ->
+          rows =
+            Enum.map(follows, fn %{actor_id: actor_id, subject_id: subject_id} = follow ->
+              offset_ms = (follow.subject_offset + follow.follower_offset - 1) * 10
+              BulkCreation.follow_row(actor_id, subject_id, base_time, offset_ms)
+            end)
+
+          rows
+          |> Enum.map_join(&follow_csv_row/1)
           |> write_line(device)
 
-          count + 1
+          :counters.add(counter, 1, length(rows))
+
+          subject_id = follows |> hd() |> Map.fetch!(:subject_id)
+
+          Logger.debug("wrote #{length(rows)} follow csv rows for subject #{subject_id}")
         end)
-        |> then(&{:ok, &1})
+        |> Stream.run()
+
+        {:ok, :counters.get(counter, 1)}
       rescue
         error in File.Error -> {:error, Exception.message(error)}
       after
