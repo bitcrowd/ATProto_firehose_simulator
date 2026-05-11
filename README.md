@@ -8,6 +8,8 @@ Here is brief [overview](docs/overview.md) document that describes the functiona
 
 ## Getting Started
 
+Install Elixir 1.19 and Erlang 28, for instance with [mise](https://mise.jdx.dev/).
+
 For configuration options read [configuration-and-files](docs/configuration-and-files.md).
 
 A small starter script for the open source implementation of the Bluesky dataplane is available.
