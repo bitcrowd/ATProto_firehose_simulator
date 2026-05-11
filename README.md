@@ -6,12 +6,67 @@ This project is a simulates incoming traffic and user requests for an atproto da
 
 Here is brief [overview](docs/overview.md) document that describes the functionality of the simulator.
 
-To start your Phoenix server:
+## Getting Started
 
-* Run `MIX_ENV=prod mix setup` to install and setup dependencies
-* Start Phoenix endpoint with IEx with `MIX_ENV=prod iex -S mix phx.server`
+For configuration options read [configuration-and-files](docs/configuration-and-files.md).
 
-For configuration options read [docs/configuration-and-files.md](docs/configuration-and-files.md).
+A small starter script for the open source implementation of the Bluesky dataplane is available.
+
+The dataplane needs a Postgres database.
+You can create the default one with:
+
+```bash
+createdb -U postgres -p 5432 dataplane
+```
+
+Starting the dataplane will run the required migrations.
+
+Set up the environment.
+
+```bash
+export BSKY_DB_POSTGRES_URL=postgres://postgres:postgres@localhost:5432/dataplane
+export BSKY_DB_POSTGRES_SCHEMA=bsky
+export BSKY_DATAPLANE_PORT=2585
+export BSKY_DID_PLC_URL=http://localhost:4001
+export BSKY_RELAY_WEBSOCKET=ws://localhost:4000
+```
+
+Then start the dataplane.
+
+```bash
+cd dataplane
+
+npm install
+
+NODE_ENV=production npm start
+```
+
+To start the simulator, install and setup dependencies.
+
+```bash
+MIX_ENV=prod mix setup
+```
+
+Set up the environment for the simulator.
+
+```bash
+export DATABASE_URL=postgres://postgres:postgres@localhost:5432/dataplane
+export DATAPLANE_URL=http://localhost:2585
+export PLC_MULTIKEY=zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv
+export PLC_PRIVATE_HEX=bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a
+export PORT=4000
+export PLC_PORT=4001
+export PDS_PORT=4002
+export FINCH_POOL_SIZE=200
+export PROMETHEUS_PORT=9568
+export USERBASE_JSON=example/userbase.json
+```
+
+Then start the simulator.
+
+```bash
+MIX_ENV=prod iex -S mix phx.server
+```
 
 The firehose simulator will start on [`localhost:4000`](http://localhost:4000).
 
@@ -19,21 +74,12 @@ The PLC stub will start on [`localhost:4001`](http://localhost:4001).
 
 The PDS stub will start on [`localhost:4002`](http://localhost:4002).
 
-Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator or work from withing IEx.
+Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator or work from IEx.
 
-## Bluesky dataplane
-
-A small starter script for the open source implementation of the Bluesky dataplane is available.
-
-For configuration options read [configuration-and-files](docs/configuration-and-files.md).
-
-```bash
-cd dataplane
-npm install
-NODE_ENV=production npm start
-```
+Example [userbase](example/userbase.json) and [scenario params](example/scenario_params.json) are available.
 
 ## Metrics
+
 Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be visualized in Grafana using the dashboard assets under `infra/`.
 
 Read [metrics](docs/metrics.md) for a description of the metrics. 
@@ -45,7 +91,7 @@ docker compose up
 
 Grafana is available at `http:localhost:3000`.
 
-Import [`infra/firesim-1775727593906.json`](/Users/joel/code/sim2/infra/firesim-1775727593906.json) through Grafana's dashboard import UI and map the `DS_PROMETHEUS` input to your local Prometheus datasource.
+Import [`infra/firesim-1775727593906.json`](infra/firesim-1775727593906.json) through Grafana's dashboard import UI and map the `DS_PROMETHEUS` input to your local Prometheus datasource.
 
 ## Web UI
 
@@ -60,7 +106,7 @@ Import [`infra/firesim-1775727593906.json`](/Users/joel/code/sim2/infra/firesim-
 Create your userbase from a userbase JSON file:
 
 ```elixir
-userbase_path = "priv/simulation/userbase.json"
+userbase_path = "example/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path)
 ```
 
@@ -69,7 +115,7 @@ userbase_path = "priv/simulation/userbase.json"
 ```elixir
 {:ok, scenario} =
   FirehoseSimulator.generate_scenario_from_json(
-    scenario_params: "priv/simulation/scenario_params.json"
+    scenario_params: "example/scenario_params.json"
   )
 ```
 
@@ -109,8 +155,8 @@ Use vacuum functions to truncate userbase and/or post tables:
 Export a userbase to CSV files plus a manifest:
 
 ```elixir
-userbase_path = "priv/simulation/bluesky_userbase.json"
-{:ok, export_result} = FirehoseSimulator.export_userbase_to_csv(userbase_path, "priv/userbases")
+userbase_path = "example/userbase.json"
+{:ok, export_result} = FirehoseSimulator.export_userbase_to_csv(userbase_path, "example/userbases")
 ```
 
 Import that exported userbase into Postgres with `COPY`:
@@ -130,7 +176,7 @@ Shift an in-memory scenario by a millisecond offset:
 ```elixir
 {:ok, scenario} =
   FirehoseSimulator.generate_scenario_from_json(
-    scenario_params: "priv/simulation/scenario_params.json"
+    scenario_params: "example/scenario_params.json"
   )
 
 shifted_scenario = FirehoseSimulator.shift_scenario(scenario, 5_000)
