@@ -140,7 +140,6 @@ The simulator reads input JSON from user-supplied paths, writes artifacts under 
 |---                |---                               |
 | `runs/`           | Default root for run artifacts   |
 | `log/`            | Log output directory             |
-| `priv/userbases/` | Default userbase CSV export root |
 
 ### Run artifact layout
 
