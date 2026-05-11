@@ -59,7 +59,7 @@ config :firehose_simulator, PDSWeb.Endpoint,
     rewrite_on: [:x_forwarded_proto],
     exclude: [
       # paths: ["/health"],
-      hosts: ["127.0.0.1"]
+      hosts: ["localhost", "127.0.0.1"]
     ]
   ]
 
