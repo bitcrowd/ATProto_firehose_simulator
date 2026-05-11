@@ -10,6 +10,7 @@ import Config
 config :firehose_simulator,
   ecto_repos: [FirehoseSimulator.Repo],
   generators: [timestamp_type: :utc_datetime],
+  default_userbase_json_path: "priv/simulation/userbase.json",
   log_file_path: "log/firehose_simulator.log",
   prometheus_exporter_port: 9568
 
