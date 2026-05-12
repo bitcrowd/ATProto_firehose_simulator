@@ -42,9 +42,11 @@ defmodule FirehoseSimulator.MixProject do
     [
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
-      {:cid, "~> 0.0.1"},
       {:cbor, "~> 1.0"},
-      {:aether_atproto, "~> 0.1.0"},
+      {:atex, "~> 0.9", app: false},
+      {:dasl, "~> 0.1"},
+      {:multiformats_ex, "~> 0.2"},
+      {:varint, "~> 1.5.1"},
       {:phoenix, "~> 1.8.5"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},

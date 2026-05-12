@@ -1,4 +1,6 @@
 defmodule PLC.Keys do
+  alias Multiformats.Multibase
+
   # varint for secp256k1-pub
   @secp256k1_pub_multicodec <<0xE7, 0x01>>
 
@@ -6,7 +8,7 @@ defmodule PLC.Keys do
     {pub_uncompressed, priv} = :crypto.generate_key(:ecdh, :secp256k1)
 
     pub_compressed = compress_pubkey(pub_uncompressed)
-    multikey = Multibase.encode!(@secp256k1_pub_multicodec <> pub_compressed, :base58_btc)
+    multikey = Multibase.encode(@secp256k1_pub_multicodec <> pub_compressed, :base58btc)
 
     %{
       private_hex: Base.encode16(priv, case: :lower),
