@@ -126,6 +126,10 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
                   %{"items" => items} when is_list(items) ->
                     items
 
+                  %{} ->
+                    # user unknown or empty timeline
+                    []
+
                   {:error, error} ->
                     Logger.error("[Worker #{state.partition}] error: #{inspect(error)}")
 
