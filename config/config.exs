@@ -12,6 +12,7 @@ config :firehose_simulator,
   generators: [timestamp_type: :utc_datetime],
   default_userbase_json_path: "example/userbase.json",
   log_file_path: "log/firehose_simulator.log",
+  run_storage_enabled: true,
   prometheus_exporter_port: 9568
 
 # Configure the endpoint

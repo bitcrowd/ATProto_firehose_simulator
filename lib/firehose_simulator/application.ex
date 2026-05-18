@@ -13,7 +13,7 @@ defmodule FirehoseSimulator.Application do
 
   @impl true
   def start(_type, _args) do
-    {run_storage_directory, active_log_file_path} = configure_file_logging()
+    {run_storage_directory, active_log_file_path} = configure_run_storage()
 
     prometheus_port = Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port)
     finch_pool_size = Application.fetch_env!(:firehose_simulator, :finch_pool_size)
@@ -63,22 +63,6 @@ defmodule FirehoseSimulator.Application do
     :ok
   end
 
-  defp configure_file_logging do
-    run_storage_directory = RunStorage.timestamped_directory()
-    configured_log_file_path = Application.fetch_env!(:firehose_simulator, :log_file_path)
-    log_file_name = Path.basename(configured_log_file_path)
-
-    with {:ok, _run_storage_directory} <- RunStorage.ensure_run_directory(run_storage_directory),
-         {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory, log_file_name),
-         :ok <- ensure_file_handler(path) do
-      {run_storage_directory, path}
-    else
-      {:error, reason} ->
-        Logger.warning("failed to enable file logging: #{inspect(reason)}")
-        {run_storage_directory, nil}
-    end
-  end
-
   def startup_configuration(run_storage_directory, active_log_file_path) do
     plc_config = Application.get_env(:firehose_simulator, :plc, [])
     repo_config = Application.fetch_env!(:firehose_simulator, FirehoseSimulator.Repo)
@@ -109,6 +93,30 @@ defmodule FirehoseSimulator.Application do
     Logger.info("startup configuration:\n#{config}")
   end
 
+  defp configure_run_storage do
+    if run_storage_enabled?() do
+      configure_file_logging()
+    else
+      {nil, nil}
+    end
+  end
+
+  defp configure_file_logging do
+    run_storage_directory = RunStorage.timestamped_directory()
+    configured_log_file_path = Application.fetch_env!(:firehose_simulator, :log_file_path)
+    log_file_name = Path.basename(configured_log_file_path)
+
+    with {:ok, _run_storage_directory} <- RunStorage.ensure_run_directory(run_storage_directory),
+         {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory, log_file_name),
+         :ok <- ensure_file_handler(path) do
+      {run_storage_directory, path}
+    else
+      {:error, reason} ->
+        Logger.warning("failed to enable file logging: #{inspect(reason)}")
+        {run_storage_directory, nil}
+    end
+  end
+
   defp ensure_file_handler(log_file_path) do
     handler_config = %{
       config: %{type: {:file, String.to_charlist(log_file_path)}}
@@ -125,5 +133,9 @@ defmodule FirehoseSimulator.Application do
       {:error, _reason} = error ->
         error
     end
+  end
+
+  defp run_storage_enabled? do
+    Application.get_env(:firehose_simulator, :run_storage_enabled, true)
   end
 end

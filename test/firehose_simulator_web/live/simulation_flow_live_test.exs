@@ -10,18 +10,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
   @moduletag :tmp_dir
 
-  setup %{tmp_dir: tmp_dir} do
-    runs_root =
-      Path.join(
-        tmp_dir,
-        "firehose-simulator-live-runs-#{System.unique_integer([:positive, :monotonic])}"
-      )
-
-    Application.put_env(:firehose_simulator, :runs_root, runs_root)
+  setup do
     clear_test_state()
 
     on_exit(fn ->
-      Application.delete_env(:firehose_simulator, :runs_root)
       clear_test_state()
     end)
 

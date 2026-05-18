@@ -18,17 +18,15 @@ defmodule FirehoseSimulatorTest do
   @moduletag :tmp_dir
 
   setup %{tmp_dir: tmp_dir} do
-    runs_root =
-      Path.join(
-        tmp_dir,
-        "firehose-simulator-runs-#{System.unique_integer([:positive, :monotonic])}"
-      )
+    original_run_storage_enabled = Application.get_env(:firehose_simulator, :run_storage_enabled)
 
-    Application.put_env(:firehose_simulator, :runs_root, runs_root)
+    Application.put_env(:firehose_simulator, :run_storage_enabled, true)
+    :ok = FirehoseSimulator.State.put_run_storage_directory(tmp_dir)
     clear_test_state()
 
     on_exit(fn ->
-      Application.delete_env(:firehose_simulator, :runs_root)
+      Application.put_env(:firehose_simulator, :run_storage_enabled, original_run_storage_enabled)
+      :ok = FirehoseSimulator.State.put_run_storage_directory(nil)
       clear_test_state()
     end)
 
@@ -574,6 +572,7 @@ defmodule FirehoseSimulatorTest do
       assert simulation_plan.name == "started-preloaded-plan"
       assert [%Entry{} = entry] = simulation_plan.entries
       assert entry.scenario_name == "started-preloaded-entry"
+      assert String.starts_with?(entry.scenario_path, current_run_storage_directory())
       assert entry.offset_ms >= min_offset_ms
       assert entry.offset_ms <= max_offset_ms
       assert map_size(FirehoseSimulator.State.list_players()) == 0
@@ -746,32 +745,39 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "export_userbase_to_csv/1" do
-    test "exports under the current run directory by default" do
-      run_directory = FirehoseSimulator.State.get_run_storage_directory()
+    @tag :tmp_dir
+    test "exports under the current run directory by default", %{tmp_dir: tmp_dir} do
+      userbase_path =
+        write_file!(
+          tmp_dir,
+          "default-userbase",
+          """
+          {
+            "name": "default csv export",
+            "num_users": 4,
+            "max_active_user_id": 4,
+            "follower_density": 1.0
+          }
+          """
+        )
 
       capture_log(fn ->
-        assert {:ok, result} =
-                 FirehoseSimulator.export_userbase_to_csv_from_json(
-                   """
-                   {
-                     "name": "default csv export",
-                     "num_users": 4,
-                     "max_active_user_id": 4,
-                     "follower_density": 1.0
-                   }
-                   """,
-                   Path.join(run_directory, "userbase")
-                 )
+        assert {:ok, result} = FirehoseSimulator.export_userbase_to_csv(userbase_path)
 
         assert File.exists?(result.meta_path)
         assert File.exists?(result.actor_csv_path)
         assert File.exists?(result.follow_csv_path)
 
-        assert result.export_dir == Path.join(run_directory, "userbase")
-        assert result.actor_csv_path == Path.join(run_directory, "userbase/actor.csv")
-        assert result.follow_csv_path == Path.join(run_directory, "userbase/follow.csv")
-        assert result.meta_path == Path.join(run_directory, "userbase/userbase_meta.json")
-        refute String.contains?(result.export_dir, "/artifacts/userbase/")
+        assert result.export_dir == Path.join(current_run_storage_directory(), "userbase")
+
+        assert result.actor_csv_path ==
+                 Path.join(current_run_storage_directory(), "userbase/actor.csv")
+
+        assert result.follow_csv_path ==
+                 Path.join(current_run_storage_directory(), "userbase/follow.csv")
+
+        assert result.meta_path ==
+                 Path.join(current_run_storage_directory(), "userbase/userbase_meta.json")
       end)
     end
   end
