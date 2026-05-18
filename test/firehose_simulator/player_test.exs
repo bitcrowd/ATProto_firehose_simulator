@@ -1,6 +1,8 @@
 defmodule FirehoseSimulator.PlayerTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.Scenario
 
@@ -41,31 +43,33 @@ defmodule FirehoseSimulator.PlayerTest do
     assert load_metadata.scenario_id == "scenario-1"
     assert load_metadata.schedulers == 1
 
-    :ok = Player.start(player_id)
+    capture_log(fn ->
+      :ok = Player.start(player_id)
 
-    assert_receive {:telemetry_event, [:firehose_simulator, :player, :start], %{count: 1},
-                    %{player_id: ^player_id, from_state: :loaded}}
+      assert_receive {:telemetry_event, [:firehose_simulator, :player, :start], %{count: 1},
+                      %{player_id: ^player_id, from_state: :loaded}}
 
-    :ok = await(fn -> Player.status(player_id).active_sessions >= 1 end)
-    :ok = Player.pause(player_id)
+      :ok = await(fn -> Player.status(player_id).active_sessions >= 1 end)
+      :ok = Player.pause(player_id)
 
-    assert_receive {:telemetry_event, [:firehose_simulator, :player, :pause], %{count: 1},
-                    %{player_id: ^player_id}}
+      assert_receive {:telemetry_event, [:firehose_simulator, :player, :pause], %{count: 1},
+                      %{player_id: ^player_id}}
 
-    :ok = Player.start(player_id)
+      :ok = Player.start(player_id)
 
-    assert_receive {:telemetry_event, [:firehose_simulator, :player, :start], %{count: 1},
-                    %{player_id: ^player_id, from_state: :paused}}
+      assert_receive {:telemetry_event, [:firehose_simulator, :player, :start], %{count: 1},
+                      %{player_id: ^player_id, from_state: :paused}}
 
-    active_sessions = Player.status(player_id).active_sessions
-    assert active_sessions >= 1
+      active_sessions = Player.status(player_id).active_sessions
+      assert active_sessions >= 1
 
-    :ok = Player.stop(player_id)
+      :ok = Player.stop(player_id)
 
-    assert_receive {:telemetry_event, [:firehose_simulator, :player, :stop],
-                    %{count: 1, active_sessions_cleared: cleared}, %{player_id: ^player_id}}
+      assert_receive {:telemetry_event, [:firehose_simulator, :player, :stop],
+                      %{count: 1, active_sessions_cleared: cleared}, %{player_id: ^player_id}}
 
-    assert cleared == active_sessions
+      assert cleared == active_sessions
+    end)
   end
 
   defp attach_handler(suffix, event_name) do
