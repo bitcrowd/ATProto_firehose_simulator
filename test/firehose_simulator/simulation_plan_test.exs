@@ -5,6 +5,97 @@ defmodule FirehoseSimulator.SimulationPlanTest do
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
 
+  describe "new/1" do
+    test "builds a simulation plan" do
+      started_at =
+        DateTime.utc_now()
+        |> DateTime.truncate(:microsecond)
+
+      assert {:ok,
+              %SimulationPlan{
+                name: "imported-plan",
+                started_at: ^started_at,
+                export_path: "/tmp/plan.json",
+                entries: [
+                  %Entry{
+                    scenario_name: "first-scenario",
+                    scenario_path: "/tmp/first-scenario.json",
+                    offset_ms: 125
+                  }
+                ]
+              }} =
+               SimulationPlan.new(%{
+                 "name" => "imported-plan",
+                 "started_at" => DateTime.to_iso8601(started_at),
+                 "export_path" => "/tmp/plan.json",
+                 "entries" => [
+                   %{
+                     "scenario_name" => " first-scenario ",
+                     "scenario_path" => " /tmp/first-scenario.json ",
+                     "offset_ms" => 125
+                   }
+                 ]
+               })
+    end
+
+    test "defaults missing entries to an empty list" do
+      assert {:ok, %SimulationPlan{entries: []}} = SimulationPlan.new()
+    end
+  end
+
+  describe "update/2" do
+    test "replaces embedded entries when entries are provided" do
+      existing_entry = %Entry{
+        scenario_name: "existing-scenario",
+        scenario_path: "/tmp/existing-scenario.json",
+        offset_ms: 100
+      }
+
+      simulation_plan = %SimulationPlan{
+        name: "current-plan",
+        entries: [existing_entry]
+      }
+
+      assert {:ok,
+              %SimulationPlan{
+                name: "renamed-plan",
+                entries: [
+                  %Entry{
+                    scenario_name: "replacement-scenario",
+                    scenario_path: "/tmp/replacement-scenario.json",
+                    offset_ms: 200
+                  }
+                ]
+              }} =
+               SimulationPlan.update(simulation_plan, %{
+                 name: "renamed-plan",
+                 entries: [
+                   %{
+                     scenario_name: "replacement-scenario",
+                     scenario_path: "/tmp/replacement-scenario.json",
+                     offset_ms: 200
+                   }
+                 ]
+               })
+    end
+
+    test "preserves existing entries when entries are omitted" do
+      entry = %Entry{
+        scenario_name: "existing-scenario",
+        scenario_path: "/tmp/existing-scenario.json",
+        offset_ms: 100
+      }
+
+      simulation_plan = %SimulationPlan{
+        name: "current-plan",
+        entries: [entry]
+      }
+
+      assert {:ok, %SimulationPlan{name: "renamed-plan", entries: [^entry]}} =
+               SimulationPlan.update(simulation_plan, %{name: "renamed-plan"})
+    end
+  end
+
   describe "add_scenario/5" do
     test "starts a plan clock on the first scenario and preserves the submitted offset" do
       scenario = %Scenario{
