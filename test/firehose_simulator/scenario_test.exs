@@ -28,6 +28,12 @@ defmodule FirehoseSimulator.ScenarioTest do
       assert "must be greater than 0" in errors_on(changeset).request_interval_ms
       assert "must be greater than 0" in errors_on(changeset).timeline_limit
     end
+
+    test "rejects blank source paths from string-key attrs" do
+      assert {:error, changeset} = Scenario.new(%{"source_path" => "   "})
+
+      assert "should be at least 1 character(s)" in errors_on(changeset).source_path
+    end
   end
 
   describe "generate_from_json_string/1" do

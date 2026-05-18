@@ -44,11 +44,11 @@ defmodule FirehoseSimulator.Scenario do
       :sessions,
       :follows,
       :request_interval_ms,
-      :timeline_limit,
-      :source_path
+      :timeline_limit
     ])
+    |> cast(attrs, [:source_path], empty_values: [nil])
     |> update_change(:source_path, &String.trim/1)
-    |> validate_source_path(attrs)
+    |> validate_length(:source_path, min: 1)
     |> validate_number(:request_interval_ms, greater_than: 0)
     |> validate_number(:timeline_limit, greater_than: 0)
     |> validate_change(:posts, &validate_event_rows/2)
@@ -299,22 +299,4 @@ defmodule FirehoseSimulator.Scenario do
   end
 
   defp validate_event_rows(field, _value), do: [{field, "must be a list of maps"}]
-
-  defp validate_source_path(changeset, attrs) do
-    case source_path_attr(attrs) do
-      path when is_binary(path) ->
-        if String.trim(path) == "" do
-          add_error(changeset, :source_path, "should be at least 1 character(s)")
-        else
-          changeset
-        end
-
-      _other ->
-        changeset
-    end
-  end
-
-  defp source_path_attr(attrs) when is_map(attrs) do
-    Map.get(attrs, :source_path) || Map.get(attrs, "source_path")
-  end
 end
