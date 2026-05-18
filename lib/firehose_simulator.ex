@@ -16,8 +16,6 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
 
-  @default_userbase_filename "priv/simulation/userbase.json"
-
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do
     create_userbase(userbase_filename())
@@ -407,7 +405,7 @@ defmodule FirehoseSimulator do
   end
 
   defp userbase_filename do
-    System.get_env("USERBASE_JSON", @default_userbase_filename)
+    Application.fetch_env!(:firehose_simulator, :default_userbase_json_path)
   end
 
   defp load_userbase_json(json) do

@@ -36,35 +36,6 @@ config :firehose_simulator, PDSWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PDS_PORT", "4002"))]
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise("""
-      environment variable DATABASE_URL is missing.
-      """)
-
-  config :firehose_simulator, FirehoseSimulator.Repo,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
-
-  config :firehose_simulator, :plc,
-    multikey:
-      System.get_env("PLC_MULTIKEY") ||
-        raise("""
-        environment variable PLC_MULTIKEY is missing.
-        """),
-    private_hex:
-      System.get_env("PLC_PRIVATE_HEX") ||
-        raise("""
-        environment variable PLC_PRIVATE_HEX is missing.
-        """)
-
-  config :firehose_simulator,
-         :dataplane_url,
-         System.get_env("DATAPLANE_URL") ||
-           raise("""
-           environment variable DATAPLANE_URL is missing.
-           """)
-
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -72,91 +43,32 @@ if config_env() == :prod do
   # variable instead.
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
-      raise """
-      environment variable SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
+      "z7rsbJmkyvb78au+8QVQnHMKFKLnFF5CoOGOfW4iLnNK/2XCe9D7NEqCN/kNqFf7"
 
   plc_secret_key_base =
     System.get_env("PLC_SECRET_KEY_BASE") ||
-      raise """
-      environment variable PLC_SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
+      "apBV7RYO0SMIcxQkDck4y/0cOxKX/WxaYO7uIu8OUpqgia/ti83YMX8q+N8F616i"
 
   pds_secret_key_base =
     System.get_env("PDS_SECRET_KEY_BASE") ||
-      raise """
-      environment variable PDS_SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
+      "N4yhNYi3cwI7AbQeoMs6c4jLlBNX13Kj4j1y+qjnCkA8jAJbcn5xjEhud9PF8rT2"
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  host = System.get_env("PHX_HOST") || "localhost"
 
   config :firehose_simulator, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    http: [ip: {127, 0, 0, 1}],
     secret_key_base: secret_key_base
 
   config :firehose_simulator, PLCWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    http: [ip: {127, 0, 0, 1}],
     secret_key_base: plc_secret_key_base
 
   config :firehose_simulator, PDSWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    http: [ip: {127, 0, 0, 1}],
     secret_key_base: pds_secret_key_base
-
-  # ## SSL Support
-  #
-  # To get SSL working, you will need to add the `https` key
-  # to your endpoint configuration:
-  #
-  #     config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
-  #       https: [
-  #         ...,
-  #         port: 443,
-  #         cipher_suite: :strong,
-  #         keyfile: System.get_env("SOME_APP_SSL_KEY_PATH"),
-  #         certfile: System.get_env("SOME_APP_SSL_CERT_PATH")
-  #       ]
-  #
-  # The `cipher_suite` is set to `:strong` to support only the
-  # latest and more secure SSL ciphers. This means old browsers
-  # and clients may not be supported. You can set it to
-  # `:compatible` for wider support.
-  #
-  # `:keyfile` and `:certfile` expect an absolute path to the key
-  # and cert in disk or a relative path inside priv, for example
-  # "priv/ssl/server.key". For all supported SSL configuration
-  # options, see https://hexdocs.pm/plug/Plug.SSL.html#configure/1
-  #
-  # We also recommend setting `force_ssl` in your config/prod.exs,
-  # ensuring no data is ever sent via http, always redirecting to https:
-  #
-  #     config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
-  #       force_ssl: [hsts: true]
-  #
-  # Check `Plug.SSL` for all available options in `force_ssl`.
 end

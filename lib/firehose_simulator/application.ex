@@ -13,10 +13,12 @@ defmodule FirehoseSimulator.Application do
 
   @impl true
   def start(_type, _args) do
-    run_storage_directory = configure_file_logging()
+    {run_storage_directory, active_log_file_path} = configure_file_logging()
 
     prometheus_port = Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port)
     finch_pool_size = Application.fetch_env!(:firehose_simulator, :finch_pool_size)
+
+    log_startup_configuration(run_storage_directory, active_log_file_path)
 
     children =
       [
@@ -63,16 +65,48 @@ defmodule FirehoseSimulator.Application do
 
   defp configure_file_logging() do
     run_storage_directory = RunStorage.timestamped_directory()
+    configured_log_file_path = Application.fetch_env!(:firehose_simulator, :log_file_path)
+    log_file_name = Path.basename(configured_log_file_path)
 
     with {:ok, _run_storage_directory} <- RunStorage.ensure_run_directory(run_storage_directory),
-         {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory),
+         {:ok, path} <- RunStorage.default_log_file_path(run_storage_directory, log_file_name),
          :ok <- ensure_file_handler(path) do
-      run_storage_directory
+      {run_storage_directory, path}
     else
       {:error, reason} ->
         Logger.warning("failed to enable file logging: #{inspect(reason)}")
-        run_storage_directory
+        {run_storage_directory, nil}
     end
+  end
+
+  def startup_configuration(run_storage_directory, active_log_file_path) do
+    plc_config = Application.get_env(:firehose_simulator, :plc, [])
+    repo_config = Application.fetch_env!(:firehose_simulator, FirehoseSimulator.Repo)
+    dataplane_url = Application.fetch_env!(:firehose_simulator, :dataplane_url)
+
+    %{
+      runs_root: Application.get_env(:firehose_simulator, :runs_root, Path.expand("runs")),
+      run_storage_directory: run_storage_directory,
+      default_userbase_json_path:
+        Application.fetch_env!(:firehose_simulator, :default_userbase_json_path),
+      log_file_path: active_log_file_path,
+      database_url: Keyword.get(repo_config, :url),
+      database_pool_size: Keyword.get(repo_config, :pool_size),
+      dataplane_url: dataplane_url,
+      finch_pool_size: Application.fetch_env!(:firehose_simulator, :finch_pool_size),
+      prometheus_exporter_port:
+        Application.fetch_env!(:firehose_simulator, :prometheus_exporter_port),
+      plc_multikey: Keyword.get(plc_config, :multikey),
+      plc_private_hex: Keyword.get(plc_config, :private_hex)
+    }
+  end
+
+  defp log_startup_configuration(run_storage_directory, active_log_file_path) do
+    config =
+      startup_configuration(run_storage_directory, active_log_file_path)
+      |> inspect(pretty: true, limit: :infinity)
+
+    Logger.info("startup configuration:\n#{config}")
   end
 
   defp ensure_file_handler(log_file_path) do
