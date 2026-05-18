@@ -3,6 +3,33 @@ defmodule FirehoseSimulator.ScenarioTest do
 
   alias FirehoseSimulator.Scenario
 
+  describe "new/1" do
+    test "builds a validated scenario" do
+      assert {:ok, %Scenario{} = scenario} =
+               Scenario.new(%{
+                 posts: [%{offset_ms: 10, user_id: 1}],
+                 sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
+                 follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
+                 request_interval_ms: 45_000,
+                 timeline_limit: 35
+               })
+
+      assert scenario.request_interval_ms == 45_000
+      assert scenario.timeline_limit == 35
+    end
+
+    test "rejects non-positive top-level numeric fields" do
+      assert {:error, changeset} =
+               Scenario.new(%{
+                 request_interval_ms: 0,
+                 timeline_limit: -1
+               })
+
+      assert "must be greater than 0" in errors_on(changeset).request_interval_ms
+      assert "must be greater than 0" in errors_on(changeset).timeline_limit
+    end
+  end
+
   describe "generate_from_json_string/1" do
     test "loads unified params json and generates posts, sessions, and follows plans" do
       params_json = """
@@ -110,33 +137,6 @@ defmodule FirehoseSimulator.ScenarioTest do
     test "requires a scenario_params path" do
       assert {:error, "scenario_params path is required"} =
                Scenario.generate_from_json([])
-    end
-  end
-
-  describe "new/1" do
-    test "builds a validated scenario" do
-      assert {:ok, %Scenario{} = scenario} =
-               Scenario.new(%{
-                 posts: [%{offset_ms: 10, user_id: 1}],
-                 sessions: [%{offset_ms: 20, user_id: 2, duration_ms: 30_000}],
-                 follows: [%{offset_ms: 30, actor_id: 2, subject_id: 1}],
-                 request_interval_ms: 45_000,
-                 timeline_limit: 35
-               })
-
-      assert scenario.request_interval_ms == 45_000
-      assert scenario.timeline_limit == 35
-    end
-
-    test "rejects non-positive top-level numeric fields" do
-      assert {:error, changeset} =
-               Scenario.new(%{
-                 request_interval_ms: 0,
-                 timeline_limit: -1
-               })
-
-      assert "must be greater than 0" in errors_on(changeset).request_interval_ms
-      assert "must be greater than 0" in errors_on(changeset).timeline_limit
     end
   end
 

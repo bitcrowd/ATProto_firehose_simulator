@@ -36,19 +36,6 @@ defmodule FirehoseSimulator.Scenario do
           source_path: String.t() | nil
         }
 
-  @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(path) when is_binary(path) do
-    generate_from_json(scenario_params: path)
-  end
-
-  @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(opts) when is_list(opts) do
-    with {:ok, params_path} <- scenario_params_path(opts),
-         {:ok, params} <- load_scenario_params(params_path) do
-      build_scenario(params)
-    end
-  end
-
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(scenario, attrs) do
     scenario
@@ -81,6 +68,19 @@ defmodule FirehoseSimulator.Scenario do
     scenario
     |> changeset(%{source_path: path})
     |> apply_action(:update)
+  end
+
+  @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def generate_from_json(path) when is_binary(path) do
+    generate_from_json(scenario_params: path)
+  end
+
+  @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
+  def generate_from_json(opts) when is_list(opts) do
+    with {:ok, params_path} <- scenario_params_path(opts),
+         {:ok, params} <- load_scenario_params(params_path) do
+      build_scenario(params)
+    end
   end
 
   @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
