@@ -88,7 +88,13 @@ defmodule FirehoseSimulator.MixProject do
         "esbuild firehose_simulator --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "credo --all"
+      ]
     ]
   end
 end
