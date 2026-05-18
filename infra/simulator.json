@@ -2,11 +2,32 @@
   "__inputs": [
     {
       "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
+      "label": "prometheus",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "12.4.2"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
     }
   ],
   "annotations": {
@@ -93,7 +114,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 19,
         "x": 0,
         "y": 0
@@ -119,7 +140,11 @@
           "expr": "rate(firehose_simulator_event_feeder_posts_dispatched_total[1m])",
           "legendFormat": "Posts dispatched",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
@@ -127,7 +152,11 @@
           "instant": false,
           "legendFormat": "Posts created",
           "range": true,
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
@@ -135,7 +164,11 @@
           "instant": false,
           "legendFormat": "Posts dropped",
           "range": true,
-          "refId": "C"
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
@@ -143,7 +176,11 @@
           "instant": false,
           "legendFormat": "Post batches complete",
           "range": true,
-          "refId": "E"
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ],
       "title": "Posts",
@@ -215,7 +252,7 @@
         "h": 6,
         "w": 19,
         "x": 0,
-        "y": 8
+        "y": 7
       },
       "id": 4,
       "options": {
@@ -238,31 +275,147 @@
           "expr": "rate(firehose_simulator_event_feeder_follows_dispatched_total[1m])",
           "legendFormat": "Follows dispatched",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
           "expr": "rate(firehose_simulator_event_feeder_follows_ok_total[1m])",
           "legendFormat": "Follows ok",
           "range": true,
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
           "expr": "rate(firehose_simulator_event_feeder_follows_error_total[1m])",
           "legendFormat": "Follows error",
           "range": true,
-          "refId": "C"
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
           "expr": "rate(firehose_simulator_event_feeder_follows_complete_total[1m])",
           "legendFormat": "Follow batches complete",
           "range": true,
-          "refId": "D"
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ],
       "title": "Follows",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 19,
+        "x": 0,
+        "y": 13
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "rate(firehose_simulator_worker_query_total[1m])",
+          "instant": false,
+          "legendFormat": "get_timeline/s",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ],
+      "title": "get_timeline/s",
       "type": "timeseries"
     },
     {
@@ -348,7 +501,7 @@
         "h": 6,
         "w": 19,
         "x": 0,
-        "y": 14
+        "y": 19
       },
       "id": 2,
       "options": {
@@ -371,7 +524,11 @@
           "expr": "firehose_simulator_worker_query_window_avg_latency_ms",
           "legendFormat": "p50 get_timeline",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
@@ -379,7 +536,11 @@
           "instant": false,
           "legendFormat": "p95 get_timeline",
           "range": true,
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
@@ -387,105 +548,14 @@
           "instant": false,
           "legendFormat": "p99 get_timeline",
           "range": true,
-          "refId": "C"
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ],
       "title": "get_timeline latencies",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 5,
-        "x": 19,
-        "y": 20
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.2",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "rate(firehose_simulator_worker_query_total[1m])",
-          "instant": false,
-          "legendFormat": "get_timeline/s",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "get_timeline/s",
       "type": "timeseries"
     },
     {
@@ -564,10 +634,10 @@
         ]
       },
       "gridPos": {
-        "h": 11,
+        "h": 6,
         "w": 19,
         "x": 0,
-        "y": 20
+        "y": 25
       },
       "id": 1,
       "options": {
@@ -591,7 +661,11 @@
           "instant": false,
           "legendFormat": "Active Sessions",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ],
       "title": "Active Sessions",
@@ -664,12 +738,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 5,
         "w": 19,
         "x": 0,
         "y": 31
       },
-      "id": 5,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [],
@@ -690,21 +764,33 @@
           "expr": "firehose_simulator_worker_query_window_avg_lag_ms",
           "legendFormat": "p50 lag",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
           "expr": "firehose_simulator_worker_query_window_p95_lag_ms",
           "legendFormat": "p95 lag",
           "range": true,
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
           "editorMode": "code",
           "expr": "firehose_simulator_worker_query_window_max_lag_ms",
           "legendFormat": "max lag",
           "range": true,
-          "refId": "C"
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ],
       "title": "Worker lag",
@@ -724,7 +810,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "firesim",
+  "title": "simulator",
   "uid": "bdtwglj",
   "version": 7,
   "weekStart": ""
