@@ -15,10 +15,12 @@ defmodule FirehoseSimulatorTest do
   alias FirehoseSimulator.SimulationPlan.Entry
   alias FirehoseSimulator.SimulationPlan.JSON
 
-  setup do
+  @moduletag :tmp_dir
+
+  setup %{tmp_dir: tmp_dir} do
     runs_root =
       Path.join(
-        System.tmp_dir!(),
+        tmp_dir,
         "firehose-simulator-runs-#{System.unique_integer([:positive, :monotonic])}"
       )
 

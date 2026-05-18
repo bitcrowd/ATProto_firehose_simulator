@@ -8,10 +8,12 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   alias FirehoseSimulator.SimulationPlan.Entry
   alias FirehoseSimulator.State
 
-  setup do
+  @moduletag :tmp_dir
+
+  setup %{tmp_dir: tmp_dir} do
     runs_root =
       Path.join(
-        System.tmp_dir!(),
+        tmp_dir,
         "firehose-simulator-live-runs-#{System.unique_integer([:positive, :monotonic])}"
       )
 
@@ -50,7 +52,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     refute has_element?(view, "#setup-result")
   end
 
-  test "planning liveview generates and imports scenarios", %{conn: conn} do
+  test "planning liveview generates and imports scenarios", %{conn: conn, tmp_dir: tmp_dir} do
     {:ok, view, _html} = live(conn, ~p"/planning")
 
     params_upload =
@@ -121,7 +123,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert imported_scenario_id
     assert has_element?(view, "#scenario-row-#{imported_scenario_id}")
 
-    scenario_path = write_runtime_file!("live-plan-scenario", scenario_json())
+    scenario_path = write_runtime_file!(tmp_dir, "live-plan-scenario", scenario_json())
 
     plan_upload =
       file_input(view, "#planning-import-plan-form", :simulation_plan_json, [
@@ -323,10 +325,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     """
   end
 
-  defp write_runtime_file!(prefix, content) do
+  defp write_runtime_file!(tmp_dir, prefix, content) do
     path =
       Path.join(
-        System.tmp_dir!(),
+        tmp_dir,
         "#{prefix}-#{System.unique_integer([:positive, :monotonic])}.json"
       )
 
