@@ -86,7 +86,6 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map(fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
-    |> Enum.join("; ")
+    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

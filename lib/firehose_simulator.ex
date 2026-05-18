@@ -32,9 +32,8 @@ defmodule FirehoseSimulator do
   def create_userbase_from_json(json) when is_binary(json) do
     with {:ok, run_directory} <- run_storage_directory(),
          {:ok, userbase} <- load_userbase_json(json),
-         {:ok, _stored_path} <- RunStorage.store_userbase_json(run_directory, json),
-         {:ok, result} <- do_create_userbase(userbase) do
-      {:ok, result}
+         {:ok, _stored_path} <- RunStorage.store_userbase_json(run_directory, json) do
+      do_create_userbase(userbase)
     end
   end
 
@@ -65,9 +64,8 @@ defmodule FirehoseSimulator do
           {:ok, map()} | {:error, String.t()}
   def export_userbase_to_csv_from_json(json, export_dir, opts \\ [])
       when is_binary(json) and is_binary(export_dir) and is_list(opts) do
-    with {:ok, userbase} <- load_userbase_json(json),
-         {:ok, result} <- do_export_userbase_to_csv(userbase, export_dir, opts) do
-      {:ok, result}
+    with {:ok, userbase} <- load_userbase_json(json) do
+      do_export_userbase_to_csv(userbase, export_dir, opts)
     end
   end
 
@@ -93,19 +91,14 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec bulk_create_scenario(Scenario.t()) :: {:ok, map()} | {:error, String.t()}
+  @spec bulk_create_scenario(Scenario.t()) :: {:ok, map()}
   def bulk_create_scenario(%Scenario{} = scenario) do
     Logger.info("creating scenario data in database")
 
-    case BulkCreation.create_scenario(scenario) do
-      {:ok, result} = ok ->
-        Logger.info("created scenario data: #{inspect(result)}")
-        ok
+    {:ok, result} = BulkCreation.create_scenario(scenario)
+    Logger.info("created scenario data: #{inspect(result)}")
 
-      {:error, reason} = error ->
-        Logger.error("failed to create scenario data: #{reason}")
-        error
-    end
+    {:ok, result}
   end
 
   @spec vacuum() :: {:ok, map()} | {:error, String.t()}
@@ -185,9 +178,8 @@ defmodule FirehoseSimulator do
 
     with {:ok, run_directory} <- run_storage_directory(),
          {:ok, scenario} <- Scenario.from_json(json),
-         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name),
-         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path) do
-      {:ok, scenario}
+         {:ok, scenario_path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name) do
+      Scenario.put_source_path(scenario, scenario_path)
     end
   end
 
@@ -299,12 +291,8 @@ defmodule FirehoseSimulator do
   end
 
   defp bulk_create_entries(entries, offset_ms) do
-    Enum.reduce_while(entries, :ok, fn entry, :ok ->
-      case bulk_create_entry(entry, offset_ms) do
-        {:ok, _} -> {:cont, :ok}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
+    Enum.each(entries, &bulk_create_entry(&1, offset_ms))
+    :ok
   end
 
   defp bulk_create_entry(entry, offset_ms) do
@@ -312,18 +300,14 @@ defmodule FirehoseSimulator do
       "bulk creating imported scenario #{entry.scenario_name} from #{entry.scenario_path}"
     )
 
-    case FirehoseSimulator.bulk_create_scenario(entry.scenario) do
-      {:ok, result} ->
-        {:ok,
-         %{
-           entry: entry,
-           offset_ms: offset_ms,
-           result: result
-         }}
+    {:ok, result} = bulk_create_scenario(entry.scenario)
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    {:ok,
+     %{
+       entry: entry,
+       offset_ms: offset_ms,
+       result: result
+     }}
   end
 
   @spec export_simulation_plan_to_json(SimulationPlan.t(), String.t()) ::

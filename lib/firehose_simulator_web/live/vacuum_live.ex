@@ -25,17 +25,18 @@ defmodule FirehoseSimulatorWeb.VacuumLive do
     delete_userbase? = truthy_param?(params["delete_userbase"])
     delete_posts? = truthy_param?(params["delete_posts"])
 
-    with :ok <- validate_actions(delete_userbase?, delete_posts?) do
-      {:noreply,
-       socket
-       |> assign(:running_vacuum?, true)
-       |> start_async(:run_vacuum, fn ->
-         FirehoseSimulator.vacuum(
-           delete_userbase?: delete_userbase?,
-           delete_posts?: delete_posts?
-         )
-       end)}
-    else
+    case validate_actions(delete_userbase?, delete_posts?) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign(:running_vacuum?, true)
+         |> start_async(:run_vacuum, fn ->
+           FirehoseSimulator.vacuum(
+             delete_userbase?: delete_userbase?,
+             delete_posts?: delete_posts?
+           )
+         end)}
+
       {:error, reason} ->
         {:noreply,
          socket

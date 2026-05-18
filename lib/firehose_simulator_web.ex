@@ -84,8 +84,8 @@ defmodule FirehoseSimulatorWeb do
       import FirehoseSimulatorWeb.ScenarioComponents
 
       # Common modules used in templates
-      alias Phoenix.LiveView.JS
       alias FirehoseSimulatorWeb.Layouts
+      alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

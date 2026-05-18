@@ -32,7 +32,7 @@ defmodule FirehoseSimulatorWeb.SyncSocket do
     :ok
   end
 
-  defp subscribe_to_firehose() do
+  defp subscribe_to_firehose do
     case PubSub.subscribe(FirehoseSimulator.PubSub, "firehose") do
       :ok -> Logger.debug("[SyncSocket] connected")
       {:error, error} -> Logger.error("[SyncSocket] #{error}")

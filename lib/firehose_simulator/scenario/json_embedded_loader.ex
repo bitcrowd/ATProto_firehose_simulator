@@ -6,9 +6,8 @@ defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
   @spec load(String.t(), String.t(), struct(), (struct(), map() -> Ecto.Changeset.t())) ::
           {:ok, struct()} | {:error, String.t()}
   def load(json, label, struct, changeset_fun) when is_binary(json) and is_binary(label) do
-    with {:ok, attrs} <- decode_json(json, label),
-         {:ok, validated} <- validate(label, struct, attrs, changeset_fun) do
-      {:ok, validated}
+    with {:ok, attrs} <- decode_json(json, label) do
+      validate(label, struct, attrs, changeset_fun)
     end
   end
 

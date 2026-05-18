@@ -1,4 +1,5 @@
 defmodule PLC.Keys do
+  @moduledoc false
   alias Multiformats.Multibase
 
   # varint for secp256k1-pub

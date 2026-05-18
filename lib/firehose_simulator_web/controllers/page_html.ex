@@ -1,8 +1,6 @@
 defmodule FirehoseSimulatorWeb.PageHTML do
   @moduledoc """
-  This module contains pages rendered by PageController.
-
-  See the `page_html` directory for all templates available.
+  HEEx templates for the minimal landing pages served by the web app.
   """
   use FirehoseSimulatorWeb, :html
 

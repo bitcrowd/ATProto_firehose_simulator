@@ -63,7 +63,7 @@ defmodule FirehoseSimulator.Application do
     :ok
   end
 
-  defp configure_file_logging() do
+  defp configure_file_logging do
     run_storage_directory = RunStorage.timestamped_directory()
     configured_log_file_path = Application.fetch_env!(:firehose_simulator, :log_file_path)
     log_file_name = Path.basename(configured_log_file_path)

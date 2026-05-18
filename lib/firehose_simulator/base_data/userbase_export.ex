@@ -1,4 +1,5 @@
 defmodule FirehoseSimulator.BaseData.UserbaseExport do
+  @moduledoc false
   require Logger
 
   alias FirehoseSimulator.BaseData.FollowerGraph

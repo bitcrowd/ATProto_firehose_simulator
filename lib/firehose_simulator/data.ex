@@ -1,4 +1,5 @@
 defmodule FirehoseSimulator.Data do
+  @moduledoc false
   alias DASL.{CID, DRISL}
 
   @post_type "app.bsky.feed.post"

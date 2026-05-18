@@ -1,10 +1,11 @@
 defmodule FirehoseSimulator.DataCase do
   @moduledoc """
-  This module defines the test case to be used by tests
-  that interact with the data layer.
+  Shared database test setup that manages the SQL sandbox owner lifecycle.
   """
 
   use ExUnit.CaseTemplate
+
+  alias Ecto.Adapters.SQL.Sandbox
 
   using do
     quote do
@@ -23,7 +24,7 @@ defmodule FirehoseSimulator.DataCase do
   end
 
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(FirehoseSimulator.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    pid = Sandbox.start_owner!(FirehoseSimulator.Repo, shared: not tags[:async])
+    on_exit(fn -> Sandbox.stop_owner(pid) end)
   end
 end
