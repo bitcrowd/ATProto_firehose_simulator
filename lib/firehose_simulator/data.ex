@@ -1,5 +1,5 @@
 defmodule FirehoseSimulator.Data do
-  alias Aether.ATProto.CID
+  alias DASL.{CID, DRISL}
 
   @post_type "app.bsky.feed.post"
   @follow_type "app.bsky.graph.follow"
@@ -42,8 +42,15 @@ defmodule FirehoseSimulator.Data do
 
   def cid_for_record(record) when is_map(record) do
     record
-    |> Jason.encode!()
-    |> CID.from_data()
-    |> Aether.ATProto.CID.cid_to_string()
+    |> encode_drisl!()
+    |> CID.compute(:drisl)
+    |> CID.encode()
+  end
+
+  defp encode_drisl!(term) do
+    case DRISL.encode(term) do
+      {:ok, bytes} -> bytes
+      {:error, reason} -> raise ArgumentError, "failed to DRISL-encode term: #{inspect(reason)}"
+    end
   end
 end
