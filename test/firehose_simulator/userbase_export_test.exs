@@ -6,7 +6,9 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
   alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.Data
 
-  test "exports actor and follow csv files with a manifest" do
+  @moduletag :tmp_dir
+
+  test "exports actor and follow csv files with a manifest", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Demo Export",
       num_users: 4,
@@ -16,7 +18,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
 
     indexed_at = "2025-01-01T00:00:00Z"
     base_time = DateTime.from_naive!(~N[2025-01-01 00:00:00.000000], "Etc/UTC")
-    export_root = temp_export_root!()
+    export_root = temp_export_root!(tmp_dir)
     run_dir = Path.join(export_root, "demo-run")
 
     assert {:ok, result} =
@@ -43,7 +45,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     refute File.exists?(run_dir)
   end
 
-  test "actor csv row count matches num_users" do
+  test "actor csv row count matches num_users", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Actor Count Export",
       num_users: 5,
@@ -51,13 +53,13 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
       follower_density: 1.0
     }
 
-    export_root = temp_export_root!()
+    export_root = temp_export_root!(tmp_dir)
 
     assert {:ok, result} = UserbaseExport.export(userbase, export_root, run_id: "actor-count")
     assert count_lines(result.actor_csv_path) == 5
   end
 
-  test "follow csv row count matches deterministic follower semantics" do
+  test "follow csv row count matches deterministic follower semantics", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Follow Count Export",
       num_users: 5,
@@ -65,13 +67,13 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
       follower_density: 1.0
     }
 
-    export_root = temp_export_root!()
+    export_root = temp_export_root!(tmp_dir)
 
     assert {:ok, result} = UserbaseExport.export(userbase, export_root, run_id: "follow-count")
     assert count_lines(result.follow_csv_path) == 7
   end
 
-  test "follow csv preserves deterministic subject and follower ordering" do
+  test "follow csv preserves deterministic subject and follower ordering", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Ordered Follow Export",
       num_users: 4,
@@ -79,7 +81,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
       follower_density: 1.0
     }
 
-    export_root = temp_export_root!()
+    export_root = temp_export_root!(tmp_dir)
 
     assert {:ok, result} = UserbaseExport.export(userbase, export_root, run_id: "follow-order")
 
@@ -91,7 +93,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
            ]
   end
 
-  test "export uses the provided timestamps consistently" do
+  test "export uses the provided timestamps consistently", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Timestamp Export",
       num_users: 4,
@@ -101,7 +103,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
 
     indexed_at = "2025-01-01T00:00:00Z"
     base_time = DateTime.from_naive!(~N[2025-01-01 00:00:00.000000], "Etc/UTC")
-    export_root = temp_export_root!()
+    export_root = temp_export_root!(tmp_dir)
 
     assert {:ok, result} =
              UserbaseExport.export(userbase, export_root,
@@ -134,9 +136,8 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
            ]
   end
 
-  defp temp_export_root! do
-    path =
-      Path.join(System.tmp_dir!(), "userbase-export-test-#{System.unique_integer([:positive])}")
+  defp temp_export_root!(tmp_dir) do
+    path = Path.join(tmp_dir, "userbase-export-test-#{System.unique_integer([:positive])}")
 
     File.mkdir_p!(path)
     path

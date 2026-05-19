@@ -30,7 +30,7 @@ defmodule FirehoseSimulator.SimulationPlan do
   def changeset(simulation_plan, attrs) do
     simulation_plan
     |> cast(attrs, [:name, :started_at, :export_path])
-    |> put_entries(attrs)
+    |> cast_embed(:entries, with: &Entry.changeset/2)
   end
 
   @spec new(map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
@@ -86,25 +86,6 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   defp format_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map(fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
-    |> Enum.join("; ")
-  end
-
-  defp put_entries(changeset, attrs) do
-    case entries_attr(attrs) do
-      nil ->
-        changeset
-
-      entries when is_list(entries) ->
-        if Enum.all?(entries, &match?(%Entry{}, &1)) do
-          put_embed(changeset, :entries, entries)
-        else
-          cast_embed(changeset, :entries, with: &Entry.changeset/2)
-        end
-    end
-  end
-
-  defp entries_attr(attrs) when is_map(attrs) do
-    Map.get(attrs, :entries) || Map.get(attrs, "entries")
+    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

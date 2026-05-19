@@ -230,22 +230,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   defp consume_simulation_plan_upload(socket, upload_name) do
     case consume_uploaded_entries(socket, upload_name, fn %{path: path}, entry ->
-           Logger.info("loaded json file: #{entry.client_name} -> #{path} (simulation_plan)")
-
-           :telemetry.execute(
-             [:firehose_simulator, :json, :file, :loaded],
-             %{count: 1},
-             %{
-               filename: entry.client_name,
-               path: path,
-               kind: "simulation_plan"
-             }
-           )
-
-           case FirehoseSimulator.import_simulation_plan_from_json(path) do
-             {:ok, simulation_plan} -> {:ok, {:ok, simulation_plan, entry.client_name}}
-             {:error, reason} -> {:ok, {:error, reason}}
-           end
+           {:ok, consume_simulation_plan_entry(path, entry.client_name)}
          end) do
       [{:ok, simulation_plan, filename}] ->
         {:ok, simulation_plan, filename}
@@ -255,6 +240,25 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
       [] ->
         {:error, "Please upload a JSON file first"}
+    end
+  end
+
+  defp consume_simulation_plan_entry(path, client_name) do
+    Logger.info("loaded json file: #{client_name} -> #{path} (simulation_plan)")
+
+    :telemetry.execute(
+      [:firehose_simulator, :json, :file, :loaded],
+      %{count: 1},
+      %{
+        filename: client_name,
+        path: path,
+        kind: "simulation_plan"
+      }
+    )
+
+    case FirehoseSimulator.import_simulation_plan_from_json(path) do
+      {:ok, simulation_plan} -> {:ok, simulation_plan, client_name}
+      {:error, reason} -> {:error, reason}
     end
   end
 

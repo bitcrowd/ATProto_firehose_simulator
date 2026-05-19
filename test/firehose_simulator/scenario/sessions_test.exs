@@ -1,8 +1,8 @@
 defmodule FirehoseSimulator.Scenario.SessionsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.Scenario.Sessions
   alias FirehoseSimulator.Scenario.Params.SessionsParams
+  alias FirehoseSimulator.Scenario.Sessions
 
   @config %SessionsParams{
     num_users: 100,

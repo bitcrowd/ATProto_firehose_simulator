@@ -1,8 +1,8 @@
 defmodule FirehoseSimulator.Scenario.PostsTest do
   use ExUnit.Case, async: false
 
-  alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Params.PostsParams
+  alias FirehoseSimulator.Scenario.Posts
 
   @config %PostsParams{
     num_users: 100,

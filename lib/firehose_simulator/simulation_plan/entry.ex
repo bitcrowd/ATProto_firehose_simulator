@@ -22,8 +22,10 @@ defmodule FirehoseSimulator.SimulationPlan.Entry do
           scenario: Scenario.t() | nil
         }
 
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
+  @spec changeset(t(), map() | t()) :: Ecto.Changeset.t()
   def changeset(entry, attrs) do
+    attrs = normalize_attrs(attrs)
+
     entry
     |> cast(attrs, [:scenario_name, :scenario_path, :offset_ms])
     |> put_scenario(attrs)
@@ -57,4 +59,7 @@ defmodule FirehoseSimulator.SimulationPlan.Entry do
   end
 
   defp put_scenario(changeset, _attrs), do: changeset
+
+  defp normalize_attrs(%__MODULE__{} = entry), do: Map.from_struct(entry)
+  defp normalize_attrs(attrs), do: attrs
 end

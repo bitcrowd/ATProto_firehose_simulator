@@ -36,19 +36,6 @@ defmodule FirehoseSimulator.Scenario do
           source_path: String.t() | nil
         }
 
-  @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(path) when is_binary(path) do
-    generate_from_json(scenario_params: path)
-  end
-
-  @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(opts) when is_list(opts) do
-    with {:ok, params_path} <- scenario_params_path(opts),
-         {:ok, params} <- load_scenario_params(params_path) do
-      build_scenario(params)
-    end
-  end
-
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(scenario, attrs) do
     scenario
@@ -57,11 +44,11 @@ defmodule FirehoseSimulator.Scenario do
       :sessions,
       :follows,
       :request_interval_ms,
-      :timeline_limit,
-      :source_path
+      :timeline_limit
     ])
+    |> cast(attrs, [:source_path], empty_values: [nil])
     |> update_change(:source_path, &String.trim/1)
-    |> validate_source_path(attrs)
+    |> validate_length(:source_path, min: 1)
     |> validate_number(:request_interval_ms, greater_than: 0)
     |> validate_number(:timeline_limit, greater_than: 0)
     |> validate_change(:posts, &validate_event_rows/2)
@@ -141,35 +128,10 @@ defmodule FirehoseSimulator.Scenario do
     end
   end
 
-  defp load_scenario_params(path) when is_binary(path) do
-    Logger.info("loading scenario params json file: #{path}")
-
-    :telemetry.execute(
-      [:firehose_simulator, :json, :file, :loaded],
-      %{count: 1},
-      %{path: path, kind: "scenario_params"}
-    )
-
-    case ScenarioParams.load_file(path) do
-      {:ok, params} -> {:ok, params}
-      {:error, _reason} = error -> error
-    end
-  end
-
-  defp load_scenario_params(_path),
-    do: {:error, "scenario_params path must be a string"}
-
   defp load_scenario_params_json(json) when is_binary(json) do
     case ScenarioParams.load(json) do
       {:ok, params} -> {:ok, params}
       {:error, _reason} = error -> error
-    end
-  end
-
-  defp scenario_params_path(opts) when is_list(opts) do
-    case Keyword.get(opts, :scenario_params) do
-      path when is_binary(path) -> {:ok, path}
-      _other -> {:error, "scenario_params path is required"}
     end
   end
 
@@ -299,22 +261,4 @@ defmodule FirehoseSimulator.Scenario do
   end
 
   defp validate_event_rows(field, _value), do: [{field, "must be a list of maps"}]
-
-  defp validate_source_path(changeset, attrs) do
-    case source_path_attr(attrs) do
-      path when is_binary(path) ->
-        if String.trim(path) == "" do
-          add_error(changeset, :source_path, "should be at least 1 character(s)")
-        else
-          changeset
-        end
-
-      _other ->
-        changeset
-    end
-  end
-
-  defp source_path_attr(attrs) when is_map(attrs) do
-    Map.get(attrs, :source_path) || Map.get(attrs, "source_path")
-  end
 end

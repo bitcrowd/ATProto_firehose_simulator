@@ -1,4 +1,5 @@
 defmodule Dataplane do
+  @moduledoc false
   @finch Dataplane.Finch
 
   def new(options \\ []) when is_list(options) do

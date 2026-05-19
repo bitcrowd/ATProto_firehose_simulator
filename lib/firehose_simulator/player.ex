@@ -299,12 +299,14 @@ defmodule FirehoseSimulator.Player do
   end
 
   defp worker_names(player_id) do
-    with {:ok, metadata} <- player_metadata(player_id) do
-      for partition <- 0..(metadata.schedulers - 1) do
-        via(player_id, {:worker, partition})
-      end
-    else
-      _ -> []
+    case player_metadata(player_id) do
+      {:ok, metadata} ->
+        for partition <- 0..(metadata.schedulers - 1) do
+          via(player_id, {:worker, partition})
+        end
+
+      _ ->
+        []
     end
   end
 

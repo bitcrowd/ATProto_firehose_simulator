@@ -115,10 +115,7 @@ userbase_path = "example/userbase.json"
  Generate a scenario from params JSON:
 
 ```elixir
-{:ok, scenario} =
-  FirehoseSimulator.generate_scenario_from_json(
-    scenario_params: "example/scenario_params.json"
-  )
+{:ok, scenario} = FirehoseSimulator.generate_scenario_from_json("example/scenario_params.json")
 ```
 
 Play the scenario:
@@ -143,7 +140,7 @@ Stop a specific player:
 Stop all running players:
 
 ```elixir
-:ok = FirehoseSimulator.stop_all()
+:ok = FirehoseSimulator.stop()
 ```
 
 Use vacuum functions to truncate userbase and/or post tables:
@@ -176,10 +173,7 @@ The import path uses server-side `COPY FROM '/absolute/path.csv'`, so the Postgr
 Shift an in-memory scenario by a millisecond offset:
 
 ```elixir
-{:ok, scenario} =
-  FirehoseSimulator.generate_scenario_from_json(
-    scenario_params: "example/scenario_params.json"
-  )
+{:ok, scenario} = FirehoseSimulator.generate_scenario_from_json("example/scenario_params.json")
 
 shifted_scenario = FirehoseSimulator.shift_scenario(scenario, 5_000)
 {:ok, shifted_player_id, _result} = FirehoseSimulator.load(shifted_scenario)

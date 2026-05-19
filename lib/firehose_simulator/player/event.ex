@@ -1,8 +1,9 @@
 defmodule FirehoseSimulator.Player.Event do
+  @moduledoc false
   alias Atex.TID
   alias DASL.{CID, DRISL}
-  alias Varint.LEB128
   alias FirehoseSimulator.Data
+  alias Varint.LEB128
 
   @clock_id 0
 
@@ -148,7 +149,7 @@ defmodule FirehoseSimulator.Player.Event do
     end
   end
 
-  defp random_post_text() do
+  defp random_post_text do
     suffix = System.unique_integer([:positive])
     "Simulated post #{suffix}"
   end

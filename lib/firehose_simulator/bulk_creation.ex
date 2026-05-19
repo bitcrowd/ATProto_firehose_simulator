@@ -1,11 +1,12 @@
 defmodule FirehoseSimulator.BulkCreation do
+  @moduledoc false
+  alias FirehoseSimulator.BaseData.FollowerGraph
+  alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BulkCreation.Actor
   alias FirehoseSimulator.BulkCreation.FeedItem
   alias FirehoseSimulator.BulkCreation.Follow
   alias FirehoseSimulator.BulkCreation.Post
   alias FirehoseSimulator.BulkCreation.Record
-  alias FirehoseSimulator.BaseData.FollowerGraph
-  alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Repo
   alias FirehoseSimulator.Scenario
@@ -33,9 +34,7 @@ defmodule FirehoseSimulator.BulkCreation do
   end
 
   def create_scenario(%Scenario{} = scenario) do
-    with {:ok, result} <- insert_scenario(scenario) do
-      {:ok, result}
-    end
+    insert_scenario(scenario)
   end
 
   @doc false

@@ -10,7 +10,7 @@ defmodule FirehoseSimulator.State do
           scenarios: %{optional(String.t()) => Scenario.t()},
           players: %{optional(String.t()) => map()},
           simulation_plan: SimulationPlan.t(),
-          run_storage_directory: String.t(),
+          run_storage_directory: String.t() | nil,
           userbase_uploaded?: boolean(),
           userbase_result: map() | nil
         }
@@ -51,9 +51,15 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, :get_simulation_plan)
   end
 
-  @spec get_run_storage_directory() :: %{run_dir: String.t()} | nil
+  @spec get_run_storage_directory() :: String.t() | nil
   def get_run_storage_directory do
     GenServer.call(__MODULE__, :get_run_storage_directory)
+  end
+
+  @spec put_run_storage_directory(String.t() | nil) :: :ok
+  def put_run_storage_directory(run_storage_directory)
+      when is_binary(run_storage_directory) or is_nil(run_storage_directory) do
+    GenServer.call(__MODULE__, {:put_run_storage_directory, run_storage_directory})
   end
 
   def put_simulation_plan(%SimulationPlan{} = simulation_plan) do
@@ -103,7 +109,7 @@ defmodule FirehoseSimulator.State do
 
   @impl true
   def init(opts) do
-    run_storage_directory = Keyword.fetch!(opts, :run_storage_directory)
+    run_storage_directory = Keyword.get(opts, :run_storage_directory)
     {:ok, default_state(run_storage_directory)}
   end
 
@@ -138,6 +144,10 @@ defmodule FirehoseSimulator.State do
 
   def handle_call(:get_run_storage_directory, _from, state) do
     {:reply, state.run_storage_directory, state}
+  end
+
+  def handle_call({:put_run_storage_directory, run_storage_directory}, _from, state) do
+    {:reply, :ok, %{state | run_storage_directory: run_storage_directory}}
   end
 
   def handle_call({:put_simulation_plan, simulation_plan}, _from, state) do

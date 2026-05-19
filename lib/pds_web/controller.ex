@@ -1,4 +1,5 @@
 defmodule PDSWeb.Controller do
+  @moduledoc false
   use Phoenix.Controller, formats: [:json]
 
   require Logger

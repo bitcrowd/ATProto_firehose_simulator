@@ -1,4 +1,5 @@
 defmodule FirehoseSimulator.BaseData.UserbaseMeta do
+  @moduledoc false
   @enforce_keys [:version, :kind, :run_id, :exported_at, :userbase, :files]
   defstruct [:version, :kind, :run_id, :exported_at, :userbase, :files]
 
@@ -122,9 +123,8 @@ defmodule FirehoseSimulator.BaseData.UserbaseMeta do
   defp validate_kind(kind), do: {:error, "invalid userbase meta kind: #{inspect(kind)}"}
 
   defp validate_files(%__MODULE__{} = meta) do
-    with :ok <- validate_file_exists(meta.files.actor.path, "actor"),
-         :ok <- validate_file_exists(meta.files.follow.path, "follow") do
-      :ok
+    with :ok <- validate_file_exists(meta.files.actor.path, "actor") do
+      validate_file_exists(meta.files.follow.path, "follow")
     end
   end
 
@@ -132,22 +132,18 @@ defmodule FirehoseSimulator.BaseData.UserbaseMeta do
   defp maybe_validate_files(_meta, false), do: :ok
 
   defp validate_file_path(path, name) do
-    cond do
-      Path.type(path) != :absolute ->
-        {:error, "#{name} csv path must be absolute"}
-
-      true ->
-        :ok
+    if Path.type(path) == :absolute do
+      :ok
+    else
+      {:error, "#{name} csv path must be absolute"}
     end
   end
 
   defp validate_file_exists(path, name) do
-    cond do
-      not File.regular?(path) ->
-        {:error, "#{name} csv file does not exist at #{path}"}
-
-      true ->
-        :ok
+    if File.regular?(path) do
+      :ok
+    else
+      {:error, "#{name} csv file does not exist at #{path}"}
     end
   end
 

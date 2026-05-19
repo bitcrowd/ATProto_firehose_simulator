@@ -95,7 +95,7 @@ defmodule FirehoseSimulator.Scenario.JSON do
     rows
     |> Enum.with_index()
     |> Enum.reduce_while({:ok, []}, fn {row, index}, {:ok, acc} ->
-      case decoder.(row) do
+      case row |> normalize_row_keys() |> decoder.() do
         {:ok, parsed} -> {:cont, {:ok, [parsed | acc]}}
         {:error, reason} -> {:halt, {:error, "invalid #{label}[#{index}]: #{reason}"}}
       end
@@ -109,9 +109,22 @@ defmodule FirehoseSimulator.Scenario.JSON do
   defp decode_rows(_rows, label, _decoder),
     do: {:error, "invalid #{label}: expected list or null"}
 
+  defp normalize_row_keys(%{} = row) do
+    Map.new(row, fn
+      {"offset_ms", value} -> {:offset_ms, value}
+      {"user_id", value} -> {:user_id, value}
+      {"duration_ms", value} -> {:duration_ms, value}
+      {"actor_id", value} -> {:actor_id, value}
+      {"subject_id", value} -> {:subject_id, value}
+      {key, value} -> {key, value}
+    end)
+  end
+
+  defp normalize_row_keys(row), do: row
+
   defp decode_post(%{} = row) do
-    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
-         {:ok, user_id} <- fetch_integer(row, "user_id") do
+    with {:ok, offset_ms} <- fetch_integer(row, :offset_ms),
+         {:ok, user_id} <- fetch_integer(row, :user_id) do
       {:ok, %{offset_ms: offset_ms, user_id: user_id}}
     end
   end
@@ -119,9 +132,9 @@ defmodule FirehoseSimulator.Scenario.JSON do
   defp decode_post(_row), do: {:error, "expected object"}
 
   defp decode_session(%{} = row) do
-    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
-         {:ok, user_id} <- fetch_integer(row, "user_id"),
-         {:ok, duration_ms} <- fetch_integer(row, "duration_ms") do
+    with {:ok, offset_ms} <- fetch_integer(row, :offset_ms),
+         {:ok, user_id} <- fetch_integer(row, :user_id),
+         {:ok, duration_ms} <- fetch_integer(row, :duration_ms) do
       {:ok, %{offset_ms: offset_ms, user_id: user_id, duration_ms: duration_ms}}
     end
   end
@@ -129,9 +142,9 @@ defmodule FirehoseSimulator.Scenario.JSON do
   defp decode_session(_row), do: {:error, "expected object"}
 
   defp decode_follow(%{} = row) do
-    with {:ok, offset_ms} <- fetch_integer(row, "offset_ms"),
-         {:ok, actor_id} <- fetch_integer(row, "actor_id"),
-         {:ok, subject_id} <- fetch_integer(row, "subject_id") do
+    with {:ok, offset_ms} <- fetch_integer(row, :offset_ms),
+         {:ok, actor_id} <- fetch_integer(row, :actor_id),
+         {:ok, subject_id} <- fetch_integer(row, :subject_id) do
       {:ok, %{offset_ms: offset_ms, actor_id: actor_id, subject_id: subject_id}}
     end
   end
@@ -139,19 +152,12 @@ defmodule FirehoseSimulator.Scenario.JSON do
   defp decode_follow(_row), do: {:error, "expected object"}
 
   defp fetch_integer(map, key) do
-    value =
-      case key do
-        "offset_ms" -> Map.get(map, "offset_ms") || Map.get(map, :offset_ms)
-        "user_id" -> Map.get(map, "user_id") || Map.get(map, :user_id)
-        "duration_ms" -> Map.get(map, "duration_ms") || Map.get(map, :duration_ms)
-        "actor_id" -> Map.get(map, "actor_id") || Map.get(map, :actor_id)
-        "subject_id" -> Map.get(map, "subject_id") || Map.get(map, :subject_id)
-      end
+    value = Map.get(map, key)
 
     if is_integer(value) do
       {:ok, value}
     else
-      {:error, "#{key} must be an integer"}
+      {:error, "#{Atom.to_string(key)} must be an integer"}
     end
   end
 
@@ -161,7 +167,6 @@ defmodule FirehoseSimulator.Scenario.JSON do
         String.replace(acc, "%{#{key}}", to_string(value))
       end)
     end)
-    |> Enum.map(fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
-    |> Enum.join("; ")
+    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

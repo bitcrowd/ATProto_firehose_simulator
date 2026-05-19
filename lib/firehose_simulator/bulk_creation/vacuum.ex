@@ -1,4 +1,5 @@
 defmodule FirehoseSimulator.BulkCreation.Vacuum do
+  @moduledoc false
   alias FirehoseSimulator.Repo
 
   @spec run(keyword()) :: {:ok, map()} | {:error, String.t()}

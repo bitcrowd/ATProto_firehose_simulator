@@ -8,18 +8,12 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   alias FirehoseSimulator.SimulationPlan.Entry
   alias FirehoseSimulator.State
 
-  setup do
-    runs_root =
-      Path.join(
-        System.tmp_dir!(),
-        "firehose-simulator-live-runs-#{System.unique_integer([:positive, :monotonic])}"
-      )
+  @moduletag :tmp_dir
 
-    Application.put_env(:firehose_simulator, :runs_root, runs_root)
+  setup do
     clear_test_state()
 
     on_exit(fn ->
-      Application.delete_env(:firehose_simulator, :runs_root)
       clear_test_state()
     end)
 
@@ -50,7 +44,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     refute has_element?(view, "#setup-result")
   end
 
-  test "planning liveview generates and imports scenarios", %{conn: conn} do
+  test "planning liveview generates and imports scenarios", %{conn: conn, tmp_dir: tmp_dir} do
     {:ok, view, _html} = live(conn, ~p"/planning")
 
     params_upload =
@@ -121,7 +115,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     assert imported_scenario_id
     assert has_element?(view, "#scenario-row-#{imported_scenario_id}")
 
-    scenario_path = write_runtime_file!("live-plan-scenario", scenario_json())
+    scenario_path = write_runtime_file!(tmp_dir, "live-plan-scenario", scenario_json())
 
     plan_upload =
       file_input(view, "#planning-import-plan-form", :simulation_plan_json, [
@@ -323,10 +317,10 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     """
   end
 
-  defp write_runtime_file!(prefix, content) do
+  defp write_runtime_file!(tmp_dir, prefix, content) do
     path =
       Path.join(
-        System.tmp_dir!(),
+        tmp_dir,
         "#{prefix}-#{System.unique_integer([:positive, :monotonic])}.json"
       )
 
@@ -336,7 +330,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
   defp clear_test_state do
     {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    :ok = FirehoseSimulator.stop_all()
+    :ok = FirehoseSimulator.stop()
     :ok = State.clear_scenarios()
     :ok = State.clear_players()
     :ok = State.put_simulation_plan(simulation_plan)

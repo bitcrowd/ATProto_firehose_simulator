@@ -5,8 +5,8 @@ defmodule FirehoseSimulator.Scenario.Params.FollowsParams do
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.Scenario.Params.FollowTier
   alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
+  alias FirehoseSimulator.Scenario.Params.FollowTier
 
   @type t :: %__MODULE__{
           num_users: pos_integer(),

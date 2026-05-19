@@ -1,7 +1,6 @@
 defmodule FirehoseSimulatorWeb.Layouts do
   @moduledoc """
-  This module holds layouts and related functionality
-  used by your application.
+  Shared layout components that wrap LiveView and controller-rendered pages.
   """
   use FirehoseSimulatorWeb, :html
 

@@ -269,23 +269,10 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       )
 
       task =
-        Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
-          Enum.map(
-            due,
-            fn {_offset, user_id} -> {user_id, emit_post_event(user_id)} end
-          )
-          |> Enum.reduce(%{ok: 0, error: 0}, fn
-            {_user_id, :ok}, acc ->
-              %{acc | ok: acc.ok + 1}
-
-            {user_id, {:error, reason}}, acc ->
-              Logger.warning(
-                "[EventFeeder] emit post failed for user #{user_id}: #{inspect(reason)}"
-              )
-
-              %{acc | error: acc.error + 1}
-          end)
-        end)
+        Task.Supervisor.async_nolink(
+          FirehoseSimulator.Player.TaskSupervisor,
+          fn -> dispatch_posts(due) end
+        )
 
       %{state | posts: remaining, post_tasks: [task.ref | state.post_tasks]}
     end
@@ -307,25 +294,10 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       )
 
       task =
-        Task.Supervisor.async_nolink(FirehoseSimulator.Player.TaskSupervisor, fn ->
-          Enum.map(
-            due,
-            fn {_offset, actor_id, subject_id} ->
-              {{actor_id, subject_id}, emit_follow_event(actor_id, subject_id)}
-            end
-          )
-          |> Enum.reduce(%{ok: 0, error: 0}, fn
-            {{_actor_id, _subject_id}, :ok}, acc ->
-              %{acc | ok: acc.ok + 1}
-
-            {{actor_id, subject_id}, {:error, reason}}, acc ->
-              Logger.warning(
-                "[EventFeeder] emit follow failed for #{actor_id}->#{subject_id}: #{inspect(reason)}"
-              )
-
-              %{acc | error: acc.error + 1}
-          end)
-        end)
+        Task.Supervisor.async_nolink(
+          FirehoseSimulator.Player.TaskSupervisor,
+          fn -> dispatch_follows(due) end
+        )
 
       %{state | follows: remaining, follow_tasks: [task.ref | state.follow_tasks]}
     end
@@ -380,6 +352,45 @@ defmodule FirehoseSimulator.Player.EventFeeder do
       })
 
     PubSub.broadcast(FirehoseSimulator.PubSub, "firehose", payload)
+  end
+
+  defp dispatch_posts(due) do
+    Enum.reduce(due, %{ok: 0, error: 0}, fn {_offset, user_id}, acc ->
+      emit_result = emit_post_event(user_id)
+
+      accumulate_post_dispatch(acc, user_id, emit_result)
+    end)
+  end
+
+  defp dispatch_follows(due) do
+    Enum.reduce(due, %{ok: 0, error: 0}, fn {_offset, actor_id, subject_id}, acc ->
+      emit_result = emit_follow_event(actor_id, subject_id)
+
+      accumulate_follow_dispatch(
+        acc,
+        actor_id,
+        subject_id,
+        emit_result
+      )
+    end)
+  end
+
+  defp accumulate_post_dispatch(acc, _user_id, :ok), do: %{acc | ok: acc.ok + 1}
+
+  defp accumulate_post_dispatch(acc, user_id, {:error, reason}) do
+    Logger.warning("[EventFeeder] emit post failed for user #{user_id}: #{inspect(reason)}")
+    %{acc | error: acc.error + 1}
+  end
+
+  defp accumulate_follow_dispatch(acc, _actor_id, _subject_id, :ok),
+    do: %{acc | ok: acc.ok + 1}
+
+  defp accumulate_follow_dispatch(acc, actor_id, subject_id, {:error, reason}) do
+    Logger.warning(
+      "[EventFeeder] emit follow failed for #{actor_id}->#{subject_id}: #{inspect(reason)}"
+    )
+
+    %{acc | error: acc.error + 1}
   end
 
   defp emit_follow_event(actor_id, subject_id) do

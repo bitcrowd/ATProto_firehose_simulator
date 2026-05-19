@@ -19,12 +19,7 @@ defmodule FirehoseSimulator.RunStorage do
     directories =
       [run_directory | Enum.map(@run_subdirectories, &Path.join(run_directory, &1))]
 
-    case Enum.reduce_while(directories, :ok, fn directory, :ok ->
-           case File.mkdir_p(directory) do
-             :ok -> {:cont, :ok}
-             {:error, reason} -> {:halt, {:error, {directory, reason}}}
-           end
-         end) do
+    case ensure_directories(directories) do
       :ok ->
         {:ok, run_directory}
 
@@ -145,19 +140,26 @@ defmodule FirehoseSimulator.RunStorage do
        )
        when is_binary(run_directory) do
     with {:ok, scenario_path} <- store_scenario(run_directory, scenario, scenario_name),
-         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path),
-         {:ok, entry} <-
-           Entry.update(entry, %{
-             scenario_name: entry.scenario_name,
-             scenario_path: scenario_path,
-             offset_ms: entry.offset_ms,
-             scenario: scenario
-           }) do
-      {:ok, entry}
+         {:ok, scenario} <- Scenario.put_source_path(scenario, scenario_path) do
+      Entry.update(entry, %{
+        scenario_name: entry.scenario_name,
+        scenario_path: scenario_path,
+        offset_ms: entry.offset_ms,
+        scenario: scenario
+      })
     end
   end
 
   defp localize_entry(_run_directory, %Entry{} = entry), do: {:ok, entry}
+
+  defp ensure_directories(directories) do
+    Enum.reduce_while(directories, :ok, fn directory, :ok ->
+      case File.mkdir_p(directory) do
+        :ok -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, {directory, reason}}}
+      end
+    end)
+  end
 
   defp copy_into_run(run_directory, source_path, directory, file_name) do
     destination = Path.join([run_directory, directory, file_name])

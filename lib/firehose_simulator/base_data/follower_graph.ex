@@ -102,12 +102,11 @@ defmodule FirehoseSimulator.BaseData.FollowerGraph do
           [] ->
             {:cont, [follow]}
 
-          [head | _rest] ->
-            if head.subject_id == follow.subject_id do
-              {:cont, [follow | batch]}
-            else
-              {:cont, Enum.reverse(batch), [follow]}
-            end
+          [head | _rest] when head.subject_id == follow.subject_id ->
+            {:cont, [follow | batch]}
+
+          [_head | _rest] ->
+            {:cont, Enum.reverse(batch), [follow]}
         end
       end,
       fn
