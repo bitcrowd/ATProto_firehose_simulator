@@ -70,19 +70,6 @@ defmodule FirehoseSimulator.Scenario do
     |> apply_action(:update)
   end
 
-  @spec generate_from_json(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(path) when is_binary(path) do
-    generate_from_json(scenario_params: path)
-  end
-
-  @spec generate_from_json(keyword(String.t())) :: {:ok, t()} | {:error, String.t()}
-  def generate_from_json(opts) when is_list(opts) do
-    with {:ok, params_path} <- scenario_params_path(opts),
-         {:ok, params} <- load_scenario_params(params_path) do
-      build_scenario(params)
-    end
-  end
-
   @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json_string(json) when is_binary(json) do
     with {:ok, params} <- load_scenario_params_json(json) do
@@ -141,35 +128,10 @@ defmodule FirehoseSimulator.Scenario do
     end
   end
 
-  defp load_scenario_params(path) when is_binary(path) do
-    Logger.info("loading scenario params json file: #{path}")
-
-    :telemetry.execute(
-      [:firehose_simulator, :json, :file, :loaded],
-      %{count: 1},
-      %{path: path, kind: "scenario_params"}
-    )
-
-    case ScenarioParams.load_file(path) do
-      {:ok, params} -> {:ok, params}
-      {:error, _reason} = error -> error
-    end
-  end
-
-  defp load_scenario_params(_path),
-    do: {:error, "scenario_params path must be a string"}
-
   defp load_scenario_params_json(json) when is_binary(json) do
     case ScenarioParams.load(json) do
       {:ok, params} -> {:ok, params}
       {:error, _reason} = error -> error
-    end
-  end
-
-  defp scenario_params_path(opts) when is_list(opts) do
-    case Keyword.get(opts, :scenario_params) do
-      path when is_binary(path) -> {:ok, path}
-      _other -> {:error, "scenario_params path is required"}
     end
   end
 

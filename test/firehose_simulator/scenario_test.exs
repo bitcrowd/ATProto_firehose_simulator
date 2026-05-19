@@ -139,13 +139,6 @@ defmodule FirehoseSimulator.ScenarioTest do
     end
   end
 
-  describe "generate_from_json/1" do
-    test "requires a scenario_params path" do
-      assert {:error, "scenario_params path is required"} =
-               Scenario.generate_from_json([])
-    end
-  end
-
   describe "put_source_path/2" do
     test "trims valid source paths" do
       scenario = %Scenario{}

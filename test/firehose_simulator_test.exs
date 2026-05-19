@@ -83,37 +83,6 @@ defmodule FirehoseSimulatorTest do
       assert File.exists?(scenario.source_path)
     end
 
-    @tag :tmp_dir
-    test "loads scenario params json from scenario_params opts", %{tmp_dir: tmp_dir} do
-      params_path =
-        write_file!(
-          tmp_dir,
-          "scenario-params-opts",
-          """
-          {
-            "seed": 1,
-            "time_units": 1,
-            "posts_params": {
-              "num_users": 10,
-              "max_active_user_id": 5,
-              "tiers": [
-                {"max_followers": 1000, "posts_per_time_unit": 0.25}
-              ]
-            }
-          }
-          """
-        )
-
-        assert {:ok, %Scenario{} = scenario} = FirehoseSimulator.generate_scenario_from_json(scenario_params: params_path)
-
-        assert is_list(scenario.posts)
-    end
-
-    test "returns an error when scenario_params opts omit a path" do
-      assert {:error, "scenario_params path is required"} =
-               FirehoseSimulator.generate_scenario_from_json([])
-    end
-
     test "returns file read errors for missing scenario params files" do
       assert {:error, "cannot read scenario params file at missing-scenario-params.json"} =
                FirehoseSimulator.generate_scenario_from_json("missing-scenario-params.json")

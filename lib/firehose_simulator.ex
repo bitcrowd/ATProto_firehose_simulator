@@ -122,15 +122,6 @@ defmodule FirehoseSimulator do
     end
   end
 
-  @spec generate_scenario_from_json(keyword(String.t())) ::
-          {:ok, Scenario.t()} | {:error, String.t()}
-  def generate_scenario_from_json(opts) when is_list(opts) do
-    with {:ok, params_path} <- scenario_params_path(opts),
-         {:ok, json} <- read_scenario_params_file(params_path) do
-      generate_scenario_from_json_string(json, name: scenario_name_from_path(params_path))
-    end
-  end
-
   @spec generate_scenario_from_json_string(String.t(), keyword()) ::
           {:ok, Scenario.t()} | {:error, String.t()}
   def generate_scenario_from_json_string(json, opts \\ [])
@@ -368,13 +359,6 @@ defmodule FirehoseSimulator do
          {:ok, path} <- RunStorage.store_scenario(run_directory, scenario, scenario_name),
          {:ok, scenario} <- Scenario.put_source_path(scenario, path) do
       {:ok, path, scenario}
-    end
-  end
-
-  defp scenario_params_path(opts) when is_list(opts) do
-    case Keyword.get(opts, :scenario_params) do
-      path when is_binary(path) -> {:ok, path}
-      _other -> {:error, "scenario_params path is required"}
     end
   end
 
