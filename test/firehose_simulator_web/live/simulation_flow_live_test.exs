@@ -330,7 +330,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
   defp clear_test_state do
     {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    :ok = FirehoseSimulator.stop_all()
+    :ok = FirehoseSimulator.stop()
     :ok = State.clear_scenarios()
     :ok = State.clear_players()
     :ok = State.put_simulation_plan(simulation_plan)

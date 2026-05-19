@@ -143,7 +143,7 @@ Stop a specific player:
 Stop all running players:
 
 ```elixir
-:ok = FirehoseSimulator.stop_all()
+:ok = FirehoseSimulator.stop()
 ```
 
 Use vacuum functions to truncate userbase and/or post tables:

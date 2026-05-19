@@ -120,7 +120,7 @@ defmodule FirehoseSimulatorWeb.SimulationLive do
 
   @impl true
   def handle_event("stop_all", _params, socket) do
-    :ok = FirehoseSimulator.stop_all()
+    :ok = FirehoseSimulator.stop()
 
     {:noreply,
      socket

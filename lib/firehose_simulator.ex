@@ -99,11 +99,6 @@ defmodule FirehoseSimulator do
     {:ok, result}
   end
 
-  @spec vacuum() :: {:ok, map()} | {:error, String.t()}
-  def vacuum do
-    vacuum([])
-  end
-
   @spec vacuum(keyword()) :: {:ok, map()} | {:error, String.t()}
   def vacuum(opts) when is_list(opts) do
     Logger.info("running vacuum actions")
@@ -696,9 +691,6 @@ defmodule FirehoseSimulator do
     Logger.info("all simulation playback stopped")
     :ok
   end
-
-  @spec stop_all() :: :ok
-  def stop_all, do: stop()
 
   @spec status(String.t()) :: map() | {:error, term()}
   def status(player_id) when is_binary(player_id), do: Player.status(player_id)
