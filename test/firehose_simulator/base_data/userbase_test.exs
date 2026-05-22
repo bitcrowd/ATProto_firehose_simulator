@@ -9,14 +9,12 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
               %Userbase{
                 name: "not yet twitter",
                 num_users: 1_000_000,
-                max_active_user_id: 25_000,
                 follower_density: 5.0
               }} =
                Userbase.load("""
                {
                  "name": "not yet twitter",
                  "num_users": 1000000,
-                 "max_active_user_id": 25000,
                  "follower_density": 5.0
                }
                """)
@@ -32,13 +30,12 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
       assert {:error, message} =
                Userbase.load("""
                {
-                 "name": "not yet twitter",
                  "num_users": 1000000
                }
                """)
 
       assert String.contains?(message, "invalid userbase config:")
-      assert String.contains?(message, "max_active_user_id")
+      assert String.contains?(message, "name")
     end
 
     test "returns invalid field details for range errors" do
@@ -46,15 +43,14 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
                Userbase.load("""
                {
                  "name": "not yet twitter",
-                 "num_users": 100,
-                 "max_active_user_id": 101,
+                 "num_users": 0,
                  "follower_density": 1.5
                }
                """)
 
       assert String.contains?(message, "invalid userbase config:")
-      assert String.contains?(message, "max_active_user_id")
-      assert String.contains?(message, "less than or equal to num_users")
+      assert String.contains?(message, "num_users")
+      assert String.contains?(message, "must be greater than 0")
     end
 
     test "ignores unknown keys" do
@@ -75,8 +71,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
                Userbase.load("""
                {
                  "name": "with default density",
-                 "num_users": 100,
-                 "max_active_user_id": 20
+                 "num_users": 100
                }
                """)
 
@@ -89,14 +84,12 @@ defmodule FirehoseSimulator.BaseData.UserbaseTest do
       assert %Userbase{
                name: "bang",
                num_users: 100,
-               max_active_user_id: 10,
                follower_density: 2.0
              } =
                Userbase.load!("""
                {
                  "name": "bang",
                  "num_users": 100,
-                 "max_active_user_id": 10,
                  "follower_density": 2.0
                }
                """)

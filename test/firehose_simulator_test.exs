@@ -612,7 +612,6 @@ defmodule FirehoseSimulatorTest do
                {
                  "name": "created from json",
                  "num_users": 4,
-                 "max_active_user_id": 4,
                  "follower_density": 1.0
                }
                """)
@@ -641,7 +640,6 @@ defmodule FirehoseSimulatorTest do
           {
             "name": "created from default path",
             "num_users": 4,
-            "max_active_user_id": 4,
             "follower_density": 1.0
           }
           """
@@ -674,7 +672,6 @@ defmodule FirehoseSimulatorTest do
           {
             "name": "default csv export",
             "num_users": 4,
-            "max_active_user_id": 4,
             "follower_density": 1.0
           }
           """
@@ -708,7 +705,6 @@ defmodule FirehoseSimulatorTest do
           {
             "name": "csv file export",
             "num_users": 4,
-            "max_active_user_id": 4,
             "follower_density": 1.0
           }
           """
@@ -733,7 +729,6 @@ defmodule FirehoseSimulatorTest do
                  {
                    "name": "csv export",
                    "num_users": 4,
-                   "max_active_user_id": 4,
                    "follower_density": 1.0
                  }
                  """,
@@ -757,7 +752,6 @@ defmodule FirehoseSimulatorTest do
         "userbase": {
           "name": "imported userbase",
           "num_users": 2,
-          "max_active_user_id": 2,
           "follower_density": 1.0
         },
         "files": {
@@ -801,7 +795,6 @@ defmodule FirehoseSimulatorTest do
                  {
                    "name": "exported then imported userbase",
                    "num_users": 2,
-                   "max_active_user_id": 2,
                    "follower_density": 1.0
                  }
                  """,

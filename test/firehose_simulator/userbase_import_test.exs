@@ -16,7 +16,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
       "userbase": {
         "name": "demo",
         "num_users": 1,
-        "max_active_user_id": 1,
         "follower_density": 1.0
       },
       "files": {

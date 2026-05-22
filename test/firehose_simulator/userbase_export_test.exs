@@ -12,7 +12,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     userbase = %Userbase{
       name: "Demo Export",
       num_users: 4,
-      max_active_user_id: 4,
       follower_density: 1.0
     }
 
@@ -49,7 +48,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     userbase = %Userbase{
       name: "Actor Count Export",
       num_users: 5,
-      max_active_user_id: 5,
       follower_density: 1.0
     }
 
@@ -63,7 +61,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     userbase = %Userbase{
       name: "Follow Count Export",
       num_users: 5,
-      max_active_user_id: 5,
       follower_density: 1.0
     }
 
@@ -77,7 +74,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     userbase = %Userbase{
       name: "Ordered Follow Export",
       num_users: 4,
-      max_active_user_id: 4,
       follower_density: 1.0
     }
 
@@ -97,7 +93,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     userbase = %Userbase{
       name: "Timestamp Export",
       num_users: 4,
-      max_active_user_id: 4,
       follower_density: 1.0
     }
 
