@@ -16,7 +16,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseMetaTest do
       "userbase": {
         "name": "demo",
         "num_users": 2,
-        "max_active_user_id": 2,
         "follower_density": 1.0
       },
       "files": {
@@ -40,7 +39,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseMetaTest do
         userbase: %{
           "name" => "demo",
           "num_users" => 2,
-          "max_active_user_id" => 2,
           "follower_density" => 1.0
         },
         files: %{

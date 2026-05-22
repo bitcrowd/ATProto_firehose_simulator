@@ -46,7 +46,6 @@ These parameters are used to generate a userbase.
 |---                   |---      |---       |---      |---                       |
 | `name`               | string  | yes      | none    | trimmed; min length 1    |
 | `num_users`          | integer | yes      | none    | `> 0`                    |
-| `max_active_user_id` | integer | yes      | none    | `> 0` and `<= num_users` |
 | `follower_density`   | float   | no       | `1.0`   | `> 0`                    |
 
 ### Scenario params JSON
@@ -194,7 +193,6 @@ The export result also returns the paths and row counts.
 | `userbase`                    | object  | Embedded source userbase settings |
 | `userbase.name`               | string  | Userbase name                     |
 | `userbase.num_users`          | integer | Number of users                   |
-| `userbase.max_active_user_id` | integer | Highest active user id            |
 | `userbase.follower_density`   | float   | Density used to generate follows  |
 | `files`                       | object  | CSV file metadata                 |
 | `files.actor.path`            | string  | Absolute path to `actor.csv`      |

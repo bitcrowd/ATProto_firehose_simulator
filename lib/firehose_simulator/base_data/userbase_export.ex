@@ -60,7 +60,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
       userbase: %{
         "name" => userbase.name,
         "num_users" => userbase.num_users,
-        "max_active_user_id" => userbase.max_active_user_id,
         "follower_density" => userbase.follower_density
       },
       files: %{
