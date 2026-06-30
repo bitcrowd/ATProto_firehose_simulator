@@ -13,7 +13,7 @@ defmodule FirehoseSimulator.MixProject do
       dialyzer: [
         plt_local_path: "priv/plts",
         plt_core_path: "priv/plts",
-        plt_add_apps: [:ex_unit, :mix]
+        plt_add_apps: [:ex_unit, :mix, :atex]
       ],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
@@ -45,6 +45,7 @@ defmodule FirehoseSimulator.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:req, "~> 0.6.2"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
