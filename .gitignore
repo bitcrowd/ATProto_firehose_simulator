@@ -38,3 +38,7 @@ npm-debug.log
 
 /log
 /runs
+
+# Dialyzer
+/priv/plts/*.plt
+/priv/plts/*.plt.hash
