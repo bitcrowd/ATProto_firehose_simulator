@@ -181,5 +181,4 @@ defmodule FirehoseSimulatorWeb.SetupLive do
 
   defp json_file_kind(:userbase), do: "userbase"
   defp json_file_kind(:userbase_meta), do: "userbase_meta"
-  defp json_file_kind(_upload_name), do: "unknown"
 end

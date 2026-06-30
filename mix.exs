@@ -10,6 +10,11 @@ defmodule FirehoseSimulator.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      dialyzer: [
+        plt_local_path: "priv/plts",
+        plt_core_path: "priv/plts",
+        plt_add_apps: [:ex_unit, :mix, :atex]
+      ],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
     ]
@@ -40,6 +45,7 @@ defmodule FirehoseSimulator.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:req, "~> 0.6.2"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
@@ -68,7 +74,8 @@ defmodule FirehoseSimulator.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:ex_slop, "~> 0.1", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.7"}
+      {:credo, "~> 1.7"},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 

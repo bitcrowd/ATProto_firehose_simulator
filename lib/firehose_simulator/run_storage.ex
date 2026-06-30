@@ -82,7 +82,6 @@ defmodule FirehoseSimulator.RunStorage do
            :ok <- File.write(scenario_path, json) do
         {:ok, scenario_path}
       else
-        {:error, reason} when is_binary(reason) -> {:error, reason}
         {:error, reason} -> {:error, "failed to write scenario json: #{inspect(reason)}"}
       end
     end
@@ -180,7 +179,6 @@ defmodule FirehoseSimulator.RunStorage do
          :ok <- File.write(destination, content) do
       {:ok, destination}
     else
-      {:error, reason} when is_binary(reason) -> {:error, reason}
       {:error, reason} -> {:error, "failed to write #{destination}: #{inspect(reason)}"}
     end
   end

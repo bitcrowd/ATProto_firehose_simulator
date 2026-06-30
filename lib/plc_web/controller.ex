@@ -53,8 +53,7 @@ defmodule PLCWeb.Controller do
     op = Map.delete(params, "did")
 
     valid_operation =
-      is_map(op) and
-        Map.has_key?(op, "type") and
+      Map.has_key?(op, "type") and
         (op["type"] == "plc_operation" or op["type"] == "plc_tombstone")
 
     if valid_operation do

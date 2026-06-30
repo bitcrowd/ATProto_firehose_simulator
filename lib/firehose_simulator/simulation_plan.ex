@@ -6,10 +6,9 @@ defmodule FirehoseSimulator.SimulationPlan do
   import Ecto.Changeset
 
   alias FirehoseSimulator
+  alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
-
-  require Logger
 
   @primary_key false
   embedded_schema do
