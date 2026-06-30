@@ -463,8 +463,6 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp scenario_name_from_path(nil), do: nil
-
   defp scenario_name_from_path(path) when is_binary(path) do
     path
     |> Path.basename()

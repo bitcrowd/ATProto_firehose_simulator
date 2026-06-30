@@ -9,8 +9,6 @@ defmodule FirehoseSimulator.SimulationPlan do
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
 
-  require Logger
-
   @primary_key false
   embedded_schema do
     field(:name, :string)
