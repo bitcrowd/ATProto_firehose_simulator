@@ -9,7 +9,7 @@
     "start": "node dataplane.js"
   },
   "dependencies": {
-    "@atproto/bsky": "0.0.223",
+    "@atproto/bsky": "0.0.250",
     "@atproto/identity": "0.4.12"
   }
 }
