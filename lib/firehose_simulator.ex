@@ -424,15 +424,9 @@ defmodule FirehoseSimulator do
   defp do_create_userbase(userbase) do
     Logger.info("creating userbase #{userbase.name} in database for #{userbase.num_users} users")
 
-    case BulkCreation.create_userbase(userbase) do
-      {:ok, result} ->
-        Logger.info("created userbase \"#{userbase.name}\": #{inspect(result)}")
-        {:ok, result}
-
-      {:error, reason} ->
-        Logger.error("failed to create userbase #{userbase.name}: #{reason}")
-        {:error, reason}
-    end
+    {:ok, result} = BulkCreation.create_userbase(userbase)
+    Logger.info("created userbase \"#{userbase.name}\": #{inspect(result)}")
+    {:ok, result}
   end
 
   defp do_export_userbase_to_csv(userbase, export_dir, opts) do

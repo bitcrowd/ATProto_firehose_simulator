@@ -103,7 +103,7 @@ defmodule FirehoseSimulator.Scenario do
     end
   end
 
-  @spec to_json(t()) :: {:ok, Scenario.t()} | {:error, String.t()}
+  @spec to_json(t()) :: {:ok, String.t()} | {:error, String.t()}
   def to_json(%__MODULE__{} = scenario) do
     JSON.encode(scenario)
   end
@@ -220,22 +220,12 @@ defmodule FirehoseSimulator.Scenario do
     do: @default_request_interval_ms
 
   defp request_interval_ms(%ScenarioParams{
-         sessions_params: %{request_interval_ms: nil}
-       }),
-       do: @default_request_interval_ms
-
-  defp request_interval_ms(%ScenarioParams{
          sessions_params: %{request_interval_ms: request_interval_ms}
        }),
        do: request_interval_ms
 
   defp timeline_limit(%ScenarioParams{sessions_params: nil}),
     do: @default_timeline_limit
-
-  defp timeline_limit(%ScenarioParams{
-         sessions_params: %{timeline_limit: nil}
-       }),
-       do: @default_timeline_limit
 
   defp timeline_limit(%ScenarioParams{
          sessions_params: %{timeline_limit: timeline_limit}

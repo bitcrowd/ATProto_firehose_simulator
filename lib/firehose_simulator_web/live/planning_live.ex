@@ -324,6 +324,4 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   defp json_file_kind(:scenario_params_json), do: "scenario_params"
   defp json_file_kind(:scenario_json), do: "scenario"
-  defp json_file_kind(:simulation_plan_json), do: "simulation_plan"
-  defp json_file_kind(_upload_name), do: "unknown"
 end
