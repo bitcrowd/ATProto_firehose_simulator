@@ -4,6 +4,7 @@ defmodule FirehoseSimulator.RunStorage do
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.Utils
 
   @default_runs_root "runs"
   @default_log_file "firehose_simulator.log"
@@ -205,14 +206,6 @@ defmodule FirehoseSimulator.RunStorage do
   defp sanitize_name(nil), do: nil
 
   defp sanitize_name(name) when is_binary(name) do
-    name
-    |> String.trim()
-    |> String.downcase()
-    |> String.replace(~r/[^a-z0-9_-]+/u, "-")
-    |> String.trim("-")
-    |> case do
-      "" -> nil
-      value -> value
-    end
+    Utils.slugify(name, nil)
   end
 end

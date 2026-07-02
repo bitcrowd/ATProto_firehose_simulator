@@ -6,6 +6,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.BulkCreation
+  alias FirehoseSimulator.Utils
 
   @spec export(Userbase.t(), String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def export(%Userbase{} = userbase, export_root, opts \\ [])
@@ -174,15 +175,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   end
 
   defp default_run_id(name) do
-    slug =
-      name
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "userbase"
-        value -> value
-      end
+    slug = Utils.slugify(name, "userbase")
 
     timestamp =
       DateTime.utc_now()

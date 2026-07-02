@@ -5,6 +5,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
 
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
+  alias FirehoseSimulator.Utils
 
   @impl true
   def mount(_params, _session, socket) do
@@ -276,17 +277,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
         trimmed -> trimmed
       end
 
-    slug =
-      base
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "scenario"
-        value -> value
-      end
-
-    "#{slug}-#{upload_token()}"
+    "#{Utils.slugify(base, "scenario")}-#{upload_token()}"
   end
 
   defp upload_token do
@@ -294,17 +285,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   end
 
   defp export_filename(scenario_id) do
-    sanitized =
-      scenario_id
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9_-]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "scenario"
-        value -> value
-      end
-
-    "#{sanitized}.json"
+    "#{Utils.slugify(scenario_id, "scenario")}.json"
   end
 
   defp json_file_kind(:scenario_params_json), do: "scenario_params"
