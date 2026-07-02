@@ -58,5 +58,6 @@ defmodule FirehoseSimulator.Scenario.Params.PostsParams do
     |> validate_number(:follower_density, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &PostTier.changeset/2)
     |> validate_length(:tiers, min: 1)
+    |> update_change(:tiers, &Enum.sort_by(&1, fn t -> t.max_followers end))
   end
 end

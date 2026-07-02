@@ -10,8 +10,8 @@ defmodule FirehoseSimulator.Scenario.Follows do
       FirehoseSimulator.Scenario.Follows.generate(%FollowsParams{...})
   """
 
-  alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.Scenario.Params.FollowsParams
+  alias FirehoseSimulator.Scenario.Params.Tiers
 
   @default_unit_duration_ms 86_400_000
 
@@ -62,7 +62,7 @@ defmodule FirehoseSimulator.Scenario.Follows do
       for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id, reduce: {[], 0} do
         {acc_events, seq} ->
           unit_offset = unit * unit_duration_ms
-          tier = lookup_tier(user_id, num_users, tiers, follower_density)
+          tier = Tiers.lookup(user_id, num_users, tiers, follower_density)
 
           {new_events, next_seq} =
             generate_follows(
@@ -148,14 +148,6 @@ defmodule FirehoseSimulator.Scenario.Follows do
     else
       subject_id
     end
-  end
-
-  defp lookup_tier(user_id, num_users, tiers, follower_density) do
-    follower_count = FollowerGraph.follower_count(user_id, num_users, follower_density)
-
-    Enum.find(tiers, List.last(tiers), fn tier ->
-      follower_count <= tier.max_followers
-    end)
   end
 
   defp follow_from_tuple({offset_ms, _seq, actor_id, subject_id}) do
