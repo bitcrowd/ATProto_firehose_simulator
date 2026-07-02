@@ -4,10 +4,10 @@
     <:subtitle>Run table cleanup actions against the configured database.</:subtitle>
   </.header>
 
-  <section id="vacuum-maintenance" class="card bg-base-100 border border-base-300 shadow-sm">
+  <section id="vacuum-maintenance" class="bg-base-100 border-base-300 card border shadow-sm">
     <div class="card-body gap-5">
       <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-wrench-screwdriver" class="size-5 text-primary" /> Maintenance actions
+        <.icon name="hero-wrench-screwdriver" class="text-primary size-5" /> Maintenance actions
       </div>
 
       <.form
@@ -17,7 +17,7 @@
         phx-submit="run_vacuum"
         class="space-y-4"
       >
-        <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-1">
+        <div class="bg-base-200/40 border-base-300 rounded-box space-y-1 border p-4">
           <.input
             field={@form[:delete_userbase]}
             id="vacuum-delete-userbase"
@@ -44,10 +44,10 @@
       <div
         :if={@vacuum_result}
         id="vacuum-result"
-        class="rounded-box border border-success/40 bg-success/10 p-4"
+        class="bg-success/10 border-success/40 rounded-box border p-4"
       >
-        <p class="text-sm font-medium text-success">Latest vacuum result</p>
-        <pre class="mt-2 text-xs overflow-auto">{inspect(@vacuum_result, pretty: true)}</pre>
+        <p class="text-success text-sm font-medium">Latest vacuum result</p>
+        <pre class="mt-2 overflow-auto text-xs">{inspect(@vacuum_result, pretty: true)}</pre>
       </div>
     </div>
   </section>

@@ -75,7 +75,8 @@ defmodule FirehoseSimulator.MixProject do
       {:bandit, "~> 1.5"},
       {:ex_slop, "~> 0.1", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7"},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:canonical_tailwind, "~> 0.1.0", only: [:dev, :test], runtime: false}
     ]
   end
 

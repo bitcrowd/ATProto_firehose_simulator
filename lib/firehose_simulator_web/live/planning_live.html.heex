@@ -9,10 +9,10 @@
   </.header>
 
   <section id="planning-forms" class="grid gap-6 lg:grid-cols-3">
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="bg-base-100 border-base-300 card border shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-sparkles" class="size-5 text-primary" /> Generate scenario
+          <.icon name="hero-sparkles" class="text-primary size-5" /> Generate scenario
         </div>
 
         <.form
@@ -46,10 +46,10 @@
       </div>
     </div>
 
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="bg-base-100 border-base-300 card border shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-arrow-down-tray" class="size-5 text-primary" /> Import scenario
+          <.icon name="hero-arrow-down-tray" class="text-primary size-5" /> Import scenario
         </div>
 
         <.form
@@ -85,10 +85,10 @@
       </div>
     </div>
 
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="bg-base-100 border-base-300 card border shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-folder-arrow-down" class="size-5 text-primary" />
+          <.icon name="hero-folder-arrow-down" class="text-primary size-5" />
           Import simulation plan
         </div>
 
@@ -118,13 +118,13 @@
     </div>
   </section>
 
-  <section id="scenarios-list" class="card bg-base-100 border border-base-300 shadow-sm mt-6">
+  <section id="scenarios-list" class="bg-base-100 border-base-300 card mt-6 border shadow-sm">
     <div class="card-body gap-4">
       <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-queue-list" class="size-5 text-primary" /> Available scenarios
+        <.icon name="hero-queue-list" class="text-primary size-5" /> Available scenarios
       </div>
 
-      <p :if={@scenarios == []} id="scenarios-empty" class="text-sm text-base-content/70">
+      <p :if={@scenarios == []} id="scenarios-empty" class="text-base-content/70 text-sm">
         No scenarios available yet.
       </p>
 
@@ -132,7 +132,7 @@
         <div
           :for={scenario <- @scenarios}
           id={"scenario-row-#{scenario.id}"}
-          class="rounded-box border border-base-300 p-4 transition-colors"
+          class="border-base-300 rounded-box border p-4 transition-colors"
         >
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -140,7 +140,7 @@
               <.scenario_summary
                 id={"scenario-summary-#{scenario.id}"}
                 scenario={scenario.scenario}
-                class="text-xs text-base-content/70"
+                class="text-base-content/70 text-xs"
               />
             </div>
 
@@ -168,7 +168,7 @@
         </div>
       </div>
 
-      <p :if={@last_action} id="planning-last-action" class="text-sm text-base-content/80">
+      <p :if={@last_action} id="planning-last-action" class="text-base-content/80 text-sm">
         Last action: {@last_action}
       </p>
     </div>

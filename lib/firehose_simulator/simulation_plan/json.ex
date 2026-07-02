@@ -68,7 +68,8 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
     end
   end
 
-  @spec export_to_file(SimulationPlan.t(), String.t() | nil) :: {:ok, String.t()} | {:error, String.t()}
+  @spec export_to_file(SimulationPlan.t(), String.t() | nil) ::
+          {:ok, String.t()} | {:error, String.t()}
   def export_to_file(%SimulationPlan{} = simulation_plan, path \\ nil) do
     path = path || Path.join(@default_export_dir, timestamped_filename("simulation_plan", "json"))
 

@@ -7,10 +7,10 @@
   </.header>
 
   <section id="setup-forms" class="grid gap-6 lg:grid-cols-2">
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="bg-base-100 border-base-300 card border shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-sparkles" class="size-5 text-primary" /> Create userbase from JSON
+          <.icon name="hero-sparkles" class="text-primary size-5" /> Create userbase from JSON
         </div>
 
         <.form
@@ -27,12 +27,12 @@
               id="setup-userbase-upload"
               class="file-input w-full"
             />
-            <p :if={@uploads.userbase.entries == []} class="text-sm text-base-content/70">
+            <p :if={@uploads.userbase.entries == []} class="text-base-content/70 text-sm">
               Upload one JSON file with userbase configuration.
             </p>
             <ul
               :if={@uploads.userbase.entries != []}
-              class="text-sm text-base-content/70 space-y-1"
+              class="text-base-content/70 space-y-1 text-sm"
             >
               <li :for={entry <- @uploads.userbase.entries} id={"userbase-entry-#{entry.ref}"}>
                 {entry.client_name}
@@ -51,10 +51,10 @@
       </div>
     </div>
 
-    <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="bg-base-100 border-base-300 card border shadow-sm">
       <div class="card-body gap-5">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-arrow-down-tray" class="size-5 text-primary" />
+          <.icon name="hero-arrow-down-tray" class="text-primary size-5" />
           Import userbase from manifest
         </div>
 
@@ -72,12 +72,12 @@
               id="setup-userbase-meta-upload"
               class="file-input w-full"
             />
-            <p :if={@uploads.userbase_meta.entries == []} class="text-sm text-base-content/70">
+            <p :if={@uploads.userbase_meta.entries == []} class="text-base-content/70 text-sm">
               Upload the `userbase_meta.json` file for an exported userbase.
             </p>
             <ul
               :if={@uploads.userbase_meta.entries != []}
-              class="text-sm text-base-content/70 space-y-1"
+              class="text-base-content/70 space-y-1 text-sm"
             >
               <li
                 :for={entry <- @uploads.userbase_meta.entries}
@@ -108,13 +108,13 @@
   <section
     :if={@state.userbase_result}
     id="setup-result"
-    class="card bg-base-100 border border-base-300 shadow-sm mt-6"
+    class="bg-base-100 border-base-300 card mt-6 border shadow-sm"
   >
     <div class="card-body gap-4">
       <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-check-badge" class="size-5 text-success" /> Latest userbase result
+        <.icon name="hero-check-badge" class="text-success size-5" /> Latest userbase result
       </div>
-      <pre class="text-xs overflow-auto rounded-box border border-success/40 bg-success/10 p-4">{inspect(@state.userbase_result, pretty: true)}</pre>
+      <pre class="bg-success/10 border-success/40 rounded-box overflow-auto border p-4 text-xs">{inspect(@state.userbase_result, pretty: true)}</pre>
     </div>
   </section>
 </Layouts.app>

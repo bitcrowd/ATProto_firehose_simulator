@@ -56,11 +56,11 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="toast toast-end toast-top z-50"
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
+        "alert w-80 max-w-80 text-wrap sm:w-96 sm:max-w-96",
         @kind == :info && "alert-info",
         @kind == :error && "alert-error"
       ]}>
@@ -71,7 +71,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
           <p>{msg}</p>
         </div>
         <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label="close">
+        <button type="button" class="group cursor-pointer self-start" aria-label="close">
           <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
         </button>
       </div>
@@ -239,7 +239,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[@class || "select w-full", @errors != [] && (@error_class || "select-error")]}
           multiple={@multiple}
           {@rest}
         >
@@ -261,7 +261,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
+            @class || "textarea w-full",
             @errors != [] && (@error_class || "textarea-error")
           ]}
           {@rest}
@@ -284,7 +284,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            @class || "w-full input",
+            @class || "input w-full",
             @errors != [] && (@error_class || "input-error")
           ]}
           {@rest}
@@ -298,7 +298,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
+    <p class="text-error mt-1.5 flex items-center gap-2 text-sm">
       <.icon name="hero-exclamation-circle" class="size-5" />
       {render_slot(@inner_block)}
     </p>
@@ -316,10 +316,10 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8">
+        <h1 class="text-lg/8 font-semibold">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-base-content/70 text-sm">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -341,7 +341,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
     <section
       id={@id}
       class={[
-        "rounded-[1.75rem] border border-base-300 bg-base-100 p-6 shadow-sm shadow-base-300/20",
+        "bg-base-100 border-base-300 shadow-base-300/20 rounded-[1.75rem] border p-6 shadow-sm",
         @class
       ]}
       {@rest}
@@ -365,12 +365,12 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
     <div
       id={@id}
       class={[
-        "rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3",
+        "bg-base-200/40 border-base-300 rounded-2xl border px-4 py-3",
         @class
       ]}
     >
-      <dt class="text-sm text-base-content/60">{@label}</dt>
-      <dd class={["mt-1 text-sm text-base-content", @value_class]}>
+      <dt class="text-base-content/60 text-sm">{@label}</dt>
+      <dd class={["text-base-content mt-1 text-sm", @value_class]}>
         {render_slot(@inner_block)}
       </dd>
     </div>
@@ -390,7 +390,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
       "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
       @tone == "success" &&
         "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-      @tone == "neutral" && "border border-base-300 bg-base-300/60 text-base-content/70",
+      @tone == "neutral" && "bg-base-300/60 border-base-300 text-base-content/70 border",
       @class
     ]}>
       {render_slot(@inner_block)}
@@ -448,7 +448,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
       id={@id}
       aria-label="Section navigation"
       class={[
-        "inline-flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-base-300 bg-base-100/80 p-2 shadow-sm shadow-base-300/30 backdrop-blur",
+        "bg-base-100/80 border-base-300 shadow-base-300/30 inline-flex w-full items-center gap-2 overflow-x-auto rounded-2xl border p-2 shadow-sm backdrop-blur",
         @class
       ]}
     >
@@ -457,7 +457,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
         navigate={tab.navigate}
         aria-current={tab.navigate == @current_path && "page"}
         class={[
-          "rounded-xl px-4 py-2 text-sm font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/30",
+          "focus:ring-primary/30 hover:bg-base-200 hover:text-base-content text-base-content/70 rounded-xl px-4 py-2 text-sm font-medium transition focus:ring-2 focus:outline-none",
           tab.navigate == @current_path && "bg-base-200 text-base-content shadow-sm"
         ]}
       >
@@ -481,13 +481,13 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
     ~H"""
     <article
       id={@id}
-      class="rounded-box border border-base-300 bg-base-200/30 p-5"
+      class="bg-base-200/30 border-base-300 rounded-box border p-5"
       {@rest}
     >
       <div class="flex items-start justify-between gap-4">
         <div class="space-y-1">
-          <p class="text-sm font-semibold text-base-content">{@title}</p>
-          <p :if={@subtitle} class="text-sm text-base-content/70">{@subtitle}</p>
+          <p class="text-base-content text-sm font-semibold">{@title}</p>
+          <p :if={@subtitle} class="text-base-content/70 text-sm">{@subtitle}</p>
         </div>
 
         <div :if={@actions != []} class="shrink-0">
@@ -534,7 +534,7 @@ defmodule FirehoseSimulatorWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class="table-zebra table">
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>

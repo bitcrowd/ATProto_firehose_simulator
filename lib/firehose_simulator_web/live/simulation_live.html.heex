@@ -4,11 +4,11 @@
     <:subtitle>Load simulation players and control loaded, running, and paused runs.</:subtitle>
   </.header>
 
-  <section id="simulation-config" class="card bg-base-100 border border-base-300 shadow-sm">
+  <section id="simulation-config" class="bg-base-100 border-base-300 card border shadow-sm">
     <div class="card-body gap-5">
       <div
         id="simulation-plan-summary"
-        class="rounded-box border border-base-300/80 bg-base-200/40 px-4 py-3 text-sm text-base-content/80"
+        class="bg-base-200/40 border-base-300/80 rounded-box text-base-content/80 border px-4 py-3 text-sm"
       >
         <%= if @current_simulation_plan.entries == [] do %>
           <p id="simulation-plan-empty">No active simulation plan yet.</p>
@@ -23,7 +23,7 @@
       </div>
 
       <div class="flex items-center gap-2 text-sm font-medium">
-        <.icon name="hero-play-circle" class="size-5 text-primary" /> Load simulation player
+        <.icon name="hero-play-circle" class="text-primary size-5" /> Load simulation player
       </div>
 
       <.form
@@ -39,7 +39,7 @@
             <p
               :if={@scenario_ids == []}
               id="simulation-scenarios-empty"
-              class="text-sm text-base-content/70"
+              class="text-base-content/70 text-sm"
             >
               No scenarios available. Generate or import one in Planning.
             </p>
@@ -49,9 +49,9 @@
               id={"simulation-select-#{scenario_id}"}
               patch={~p"/simulation?scenario_id=#{scenario_id}"}
               class={[
-                "block w-full rounded-box border px-3 py-2 text-left transition-colors",
+                "rounded-box block w-full border px-3 py-2 text-left transition-colors",
                 @selected_scenario_id == scenario_id &&
-                  "border-primary/70 bg-primary/10",
+                  "bg-primary/10 border-primary/70",
                 @selected_scenario_id != scenario_id &&
                   "border-base-300 hover:border-base-content/40"
               ]}
@@ -60,7 +60,7 @@
               <.scenario_summary
                 id={"simulation-scenario-summary-#{scenario_id}"}
                 scenario={scenario_for_id(scenario_id)}
-                class="mt-1 text-xs text-base-content/70"
+                class="text-base-content/70 mt-1 text-xs"
               />
             </.link>
           </div>
@@ -74,7 +74,7 @@
               type="number"
               label="Start offset (ms)"
             />
-            <p id="simulation-offset-help" class="text-xs text-base-content/70">
+            <p id="simulation-offset-help" class="text-base-content/70 text-xs">
               Use `0` to load from the beginning. Positive values shift events later; negative values shift earlier.
             </p>
           </div>
@@ -90,7 +90,7 @@
         </div>
       </.form>
 
-      <p :if={@last_action} id="last-action" class="text-sm text-base-content/80">
+      <p :if={@last_action} id="last-action" class="text-base-content/80 text-sm">
         Last action: {@last_action}
       </p>
     </div>
@@ -98,12 +98,12 @@
 
   <section
     id="players-list"
-    class="card bg-base-100 border border-base-300 shadow-sm mt-6"
+    class="bg-base-100 border-base-300 card mt-6 border shadow-sm"
   >
     <div class="card-body gap-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 text-sm font-medium">
-          <.icon name="hero-queue-list" class="size-5 text-primary" /> Simulation players
+          <.icon name="hero-queue-list" class="text-primary size-5" /> Simulation players
         </div>
         <div class="flex flex-wrap gap-2">
           <.button id="stop-all-button" type="button" phx-click="stop_all">
@@ -115,7 +115,7 @@
       <p
         :if={@players == []}
         id="players-empty"
-        class="text-sm text-base-content/70"
+        class="text-base-content/70 text-sm"
       >
         No simulation players loaded.
       </p>
@@ -124,7 +124,7 @@
         <div
           :for={player <- @players}
           id={"player-#{player.player_id}"}
-          class="rounded-box border border-base-300 p-4 transition-colors"
+          class="border-base-300 rounded-box border p-4 transition-colors"
         >
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="space-y-1">
@@ -145,7 +145,7 @@
                   {player.metadata.lifecycle_state}
                 </span>
               </div>
-              <p class="text-xs text-base-content/70">
+              <p class="text-base-content/70 text-xs">
                 scenario: {Map.get(player.metadata, :scenario_id, "n/a")} · schedulers: {Map.get(
                   player.metadata,
                   :schedulers,
@@ -156,7 +156,7 @@
                   "n/a"
                 )}
               </p>
-              <p class="text-xs text-base-content/60">
+              <p class="text-base-content/60 text-xs">
                 loaded at: {Map.get(player.metadata, :loaded_at, "n/a")} · started at: {Map.get(
                   player.metadata,
                   :started_at,
