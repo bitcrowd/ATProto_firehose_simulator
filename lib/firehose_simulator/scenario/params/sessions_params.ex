@@ -17,13 +17,19 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
           tiers: [SessionTier.t()]
         }
 
+  @default_request_interval_ms 30_000
+  @default_timeline_limit 20
+
+  def default_request_interval_ms, do: @default_request_interval_ms
+  def default_timeline_limit, do: @default_timeline_limit
+
   @primary_key false
   embedded_schema do
     field(:num_users, :integer)
     field(:max_active_user_id, :integer)
     field(:follower_density, :float, default: 1.0)
-    field(:request_interval_ms, :integer, default: 30_000)
-    field(:timeline_limit, :integer, default: 20)
+    field(:request_interval_ms, :integer, default: @default_request_interval_ms)
+    field(:timeline_limit, :integer, default: @default_timeline_limit)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
 

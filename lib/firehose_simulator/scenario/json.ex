@@ -3,9 +3,10 @@ defmodule FirehoseSimulator.Scenario.JSON do
 
   alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
 
-  @default_request_interval_ms 30_000
-  @default_timeline_limit 20
+  @default_request_interval_ms SessionsParams.default_request_interval_ms()
+  @default_timeline_limit SessionsParams.default_timeline_limit()
 
   @spec encode(Scenario.t()) :: {:ok, String.t()} | {:error, String.t()}
   def encode(%Scenario{} = scenario) do

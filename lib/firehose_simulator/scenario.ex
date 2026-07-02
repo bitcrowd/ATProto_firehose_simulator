@@ -10,12 +10,13 @@ defmodule FirehoseSimulator.Scenario do
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
   alias FirehoseSimulator.Scenario.Params.ScenarioParams
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
   alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Sessions
 
   @default_time_unit_duration_ms 86_400_000
-  @default_request_interval_ms 30_000
-  @default_timeline_limit 20
+  @default_request_interval_ms SessionsParams.default_request_interval_ms()
+  @default_timeline_limit SessionsParams.default_timeline_limit()
 
   @primary_key false
   embedded_schema do
