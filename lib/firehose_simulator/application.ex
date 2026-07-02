@@ -94,7 +94,7 @@ defmodule FirehoseSimulator.Application do
   end
 
   defp configure_run_storage do
-    if run_storage_enabled?() do
+    if FirehoseSimulator.run_storage_enabled?() do
       configure_file_logging()
     else
       {nil, nil}
@@ -133,9 +133,5 @@ defmodule FirehoseSimulator.Application do
       {:error, _reason} = error ->
         error
     end
-  end
-
-  defp run_storage_enabled? do
-    Application.get_env(:firehose_simulator, :run_storage_enabled, true)
   end
 end

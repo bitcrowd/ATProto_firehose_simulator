@@ -559,7 +559,7 @@ defmodule FirehoseSimulator do
     end
   end
 
-  defp run_storage_enabled? do
+  def run_storage_enabled? do
     Application.get_env(:firehose_simulator, :run_storage_enabled, true)
   end
 
