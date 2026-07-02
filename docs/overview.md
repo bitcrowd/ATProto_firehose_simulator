@@ -1,6 +1,6 @@
 # Overview
 
-This project is a simulates incoming traffic and user requests for an atproto dataplane such as the one used by bluesky.
+This project simulates incoming traffic and user requests for an atproto dataplane such as the one used by bluesky.
 
 ![Overview of simulator](./overview.svg)
 

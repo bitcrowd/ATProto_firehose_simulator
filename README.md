@@ -1,6 +1,6 @@
 # FirehoseSimulator
 
-This project is a simulates incoming traffic and user requests for an atproto dataplane such as the one used by bluesky.
+This project simulates incoming traffic and user requests for an atproto dataplane such as the one used by bluesky.
 
 ![Overview of simulator](docs/overview.svg)
 
@@ -8,7 +8,7 @@ Here is brief [overview](docs/overview.md) document that describes the functiona
 
 ## Getting Started
 
-Install Elixir 1.19 and Erlang 28, for instance with [mise](https://mise.jdx.dev/).
+Install Elixir 1.20 and Erlang 28, for instance with [mise](https://mise.jdx.dev/).
 
 For configuration options read [configuration-and-files](docs/configuration-and-files.md).
 
@@ -91,7 +91,7 @@ cd infra
 docker compose up
 ```
 
-Grafana is available at `http:localhost:3000`.
+Grafana is available at `http://localhost:3000`.
 
 Import [`infra/simulator.json`](infra/simulator.json) through Grafana's dashboard import UI and map the `DS_PROMETHEUS` input to your local Prometheus datasource.
 
