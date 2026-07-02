@@ -6,6 +6,7 @@ defmodule FirehoseSimulator.SimulationPlan do
   import Ecto.Changeset
 
   alias FirehoseSimulator
+  alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
@@ -79,12 +80,7 @@ defmodule FirehoseSimulator.SimulationPlan do
       {:ok, updated_plan, entry}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, format_changeset_errors(changeset)}
+        {:error, Changeset.format_errors(changeset)}
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

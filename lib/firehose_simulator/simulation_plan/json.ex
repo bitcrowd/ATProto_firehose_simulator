@@ -1,6 +1,7 @@
 defmodule FirehoseSimulator.SimulationPlan.JSON do
   @moduledoc false
 
+  alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
@@ -135,7 +136,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
         {:ok, updated_plan}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, format_changeset_errors(changeset)}
+        {:error, Changeset.format_errors(changeset)}
     end
   end
 
@@ -145,10 +146,5 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
     else
       Path.expand(path, base_dir)
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end
