@@ -101,7 +101,7 @@ defmodule FirehoseSimulator.MixProject do
         "deps.unlock --unused",
         "format",
         "test",
-        "credo --all"
+        "credo --all --strict"
       ]
     ]
   end
