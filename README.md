@@ -8,92 +8,48 @@ Here is brief [overview](docs/overview.md) document that describes the functiona
 
 ## Getting Started
 
-Install Elixir 1.20 and Erlang 28, for instance with [mise](https://mise.jdx.dev/).
+Install Elixir 1.20 and Erlang 28, for instance with [mise](https://mise.jdx.dev/), and make sure Docker is running.
 
-For configuration options read [configuration-and-files](docs/configuration-and-files.md).
-
-A small starter script for the open source implementation of the Bluesky dataplane is available.
-
-The dataplane needs a Postgres database.
-You can create the default one with:
+Run the simulator, along with all dependent services with:
 
 ```bash
-createdb -U postgres -p 5432 dataplane
+script/start
 ```
 
-Starting the dataplane will run the required migrations.
+The first run copies `.env.example` to `.env`, starts the dependent services (Postgres, the dataplane, Prometheus and Grafana) in Docker,
+then starts the simulator on your machine in an IEx session. Stop the simulator with `Ctrl-C`, then run `script/stop` to stop the services.
 
-Set up the environment.
+By default the dataplane is the Elixir (ETS) implementation. To run with the Node dataplane instead, pass `node`:
 
 ```bash
-export BSKY_DB_POSTGRES_URL=postgres://postgres:postgres@localhost:5432/dataplane
-export BSKY_DB_POSTGRES_SCHEMA=bsky
-export BSKY_DATAPLANE_PORT=2585
-export BSKY_DID_PLC_URL=http://localhost:4001
-export BSKY_RELAY_WEBSOCKET=ws://localhost:4000
+script/start node
 ```
 
-Then start the dataplane.
+Then open:
 
-```bash
-cd dataplane
-
-npm install
-
-NODE_ENV=production npm start
-```
-
-To start the simulator, install and setup dependencies.
-
-```bash
-MIX_ENV=prod mix setup
-```
-
-Set up the environment for the simulator.
-
-```bash
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/dataplane
-export DATAPLANE_URL=http://localhost:2585
-export PLC_MULTIKEY=zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv
-export PLC_PRIVATE_HEX=bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a
-export PORT=4000
-export PLC_PORT=4001
-export PDS_PORT=4002
-export FINCH_POOL_SIZE=200
-export PROMETHEUS_PORT=9568
-export USERBASE_JSON=example/userbase.json
-```
-
-Then start the simulator.
-
-```bash
-MIX_ENV=prod iex -S mix phx.server
-```
-
-The firehose simulator will start on [`localhost:4000`](http://localhost:4000).
-
-The PLC stub will start on [`localhost:4001`](http://localhost:4001).
-
-The PDS stub will start on [`localhost:4002`](http://localhost:4002).
-
-Now you can visit [`localhost:4000`](http://localhost:4000) to control the firehose simulator or work from IEx.
+- Web UI / firehose: [`localhost:4000`](http://localhost:4000)
+- Stub PLC: [`localhost:4001`](http://localhost:4001), stub PDS: [`localhost:4002`](http://localhost:4002)
+- Metrics: [`localhost:9568/metrics`](http://localhost:9568/metrics)
+- Prometheus: [`localhost:9090`](http://localhost:9090)
+- Grafana: [`localhost:3000`](http://localhost:3000) (`admin` / `admin`)
 
 Example [userbase](example/userbase.json) and [scenario params](example/scenario_params.json) are available.
 
-## Metrics
+## Configuration
 
-Metrics are exposed for Prometheus at `http://localhost:9568/metrics` and can be visualized in Grafana using the dashboard assets under `infra/`.
-
-Read [metrics](docs/metrics.md) for a description of the metrics. 
+Runtime configuration is loaded from environment variables using [Dotenvy](https://hexdocs.pm/dotenvy) in `config/runtime.exs`. Copy the existing template and edit it:
 
 ```bash
-cd infra
-docker compose up
+cp .env.example .env
 ```
 
-Grafana is available at `http://localhost:3000`.
+For more details about specific configuration options read [configuration-and-files](docs/configuration-and-files.md).
 
-Import [`infra/simulator.json`](infra/simulator.json) through Grafana's dashboard import UI and map the `DS_PROMETHEUS` input to your local Prometheus datasource.
+## Metrics
+
+Metrics are exposed for Prometheus at `http://localhost:9568/metrics`. Read [metrics](docs/metrics.md) for a description of the metrics.
+
+Grafana is available at [`localhost:3000`](http://localhost:3000). It already has Prometheus configured as a data source. To load the dashboard, import [`infra/simulator.json`](infra/simulator.json) through Grafana's dashboard import UI and, when prompted for the `DS_PROMETHEUS` input, select the existing Prometheus data source.
 
 ## Web UI
 
@@ -125,7 +81,7 @@ Play the scenario:
 :ok = FirehoseSimulator.start(player_id)
 ```
 
-You can play multiple scenarios at the same time: 
+You can play multiple scenarios at the same time:
 ```elixir
 {:ok, player_id_2, _result} = FirehoseSimulator.load(scenario)
 :ok = FirehoseSimulator.start(player_id_2)

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+SCRIPTDIR=$(cd "$(dirname "$0")"; pwd)
+
+cd "$SCRIPTDIR/.."
+
+DATAPLANE="${1:-elixir}"
+
+case "$DATAPLANE" in
+  elixir|node) ;;
+  *) echo "usage: script/start [elixir|node]" >&2; exit 1 ;;
+esac
+
+[ -f .env ] || cp .env.example .env
+
+if [ "$DATAPLANE" = elixir ]; then
+  export GIT_AUTH_TOKEN="${GIT_AUTH_TOKEN:-${GITHUB_TOKEN:-$(gh auth token)}}"
+fi
+
+docker compose --profile "$DATAPLANE" up -d --build --wait
+
+exec iex -S mix phx.server
