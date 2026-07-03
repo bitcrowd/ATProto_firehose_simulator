@@ -76,6 +76,9 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
     |> validate_number(:timeline_limit, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
     |> validate_length(:tiers, min: 1)
-    |> update_change(:tiers, &Enum.sort_by(&1, fn t -> t.max_followers end))
+    |> update_change(
+      :tiers,
+      &Enum.sort_by(&1, fn t -> Ecto.Changeset.get_field(t, :max_followers) end)
+    )
   end
 end
