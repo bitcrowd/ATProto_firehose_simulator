@@ -7,6 +7,8 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
   alias FirehoseSimulator.Scenario
 
   setup do
+    start_supervised!({Registry, keys: :unique, name: FirehoseSimulator.Player.Registry})
+    start_supervised!({Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor})
     Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, "firehose")
 
     test_pid = self()
@@ -59,7 +61,8 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
     assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :posts, :complete]},
                    1_000
 
-    assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :follows, :complete]},
+    assert_receive {:telemetry_complete,
+                    [:firehose_simulator, :event_feeder, :follows, :complete]},
                    1_000
 
     snapshot = Metrics.snapshot()

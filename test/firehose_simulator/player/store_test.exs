@@ -5,6 +5,11 @@ defmodule FirehoseSimulator.Player.StoreTest do
 
   alias FirehoseSimulator.Player.Store
 
+  setup do
+    start_supervised!({Registry, keys: :unique, name: FirehoseSimulator.Player.Registry})
+    :ok
+  end
+
   test "selects due sessions and expires completed sessions" do
     store_name = {:via, Registry, {FirehoseSimulator.Player.Registry, {"store-test", self()}}}
     store = start_supervised!({Store, [name: store_name, num_partitions: 2]})
@@ -78,5 +83,4 @@ defmodule FirehoseSimulator.Player.StoreTest do
     assert Store.count_active(store_one) == 0
     assert Store.count_active(store_two) == 1
   end
-
 end

@@ -7,8 +7,14 @@ defmodule FirehoseSimulator.PlayerTest do
   alias FirehoseSimulator.Scenario
 
   setup do
-    Player.stop_all()
-    on_exit(fn -> Player.stop_all() end)
+    start_supervised!({Registry, keys: :unique, name: FirehoseSimulator.Player.Registry})
+
+    start_supervised!(
+      {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one}
+    )
+
+    start_supervised!({Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor})
+    start_supervised!(FirehoseSimulator.State)
     :ok
   end
 

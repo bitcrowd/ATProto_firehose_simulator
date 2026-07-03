@@ -11,12 +11,14 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   @moduletag :tmp_dir
 
   setup do
-    clear_test_state()
+    start_supervised!({Registry, keys: :unique, name: FirehoseSimulator.Player.Registry})
 
-    on_exit(fn ->
-      clear_test_state()
-    end)
+    start_supervised!(
+      {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one}
+    )
 
+    start_supervised!({Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor})
+    start_supervised!(FirehoseSimulator.State)
     :ok
   end
 
@@ -326,15 +328,5 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     File.write!(path, content)
     path
-  end
-
-  defp clear_test_state do
-    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    :ok = FirehoseSimulator.stop()
-    :ok = State.clear_scenarios()
-    :ok = State.clear_players()
-    :ok = State.put_simulation_plan(simulation_plan)
-    :ok = State.put_userbase_result(false, nil)
-    :ok
   end
 end

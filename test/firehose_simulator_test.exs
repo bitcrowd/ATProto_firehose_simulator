@@ -16,17 +16,26 @@ defmodule FirehoseSimulatorTest do
 
   @moduletag :tmp_dir
 
+  setup do
+    start_supervised!({Registry, keys: :unique, name: FirehoseSimulator.Player.Registry})
+
+    start_supervised!(
+      {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one}
+    )
+
+    start_supervised!({Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor})
+    start_supervised!(FirehoseSimulator.State)
+    :ok
+  end
+
   setup %{tmp_dir: tmp_dir} do
     original_run_storage_enabled = Application.get_env(:firehose_simulator, :run_storage_enabled)
 
     Application.put_env(:firehose_simulator, :run_storage_enabled, true)
     :ok = FirehoseSimulator.State.put_run_storage_directory(tmp_dir)
-    clear_test_state()
 
     on_exit(fn ->
       Application.put_env(:firehose_simulator, :run_storage_enabled, original_run_storage_enabled)
-      :ok = FirehoseSimulator.State.put_run_storage_directory(nil)
-      clear_test_state()
     end)
 
     :ok
@@ -481,14 +490,6 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "load/start/pause/stop" do
-    setup do
-      on_exit(fn ->
-        _ = FirehoseSimulator.stop()
-      end)
-
-      :ok
-    end
-
     test "loads a player and starts it" do
       scenario = %Scenario{
         sessions: nil,
@@ -577,14 +578,6 @@ defmodule FirehoseSimulatorTest do
   end
 
   describe "load_with_offset/3" do
-    setup do
-      on_exit(fn ->
-        _ = FirehoseSimulator.stop()
-      end)
-
-      :ok
-    end
-
     test "shifts the plan before loading playback" do
       scenario = %Scenario{
         posts: [%{offset_ms: 10, user_id: 1}],
@@ -876,16 +869,6 @@ defmodule FirehoseSimulatorTest do
     path = Path.join(tmp_dir, "#{prefix}-#{System.unique_integer([:positive])}.json")
     File.write!(path, content)
     path
-  end
-
-  defp clear_test_state do
-    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    :ok = FirehoseSimulator.stop()
-    :ok = FirehoseSimulator.State.clear_scenarios()
-    :ok = FirehoseSimulator.State.clear_players()
-    :ok = FirehoseSimulator.State.put_simulation_plan(simulation_plan)
-    :ok = FirehoseSimulator.State.put_userbase_result(false, nil)
-    :ok
   end
 
   defp row_count(schema) do

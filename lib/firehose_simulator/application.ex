@@ -21,31 +21,28 @@ defmodule FirehoseSimulator.Application do
     log_startup_configuration(run_storage_directory, active_log_file_path)
 
     children =
-      [
-        FirehoseSimulator.Repo,
-        {Finch,
-         name: Dataplane.Finch,
-         pools: %{
-           default: [size: finch_pool_size]
-         }},
-        FirehoseSimulatorWeb.Telemetry,
-        {DNSCluster,
-         query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
-        {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
-        {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
-        {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
-        {FirehoseSimulator.State, run_storage_directory: run_storage_directory},
-        FirehoseSimulator.Metrics,
-        {Bandit,
-         plug: FirehoseSimulator.Metrics.PrometheusExporter,
-         ip: {0, 0, 0, 0},
-         port: prometheus_port},
-        {PLC.OpLog, %{}},
-        PLCWeb.Endpoint,
-        PDSWeb.Endpoint,
-        FirehoseSimulatorWeb.Endpoint
-      ]
+      player_infrastructure(run_storage_directory) ++
+        [
+          FirehoseSimulator.Repo,
+          {Finch,
+           name: Dataplane.Finch,
+           pools: %{
+             default: [size: finch_pool_size]
+           }},
+          FirehoseSimulatorWeb.Telemetry,
+          {DNSCluster,
+           query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
+          {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
+          FirehoseSimulator.Metrics,
+          {Bandit,
+           plug: FirehoseSimulator.Metrics.PrometheusExporter,
+           ip: {0, 0, 0, 0},
+           port: prometheus_port},
+          {PLC.OpLog, %{}},
+          PLCWeb.Endpoint,
+          PDSWeb.Endpoint,
+          FirehoseSimulatorWeb.Endpoint
+        ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -132,6 +129,19 @@ defmodule FirehoseSimulator.Application do
 
       {:error, _reason} = error ->
         error
+    end
+  end
+
+  defp player_infrastructure(run_storage_directory) do
+    if Application.get_env(:firehose_simulator, :start_player_infrastructure, true) do
+      [
+        {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
+        {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
+        {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
+        {FirehoseSimulator.State, run_storage_directory: run_storage_directory}
+      ]
+    else
+      []
     end
   end
 end
