@@ -73,7 +73,7 @@ defmodule FirehoseSimulator.Scenario do
 
   @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json_string(json) when is_binary(json) do
-    with {:ok, params} <- load_scenario_params_json(json) do
+    with {:ok, params} <- ScenarioParams.load(json) do
       build_scenario(params)
     end
   end
@@ -126,13 +126,6 @@ defmodule FirehoseSimulator.Scenario do
 
       {:error, changeset} ->
         raise ArgumentError, "invalid shifted scenario: #{inspect(changeset.errors)}"
-    end
-  end
-
-  defp load_scenario_params_json(json) when is_binary(json) do
-    case ScenarioParams.load(json) do
-      {:ok, params} -> {:ok, params}
-      {:error, _reason} = error -> error
     end
   end
 

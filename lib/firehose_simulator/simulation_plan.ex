@@ -5,7 +5,6 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator
   alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
