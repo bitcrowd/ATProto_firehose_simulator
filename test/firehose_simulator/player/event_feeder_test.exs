@@ -9,6 +9,21 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
   setup do
     Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, "firehose")
 
+    test_pid = self()
+    handler_id = "event-feeder-complete-#{System.unique_integer([:positive])}"
+
+    :telemetry.attach_many(
+      handler_id,
+      [
+        [:firehose_simulator, :event_feeder, :posts, :complete],
+        [:firehose_simulator, :event_feeder, :follows, :complete]
+      ],
+      fn event, _measurements, _metadata, _ -> send(test_pid, {:telemetry_complete, event}) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
     :ok
   end
 
@@ -41,8 +56,12 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
     assert_receive [_, _], 1_000
     assert_receive [_, _], 1_000
 
-    # wait for async task telemetry to be ingested
-    Process.sleep(50)
+    assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :posts, :complete]},
+                   1_000
+
+    assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :follows, :complete]},
+                   1_000
+
     snapshot = Metrics.snapshot()
 
     assert snapshot.event_feeder_posts_dispatch_count >= 1
