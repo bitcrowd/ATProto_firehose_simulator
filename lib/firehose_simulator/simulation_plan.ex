@@ -5,10 +5,10 @@ defmodule FirehoseSimulator.SimulationPlan do
 
   import Ecto.Changeset
 
-  alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.Utils
 
   @primary_key false
   embedded_schema do
@@ -79,7 +79,7 @@ defmodule FirehoseSimulator.SimulationPlan do
       {:ok, updated_plan, entry}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, Changeset.format_errors(changeset)}
+        {:error, Utils.format_errors(changeset)}
     end
   end
 end

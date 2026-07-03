@@ -1,7 +1,7 @@
 defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
   @moduledoc false
 
-  alias FirehoseSimulator.Changeset
+  alias FirehoseSimulator.Utils
 
   @spec load(String.t(), String.t(), struct(), (struct(), map() -> Ecto.Changeset.t())) ::
           {:ok, struct()} | {:error, String.t()}
@@ -37,7 +37,7 @@ defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
         {:ok, validated}
 
       {:error, changeset} ->
-        {:error, "invalid #{label} config: #{Changeset.format_errors(changeset)}"}
+        {:error, "invalid #{label} config: #{Utils.format_errors(changeset)}"}
     end
   end
 end

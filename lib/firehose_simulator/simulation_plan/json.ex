@@ -1,10 +1,10 @@
 defmodule FirehoseSimulator.SimulationPlan.JSON do
   @moduledoc false
 
-  alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.Utils
 
   @default_export_dir "log"
 
@@ -136,7 +136,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
         {:ok, updated_plan}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, Changeset.format_errors(changeset)}
+        {:error, Utils.format_errors(changeset)}
     end
   end
 

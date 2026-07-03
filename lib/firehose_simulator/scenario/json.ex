@@ -1,9 +1,9 @@
 defmodule FirehoseSimulator.Scenario.JSON do
   @moduledoc false
 
-  alias FirehoseSimulator.Changeset
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.Scenario.Params.SessionsParams
+  alias FirehoseSimulator.Utils
 
   @default_request_interval_ms SessionsParams.default_request_interval_ms()
   @default_timeline_limit SessionsParams.default_timeline_limit()
@@ -43,7 +43,7 @@ defmodule FirehoseSimulator.Scenario.JSON do
       {:ok, scenario}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, "invalid scenario json: #{Changeset.format_errors(changeset)}"}
+        {:error, "invalid scenario json: #{Utils.format_errors(changeset)}"}
 
       {:error, reason} ->
         {:error, reason}
