@@ -19,7 +19,7 @@ defmodule FirehoseSimulator.Scenario.FollowsTest do
   test "generate/4 returns an in-memory follows list" do
     follows = Follows.generate(@config, 42, 1)
 
-    assert length(follows) == 2
+    assert [_, _] = follows
     assert Enum.all?(follows, &is_integer(&1.offset_ms))
     assert follows |> Enum.map(& &1.actor_id) |> Enum.sort() == [1, 2]
     assert Enum.all?(follows, &is_integer(&1.subject_id))
@@ -44,8 +44,8 @@ defmodule FirehoseSimulator.Scenario.FollowsTest do
 
     dense_config = %{config | follower_density: 2.0}
 
-    assert length(Follows.generate(config, 42, 1)) == 1
-    assert length(Follows.generate(dense_config, 42, 1)) == 2
+    assert [_] = Follows.generate(config, 42, 1)
+    assert [_, _] = Follows.generate(dense_config, 42, 1)
   end
 
   test "generate/4 uses the provided time unit duration" do

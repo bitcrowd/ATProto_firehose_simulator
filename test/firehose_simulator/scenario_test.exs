@@ -82,7 +82,7 @@ defmodule FirehoseSimulator.ScenarioTest do
               }} =
                Scenario.generate_from_json_string(params_json)
 
-      assert length(sessions) == 5
+      assert [_, _, _, _, _] = sessions
       assert is_list(posts)
       assert is_list(follows)
       assert request_interval_ms == 25_000

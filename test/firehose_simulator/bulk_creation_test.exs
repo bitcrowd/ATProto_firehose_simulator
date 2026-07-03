@@ -23,9 +23,9 @@ defmodule FirehoseSimulator.BulkCreationTest do
         feed_item_rows: feed_item_rows
       } = BulkCreation.prepare_post_rows(events, base_time)
 
-      assert length(post_rows) == 2
-      assert length(record_rows) == 2
-      assert length(feed_item_rows) == 2
+      assert [_, _] = post_rows
+      assert [_, _] = record_rows
+      assert [_, _] = feed_item_rows
 
       records_by_uri = Map.new(record_rows, &{&1.uri, &1})
       feed_items_by_uri = Map.new(feed_item_rows, &{&1.uri, &1})

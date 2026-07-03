@@ -1,4 +1,6 @@
 defmodule FirehoseSimulator.Scenario.Params.Tiers do
+  @moduledoc false
+
   alias FirehoseSimulator.BaseData.FollowerGraph
 
   @doc """

@@ -1,4 +1,5 @@
 defmodule FirehoseSimulator.Utils do
+  @moduledoc false
   def slugify(value, fallback \\ "") do
     value
     |> String.trim()
