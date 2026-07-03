@@ -9,12 +9,11 @@ defmodule FirehoseSimulator.DataCase do
 
   using do
     quote do
-      alias FirehoseSimulator.Repo
-
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
       import FirehoseSimulator.DataCase
+      alias FirehoseSimulator.Repo
     end
   end
 

@@ -1,8 +1,6 @@
 defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   use FirehoseSimulatorWeb.ConnCase, async: false
-
   import Phoenix.LiveViewTest
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry

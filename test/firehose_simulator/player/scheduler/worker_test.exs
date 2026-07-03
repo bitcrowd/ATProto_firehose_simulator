@@ -1,10 +1,7 @@
 defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
   use ExUnit.Case, async: false
-
   import ExUnit.CaptureLog
-
   import FirehoseSimulator.SessionFixtures
-
   alias FirehoseSimulator.Player.Scheduler.Worker
   alias FirehoseSimulator.Player.Store
   alias FirehoseSimulator.TestTimelinePlug

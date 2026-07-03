@@ -1,11 +1,9 @@
 defmodule FirehoseSimulatorWeb.PlanningLive do
   use FirehoseSimulatorWeb, :live_view
-
-  require Logger
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
   alias FirehoseSimulator.Utils
+  require Logger
 
   @impl true
   def mount(_params, _session, socket) do

@@ -1,8 +1,6 @@
 defmodule FirehoseSimulator.PlayerTest do
   use ExUnit.Case, async: false
-
   import ExUnit.CaptureLog
-
   alias FirehoseSimulator.Player
   alias FirehoseSimulator.Scenario
 

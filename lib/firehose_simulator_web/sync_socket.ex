@@ -2,7 +2,6 @@ defmodule FirehoseSimulatorWeb.SyncSocket do
   @behaviour Phoenix.Socket.Transport
 
   alias Phoenix.PubSub
-
   require Logger
 
   def child_spec(_opts) do

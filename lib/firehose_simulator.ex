@@ -3,8 +3,6 @@ defmodule FirehoseSimulator do
   The top-level API for the firehose simulator.
   """
 
-  require Logger
-
   alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BaseData.UserbaseExport
   alias FirehoseSimulator.BaseData.UserbaseImport
@@ -15,6 +13,7 @@ defmodule FirehoseSimulator do
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.State
+  require Logger
 
   @spec create_userbase() :: {:ok, map()} | {:error, String.t()}
   def create_userbase do

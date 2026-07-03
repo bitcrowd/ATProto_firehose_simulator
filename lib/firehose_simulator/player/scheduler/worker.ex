@@ -3,11 +3,9 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
   Scheduler worker that owns a partition of sessions.
   """
   use GenServer
-
-  require Logger
-
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Player.Store
+  require Logger
 
   def start_link(opts) do
     {name, opts} = Keyword.pop!(opts, :name)

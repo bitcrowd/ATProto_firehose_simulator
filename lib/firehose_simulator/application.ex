@@ -4,9 +4,7 @@ defmodule FirehoseSimulator.Application do
   @moduledoc false
 
   use Application
-
   alias FirehoseSimulator.RunStorage
-
   require Logger
 
   @file_log_handler :firehose_simulator_file_log

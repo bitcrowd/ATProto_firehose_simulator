@@ -1,8 +1,6 @@
 defmodule FirehoseSimulator.Player.StoreTest do
   use ExUnit.Case, async: false
-
   import FirehoseSimulator.SessionFixtures
-
   alias FirehoseSimulator.Player.Store
 
   setup do

@@ -1,6 +1,5 @@
 defmodule FirehoseSimulatorWeb.MetricsLive do
   use FirehoseSimulatorWeb, :live_view
-
   alias FirehoseSimulator.Metrics
 
   @refresh_interval_ms 1_000

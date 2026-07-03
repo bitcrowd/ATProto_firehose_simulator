@@ -1,18 +1,15 @@
 defmodule FirehoseSimulator.Scenario do
   @moduledoc false
 
-  import Ecto.Changeset
-
-  require Logger
-
   use Ecto.Schema
-
+  import Ecto.Changeset
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
   alias FirehoseSimulator.Scenario.Params.ScenarioParams
   alias FirehoseSimulator.Scenario.Params.SessionsParams
   alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Sessions
+  require Logger
 
   @default_time_unit_duration_ms 86_400_000
   @default_request_interval_ms SessionsParams.default_request_interval_ms()

@@ -2,9 +2,7 @@ defmodule FirehoseSimulator.SimulationPlan do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry

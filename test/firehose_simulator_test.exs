@@ -1,8 +1,6 @@
 defmodule FirehoseSimulatorTest do
   use FirehoseSimulator.DataCase, async: false
-
   import ExUnit.CaptureLog
-
   alias FirehoseSimulator.BulkCreation.Actor
   alias FirehoseSimulator.BulkCreation.FeedItem
   alias FirehoseSimulator.BulkCreation.Follow

@@ -1,8 +1,6 @@
 defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
   use ExUnit.Case, async: false
-
   import Plug.Test
-
   alias FirehoseSimulator.Metrics
   alias FirehoseSimulator.Metrics.PrometheusExporter
 

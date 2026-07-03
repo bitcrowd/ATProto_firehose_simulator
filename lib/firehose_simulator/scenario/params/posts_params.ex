@@ -2,9 +2,7 @@ defmodule FirehoseSimulator.Scenario.Params.PostsParams do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
   alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
   alias FirehoseSimulator.Scenario.Params.PostTier
 

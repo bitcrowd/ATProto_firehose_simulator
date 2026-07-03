@@ -2,7 +2,6 @@ defmodule FirehoseSimulator.State do
   @moduledoc false
 
   use GenServer
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
 
