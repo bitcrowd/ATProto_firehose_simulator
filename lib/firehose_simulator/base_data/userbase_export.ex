@@ -1,6 +1,5 @@
 defmodule FirehoseSimulator.BaseData.UserbaseExport do
   @moduledoc false
-  require Logger
 
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
@@ -83,7 +82,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
           |> actor_csv_row()
           |> write_line(device)
 
-          Logger.debug("wrote actor csv row for #{row.did}")
           :counters.add(counter, 1, 1)
         end)
         |> Stream.run()
@@ -118,10 +116,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
           |> write_line(device)
 
           :counters.add(counter, 1, length(rows))
-
-          subject_id = follows |> hd() |> Map.fetch!(:subject_id)
-
-          Logger.debug("wrote #{length(rows)} follow csv rows for subject #{subject_id}")
         end)
         |> Stream.run()
 
