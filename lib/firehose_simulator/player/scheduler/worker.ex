@@ -213,22 +213,22 @@ defmodule FirehoseSimulator.Player.Scheduler.Worker do
     did = Data.did_for_user_id(user_id)
 
     case Dataplane.get_timeline(did, state.timeline_limit) do
-      %{"items" => items} when is_list(items) ->
+      {:ok, %{"items" => items}} when is_list(items) ->
         {:ok, items}
 
-      %{} ->
+      {:ok, %{}} ->
         {:ok, []}
 
-      {:error, error} ->
-        Logger.error("[Worker #{state.partition}] error: #{inspect(error)}")
-        {:error, error}
-
-      other ->
+      {:ok, other} ->
         Logger.warning(
           "[Worker #{state.partition}] unexpected timeline response: #{inspect(other)}"
         )
 
         {:ok, []}
+
+      {:error, error} ->
+        Logger.error("[Worker #{state.partition}] error: #{inspect(error)}")
+        {:error, error}
     end
   end
 
