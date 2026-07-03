@@ -1,8 +1,6 @@
 defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   use FirehoseSimulatorWeb.ConnCase, async: false
-
   import Phoenix.LiveViewTest
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
@@ -203,7 +201,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
     |> render_submit()
 
     player_ids = State.list_players() |> Map.keys() |> Enum.sort()
-    assert length(player_ids) == 2
+    assert [_, _] = player_ids
     second_player_id = Enum.find(player_ids, &(&1 != player_id))
     assert has_element?(view, "#player-#{second_player_id}")
 

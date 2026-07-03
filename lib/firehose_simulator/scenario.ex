@@ -1,21 +1,19 @@
 defmodule FirehoseSimulator.Scenario do
   @moduledoc false
 
-  import Ecto.Changeset
-
-  require Logger
-
   use Ecto.Schema
-
+  import Ecto.Changeset
   alias FirehoseSimulator.Scenario.Follows
   alias FirehoseSimulator.Scenario.JSON
   alias FirehoseSimulator.Scenario.Params.ScenarioParams
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
   alias FirehoseSimulator.Scenario.Posts
   alias FirehoseSimulator.Scenario.Sessions
+  require Logger
 
   @default_time_unit_duration_ms 86_400_000
-  @default_request_interval_ms 30_000
-  @default_timeline_limit 20
+  @default_request_interval_ms SessionsParams.default_request_interval_ms()
+  @default_timeline_limit SessionsParams.default_timeline_limit()
 
   @primary_key false
   embedded_schema do
@@ -72,7 +70,7 @@ defmodule FirehoseSimulator.Scenario do
 
   @spec generate_from_json_string(String.t()) :: {:ok, t()} | {:error, String.t()}
   def generate_from_json_string(json) when is_binary(json) do
-    with {:ok, params} <- load_scenario_params_json(json) do
+    with {:ok, params} <- ScenarioParams.load(json) do
       build_scenario(params)
     end
   end
@@ -125,13 +123,6 @@ defmodule FirehoseSimulator.Scenario do
 
       {:error, changeset} ->
         raise ArgumentError, "invalid shifted scenario: #{inspect(changeset.errors)}"
-    end
-  end
-
-  defp load_scenario_params_json(json) when is_binary(json) do
-    case ScenarioParams.load(json) do
-      {:ok, params} -> {:ok, params}
-      {:error, _reason} = error -> error
     end
   end
 

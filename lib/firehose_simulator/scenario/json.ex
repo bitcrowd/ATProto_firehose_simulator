@@ -2,9 +2,11 @@ defmodule FirehoseSimulator.Scenario.JSON do
   @moduledoc false
 
   alias FirehoseSimulator.Scenario
+  alias FirehoseSimulator.Scenario.Params.SessionsParams
+  alias FirehoseSimulator.Utils
 
-  @default_request_interval_ms 30_000
-  @default_timeline_limit 20
+  @default_request_interval_ms SessionsParams.default_request_interval_ms()
+  @default_timeline_limit SessionsParams.default_timeline_limit()
 
   @spec encode(Scenario.t()) :: {:ok, String.t()} | {:error, String.t()}
   def encode(%Scenario{} = scenario) do
@@ -41,7 +43,7 @@ defmodule FirehoseSimulator.Scenario.JSON do
       {:ok, scenario}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, "invalid scenario json: #{format_changeset_errors(changeset)}"}
+        {:error, "invalid scenario json: #{Utils.format_errors(changeset)}"}
 
       {:error, reason} ->
         {:error, reason}
@@ -159,14 +161,5 @@ defmodule FirehoseSimulator.Scenario.JSON do
     else
       {:error, "#{Atom.to_string(key)} must be an integer"}
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
-      Enum.reduce(opts, message, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

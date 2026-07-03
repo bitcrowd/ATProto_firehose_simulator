@@ -19,7 +19,7 @@ defmodule FirehoseSimulator.Scenario.PostsTest do
   test "generate/4 returns an in-memory posts list" do
     posts = Posts.generate(@config, 42, 1)
 
-    assert length(posts) == 2
+    assert [_, _] = posts
     assert Enum.all?(posts, &is_integer(&1.offset_ms))
     assert posts |> Enum.map(& &1.user_id) |> Enum.sort() == [1, 2]
   end
@@ -43,8 +43,8 @@ defmodule FirehoseSimulator.Scenario.PostsTest do
 
     dense_config = %{config | follower_density: 2.0}
 
-    assert length(Posts.generate(config, 42, 1)) == 1
-    assert length(Posts.generate(dense_config, 42, 1)) == 2
+    assert [_] = Posts.generate(config, 42, 1)
+    assert [_, _] = Posts.generate(dense_config, 42, 1)
   end
 
   test "generate/4 uses the provided time unit duration" do

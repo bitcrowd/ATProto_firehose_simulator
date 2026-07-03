@@ -2,8 +2,8 @@ defmodule FirehoseSimulator.Player.Scheduler.Supervisor do
   @moduledoc """
   Supervisor for the scheduler worker pool.
 
-  Started dynamically by `FirehoseSimulator.Player.play/2` and stopped by
-  `FirehoseSimulator.Player.stop/0`.
+  Started dynamically by `FirehoseSimulator.Player.start/1` and stopped by
+  `FirehoseSimulator.Player.stop/1`.
   This is a separate supervisor so the entire scheduling infrastructure can be
   started/stopped as a unit without affecting the Store or Repo.
   """

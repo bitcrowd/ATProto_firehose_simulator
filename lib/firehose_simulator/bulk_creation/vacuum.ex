@@ -60,8 +60,6 @@ defmodule FirehoseSimulator.BulkCreation.Vacuum do
     end
   end
 
-  defp format_db_error(%Postgrex.Error{} = error), do: Exception.message(error)
-  defp format_db_error(%DBConnection.ConnectionError{} = error), do: Exception.message(error)
   defp format_db_error(error) when is_exception(error), do: Exception.message(error)
   defp format_db_error(error), do: inspect(error)
 end

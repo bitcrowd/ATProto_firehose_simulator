@@ -1,6 +1,5 @@
 defmodule FirehoseSimulatorWeb.SimulationLive do
   use FirehoseSimulatorWeb, :live_view
-
   alias FirehoseSimulator.State
 
   @impl true

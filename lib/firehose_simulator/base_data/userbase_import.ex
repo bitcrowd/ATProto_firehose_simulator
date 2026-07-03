@@ -62,9 +62,8 @@ defmodule FirehoseSimulator.BaseData.UserbaseImport do
   defp copy_csv(repo, sql, opts) do
     case repo.query(sql, [], opts) do
       {:ok, result} -> {:ok, result}
-      {:error, %DBConnection.ConnectionError{} = error} -> {:error, Exception.message(error)}
-      {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
       {:error, reason} when is_binary(reason) -> {:error, reason}
+      {:error, reason} when is_exception(reason) -> {:error, Exception.message(reason)}
       {:error, reason} -> {:error, inspect(reason)}
     end
   end

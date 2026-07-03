@@ -2,7 +2,6 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporter do
   @moduledoc false
 
   import Plug.Conn
-
   alias FirehoseSimulator.Metrics
 
   def init(opts), do: opts

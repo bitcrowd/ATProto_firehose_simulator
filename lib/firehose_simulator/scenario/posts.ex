@@ -10,8 +10,8 @@ defmodule FirehoseSimulator.Scenario.Posts do
       FirehoseSimulator.Scenario.Posts.generate(%PostsParams{...})
   """
 
-  alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.Scenario.Params.PostsParams
+  alias FirehoseSimulator.Scenario.Params.Tiers
 
   @default_unit_duration_ms 86_400_000
 
@@ -60,7 +60,7 @@ defmodule FirehoseSimulator.Scenario.Posts do
     for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id, reduce: [] do
       acc ->
         unit_offset = unit * unit_duration_ms
-        tier = lookup_tier(user_id, num_users, tiers, follower_density)
+        tier = Tiers.lookup(user_id, num_users, tiers, follower_density)
 
         new_posts =
           generate_posts(tier.posts_per_time_unit, user_id, unit_offset, unit_duration_ms)
@@ -95,14 +95,6 @@ defmodule FirehoseSimulator.Scenario.Posts do
       end
 
     base_posts ++ extra
-  end
-
-  defp lookup_tier(user_id, num_users, tiers, follower_density) do
-    follower_count = FollowerGraph.follower_count(user_id, num_users, follower_density)
-
-    Enum.find(tiers, List.last(tiers), fn tier ->
-      follower_count <= tier.max_followers
-    end)
   end
 
   defp post_from_tuple({offset_ms, user_id}) do

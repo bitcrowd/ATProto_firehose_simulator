@@ -2,13 +2,11 @@ defmodule FirehoseSimulator.SimulationPlan do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
-  alias FirehoseSimulator
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.Utils
 
   @primary_key false
   embedded_schema do
@@ -79,12 +77,7 @@ defmodule FirehoseSimulator.SimulationPlan do
       {:ok, updated_plan, entry}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, format_changeset_errors(changeset)}
+        {:error, Utils.format_errors(changeset)}
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

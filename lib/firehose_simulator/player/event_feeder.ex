@@ -3,14 +3,12 @@ defmodule FirehoseSimulator.Player.EventFeeder do
   GenServer that injects events from a `%FirehoseSimulator.Scenario{}` over wallclock time.
   """
   use GenServer
-
-  require Logger
-
   alias FirehoseSimulator.Data
   alias FirehoseSimulator.Player.Event
   alias FirehoseSimulator.Player.Store
   alias FirehoseSimulator.Scenario
   alias Phoenix.PubSub
+  require Logger
 
   @check_interval_ms 100
 

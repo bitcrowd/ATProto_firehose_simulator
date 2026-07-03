@@ -1,11 +1,11 @@
 defmodule FirehoseSimulator.BaseData.UserbaseExport do
   @moduledoc false
-  require Logger
 
   alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.BaseData.Userbase
   alias FirehoseSimulator.BaseData.UserbaseMeta
   alias FirehoseSimulator.BulkCreation
+  alias FirehoseSimulator.Utils
 
   @spec export(Userbase.t(), String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def export(%Userbase{} = userbase, export_root, opts \\ [])
@@ -82,7 +82,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
           |> actor_csv_row()
           |> write_line(device)
 
-          Logger.debug("wrote actor csv row for #{row.did}")
           :counters.add(counter, 1, 1)
         end)
         |> Stream.run()
@@ -117,10 +116,6 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
           |> write_line(device)
 
           :counters.add(counter, 1, length(rows))
-
-          subject_id = follows |> hd() |> Map.fetch!(:subject_id)
-
-          Logger.debug("wrote #{length(rows)} follow csv rows for subject #{subject_id}")
         end)
         |> Stream.run()
 
@@ -174,15 +169,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   end
 
   defp default_run_id(name) do
-    slug =
-      name
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "userbase"
-        value -> value
-      end
+    slug = Utils.slugify(name, "userbase")
 
     timestamp =
       DateTime.utc_now()

@@ -9,10 +9,10 @@ defmodule FirehoseSimulator.Player.Event do
 
   def from_config(config) when is_map(config) do
     {did, record} = build_record(config)
-
-    ops = ops(record)
-
-    commit_event(did, ops, record)
+    record_bytes = encode_drisl!(record)
+    record_cid = CID.compute(record_bytes, :drisl)
+    ops = ops(record, record_cid)
+    commit_event(did, ops, record_bytes, record_cid)
   end
 
   defp build_record(%{"type" => "app.bsky.graph.follow", "random" => true}) do
@@ -41,17 +41,10 @@ defmodule FirehoseSimulator.Player.Event do
     {author_did, Data.create_record("app.bsky.feed.post", text: text)}
   end
 
-  defp ops(record) do
+  defp ops(record, record_cid) do
     type = Map.fetch!(record, "$type")
-
-    record_bytes = encode_drisl!(record)
-    record_cid = CID.compute(record_bytes, :drisl)
-
     rkey = TID.now() |> TID.encode()
-
-    ops = [op(type, rkey, record_cid)]
-
-    ops
+    [op(type, rkey, record_cid)]
   end
 
   defp op(type, rkey, record_cid) do
@@ -62,17 +55,17 @@ defmodule FirehoseSimulator.Player.Event do
     }
   end
 
-  defp commit(did, record_cid, rev, prev \\ nil) do
+  defp commit(did, record_cid, rev) do
     %{
       "version" => 3,
       "did" => did,
       "rev" => rev,
       "data" => record_cid,
-      "prev" => prev
+      "prev" => nil
     }
   end
 
-  defp commit_event(did, ops, record) do
+  defp commit_event(did, ops, record_bytes, record_cid) do
     event_type = "com.atproto.sync.subscribeRepos#commit"
     seq = System.unique_integer([:monotonic, :positive])
 
@@ -80,12 +73,6 @@ defmodule FirehoseSimulator.Player.Event do
     time = DateTime.to_iso8601(now)
 
     rev = TID.new(now, @clock_id) |> TID.encode()
-
-    # time diff since rev of prev
-    since = nil
-
-    record_bytes = encode_drisl!(record)
-    record_cid = CID.compute(record_bytes, :drisl)
 
     commit_data = commit(did, record_cid, rev)
     commit_bytes = encode_drisl!(commit_data)
@@ -108,14 +95,13 @@ defmodule FirehoseSimulator.Player.Event do
       "seq" => seq,
       "time" => time,
       "rev" => rev,
-      "since" => since,
+      "since" => nil,
       "commit" => commit_cid,
       "tooBig" => false,
       "rebase" => false,
       "blocks" => blocks,
       "ops" => ops,
       "blobs" => []
-      # "prevData" => nil
     }
 
     header = encode_drisl!(%{"op" => 1, "t" => "#commit"})

@@ -1,7 +1,7 @@
 defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
   @moduledoc false
 
-  import Ecto.Changeset, only: [apply_action: 2, traverse_errors: 2]
+  alias FirehoseSimulator.Utils
 
   @spec load(String.t(), String.t(), struct(), (struct(), map() -> Ecto.Changeset.t())) ::
           {:ok, struct()} | {:error, String.t()}
@@ -31,47 +31,13 @@ defmodule FirehoseSimulator.Scenario.JsonEmbeddedLoader do
   defp validate(label, struct, attrs, changeset_fun) do
     struct
     |> changeset_fun.(attrs)
-    |> apply_action(:validate)
+    |> Ecto.Changeset.apply_action(:validate)
     |> case do
       {:ok, validated} ->
         {:ok, validated}
 
       {:error, changeset} ->
-        {:error, "invalid #{label} config: #{format_changeset_errors(changeset)}"}
+        {:error, "invalid #{label} config: #{Utils.format_errors(changeset)}"}
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    changeset
-    |> traverse_errors(fn {message, opts} ->
-      Enum.reduce(opts, message, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> format_error_entries()
-    |> Enum.join("; ")
-  end
-
-  defp format_error_entries(errors) when is_map(errors) do
-    Enum.flat_map(errors, fn {field, value} ->
-      format_error_value(to_string(field), value)
-    end)
-  end
-
-  defp format_error_value(field, messages) when is_list(messages) do
-    if Enum.all?(messages, &is_binary/1) do
-      ["#{field}: #{Enum.join(messages, ", ")}"]
-    else
-      Enum.with_index(messages)
-      |> Enum.flat_map(fn {value, index} ->
-        format_error_value("#{field}[#{index}]", value)
-      end)
-    end
-  end
-
-  defp format_error_value(field, value) when is_map(value) do
-    value
-    |> format_error_entries()
-    |> Enum.map(fn message -> "#{field}.#{message}" end)
   end
 end

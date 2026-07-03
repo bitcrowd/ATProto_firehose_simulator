@@ -1,10 +1,9 @@
 defmodule FirehoseSimulatorWeb.PlanningLive do
   use FirehoseSimulatorWeb, :live_view
-
-  require Logger
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
+  alias FirehoseSimulator.Utils
+  require Logger
 
   @impl true
   def mount(_params, _session, socket) do
@@ -115,29 +114,14 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   def handle_event("validate_import_plan", _params, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("import_simulation_plan", %{"import_plan" => params}, socket) do
-    socket = assign(socket, :import_plan_form, to_form(params, as: :import_plan))
+  def handle_event("import_simulation_plan", params, socket) do
+    socket =
+      if import_plan_params = params["import_plan"] do
+        assign(socket, :import_plan_form, to_form(import_plan_params, as: :import_plan))
+      else
+        socket
+      end
 
-    with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
-         {:ok, simulation_plan, _filename} <-
-           consume_simulation_plan_upload(socket, :simulation_plan_json) do
-      {:noreply,
-       socket
-       |> assign(
-         :last_action,
-         "Imported simulation plan with #{length(simulation_plan.entries)} entries."
-       )
-       |> assign(:import_plan_form, to_form(%{}, as: :import_plan))
-       |> assign_scenarios()
-       |> put_flash(:info, "Simulation plan imported.")}
-    else
-      {:error, reason} ->
-        {:noreply,
-         put_flash(socket, :error, "Failed to import simulation plan: #{inspect(reason)}")}
-    end
-  end
-
-  def handle_event("import_simulation_plan", _params, socket) do
     with :ok <- ensure_upload_completed(socket, :simulation_plan_json, "simulation plan"),
          {:ok, simulation_plan, _filename} <-
            consume_simulation_plan_upload(socket, :simulation_plan_json) do
@@ -291,17 +275,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
         trimmed -> trimmed
       end
 
-    slug =
-      base
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "scenario"
-        value -> value
-      end
-
-    "#{slug}-#{upload_token()}"
+    "#{Utils.slugify(base, "scenario")}-#{upload_token()}"
   end
 
   defp upload_token do
@@ -309,17 +283,7 @@ defmodule FirehoseSimulatorWeb.PlanningLive do
   end
 
   defp export_filename(scenario_id) do
-    sanitized =
-      scenario_id
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9_-]+/u, "-")
-      |> String.trim("-")
-      |> case do
-        "" -> "scenario"
-        value -> value
-      end
-
-    "#{sanitized}.json"
+    "#{Utils.slugify(scenario_id, "scenario")}.json"
   end
 
   defp json_file_kind(:scenario_params_json), do: "scenario_params"

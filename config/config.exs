@@ -31,10 +31,9 @@ config :firehose_simulator, PLCWeb.Endpoint,
   url: [host: "127.0.0.1"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: PLCWeb.ErrorHTML, json: PLCWeb.ErrorJSON],
+    formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: PLC.PubSub,
   live_view: [signing_salt: "i6CxHF/S"]
 
 config :firehose_simulator, PDSWeb.Endpoint,
@@ -44,7 +43,6 @@ config :firehose_simulator, PDSWeb.Endpoint,
     formats: [html: FirehoseSimulatorWeb.ErrorHTML, json: FirehoseSimulatorWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: PDS.PubSub,
   live_view: [signing_salt: "i6CxHF/S"]
 
 # Configure esbuild (the version is required)
@@ -59,7 +57,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.1.12",
+  version: "4.3.1",
   firehose_simulator: [
     args: ~w(
       --input=assets/css/app.css

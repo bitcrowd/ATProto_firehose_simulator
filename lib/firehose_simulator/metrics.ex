@@ -2,7 +2,6 @@ defmodule FirehoseSimulator.Metrics do
   @moduledoc false
 
   use GenServer
-
   require Logger
 
   @handler_id "firehose-simulator-metrics"

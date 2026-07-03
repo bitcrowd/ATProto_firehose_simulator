@@ -2,7 +2,6 @@ defmodule FirehoseSimulator.State do
   @moduledoc false
 
   use GenServer
-
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
 
@@ -62,6 +61,7 @@ defmodule FirehoseSimulator.State do
     GenServer.call(__MODULE__, {:put_run_storage_directory, run_storage_directory})
   end
 
+  @spec put_simulation_plan(SimulationPlan.t()) :: :ok
   def put_simulation_plan(%SimulationPlan{} = simulation_plan) do
     GenServer.call(__MODULE__, {:put_simulation_plan, simulation_plan})
   end
@@ -84,21 +84,6 @@ defmodule FirehoseSimulator.State do
   @spec clear_players() :: :ok
   def clear_players do
     GenServer.call(__MODULE__, :clear_players)
-  end
-
-  @spec get_player_ids() :: map()
-  def get_player_ids do
-    list_players()
-  end
-
-  @spec put_player_ids(map()) :: :ok
-  def put_player_ids(player_ids) when is_map(player_ids) do
-    GenServer.call(__MODULE__, {:put_player_ids, player_ids})
-  end
-
-  @spec clear_player_ids() :: :ok
-  def clear_player_ids do
-    clear_players()
   end
 
   @spec put_userbase_result(boolean(), map() | nil) :: :ok
@@ -160,15 +145,6 @@ defmodule FirehoseSimulator.State do
 
   def handle_call({:put_player, player_id, metadata}, _from, state) do
     players = Map.put(state.players, player_id, metadata)
-    {:reply, :ok, %{state | players: players}}
-  end
-
-  def handle_call({:put_player_ids, player_ids}, _from, state) do
-    players =
-      player_ids
-      |> Enum.map(fn {player_id, metadata} -> {to_string(player_id), metadata} end)
-      |> Map.new()
-
     {:reply, :ok, %{state | players: players}}
   end
 

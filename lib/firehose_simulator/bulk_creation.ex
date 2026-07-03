@@ -14,9 +14,10 @@ defmodule FirehoseSimulator.BulkCreation do
   @insert_batch_size 5_000
 
   def create_userbase(%Userbase{} = userbase) do
-    with first_user_id <- 1,
-         user_ids = Enum.to_list(first_user_id..(first_user_id + userbase.num_users - 1)),
-         {:ok, graph, follows_count} <-
+    first_user_id = 1
+    user_ids = Enum.to_list(first_user_id..(first_user_id + userbase.num_users - 1))
+
+    with {:ok, graph, follows_count} <-
            FollowerGraph.generate(userbase.num_users,
              start_id: first_user_id,
              follower_density: userbase.follower_density

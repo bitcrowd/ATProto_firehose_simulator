@@ -17,7 +17,7 @@ defmodule Dataplane do
              method: :post,
              json: %{actor_did: did, limit: limit, cursor: cursor}
            ) do
-      response.body
+      {:ok, response.body}
     end
   end
 

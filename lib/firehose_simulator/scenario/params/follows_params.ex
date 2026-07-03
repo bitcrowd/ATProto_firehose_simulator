@@ -2,9 +2,7 @@ defmodule FirehoseSimulator.Scenario.Params.FollowsParams do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
   alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
   alias FirehoseSimulator.Scenario.Params.FollowTier
 
@@ -58,5 +56,9 @@ defmodule FirehoseSimulator.Scenario.Params.FollowsParams do
     |> validate_number(:follower_density, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &FollowTier.changeset/2)
     |> validate_length(:tiers, min: 1)
+    |> update_change(
+      :tiers,
+      &Enum.sort_by(&1, fn t -> Ecto.Changeset.get_field(t, :max_followers) end)
+    )
   end
 end

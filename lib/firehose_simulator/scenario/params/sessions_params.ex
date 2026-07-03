@@ -2,9 +2,7 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
   alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
   alias FirehoseSimulator.Scenario.Params.SessionTier
 
@@ -17,15 +15,21 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
           tiers: [SessionTier.t()]
         }
 
+  @default_request_interval_ms 30_000
+  @default_timeline_limit 20
+
   @primary_key false
   embedded_schema do
     field(:num_users, :integer)
     field(:max_active_user_id, :integer)
     field(:follower_density, :float, default: 1.0)
-    field(:request_interval_ms, :integer, default: 30_000)
-    field(:timeline_limit, :integer, default: 20)
+    field(:request_interval_ms, :integer, default: @default_request_interval_ms)
+    field(:timeline_limit, :integer, default: @default_timeline_limit)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
+
+  def default_request_interval_ms, do: @default_request_interval_ms
+  def default_timeline_limit, do: @default_timeline_limit
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load(json) when is_binary(json) do
@@ -70,5 +74,9 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
     |> validate_number(:timeline_limit, greater_than: 0)
     |> cast_embed(:tiers, required: true, with: &SessionTier.changeset/2)
     |> validate_length(:tiers, min: 1)
+    |> update_change(
+      :tiers,
+      &Enum.sort_by(&1, fn t -> Ecto.Changeset.get_field(t, :max_followers) end)
+    )
   end
 end

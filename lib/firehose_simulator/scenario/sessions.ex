@@ -12,8 +12,8 @@ defmodule FirehoseSimulator.Scenario.Sessions do
       FirehoseSimulator.Scenario.Sessions.generate(%SessionsParams{...})
   """
 
-  alias FirehoseSimulator.BaseData.FollowerGraph
   alias FirehoseSimulator.Scenario.Params.SessionsParams
+  alias FirehoseSimulator.Scenario.Params.Tiers
 
   @default_unit_duration_ms 86_400_000
 
@@ -62,7 +62,7 @@ defmodule FirehoseSimulator.Scenario.Sessions do
        ) do
     for unit <- 0..(time_units - 1), user_id <- 1..max_active_user_id do
       unit_offset = unit * unit_duration_ms
-      tier = lookup_tier(user_id, num_users, tiers, follower_density)
+      tier = Tiers.lookup(user_id, num_users, tiers, follower_density)
 
       session_ms = tier.session_minutes * 60_000
       max_start = max(unit_duration_ms - session_ms, 1)
@@ -70,19 +70,6 @@ defmodule FirehoseSimulator.Scenario.Sessions do
 
       {start_offset, user_id, session_ms}
     end
-  end
-
-  @doc """
-  Look up the tier for a user based on their follower count.
-
-  Tiers must be sorted ascending by `:max_followers`. First match wins.
-  """
-  def lookup_tier(user_id, num_users, tiers, follower_density \\ 1.0) do
-    follower_count = FollowerGraph.follower_count(user_id, num_users, follower_density)
-
-    Enum.find(tiers, List.last(tiers), fn tier ->
-      follower_count <= tier.max_followers
-    end)
   end
 
   defp session_from_tuple({offset_ms, user_id, duration_ms}) do

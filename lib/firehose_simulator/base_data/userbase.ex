@@ -2,9 +2,7 @@ defmodule FirehoseSimulator.BaseData.Userbase do
   @moduledoc false
 
   use Ecto.Schema
-
   import Ecto.Changeset
-
   alias FirehoseSimulator.Scenario.JsonEmbeddedLoader
 
   @type t :: %__MODULE__{

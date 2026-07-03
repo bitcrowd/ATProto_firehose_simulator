@@ -4,6 +4,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.SimulationPlan
   alias FirehoseSimulator.SimulationPlan.Entry
+  alias FirehoseSimulator.Utils
 
   @default_export_dir "log"
 
@@ -68,7 +69,8 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
     end
   end
 
-  @spec export_to_file(SimulationPlan.t(), String.t() | nil) :: {:ok, String.t()} | {:error, String.t()}
+  @spec export_to_file(SimulationPlan.t(), String.t() | nil) ::
+          {:ok, String.t()} | {:error, String.t()}
   def export_to_file(%SimulationPlan{} = simulation_plan, path \\ nil) do
     path = path || Path.join(@default_export_dir, timestamped_filename("simulation_plan", "json"))
 
@@ -134,7 +136,7 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
         {:ok, updated_plan}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, format_changeset_errors(changeset)}
+        {:error, Utils.format_errors(changeset)}
     end
   end
 
@@ -144,10 +146,5 @@ defmodule FirehoseSimulator.SimulationPlan.JSON do
     else
       Path.expand(path, base_dir)
     end
-  end
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
-    |> Enum.map_join("; ", fn {field, messages} -> "#{field} #{Enum.join(messages, ", ")}" end)
   end
 end

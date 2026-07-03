@@ -5,8 +5,6 @@ defmodule FirehoseSimulator.Player do
   Player takes a scenario and manages its lifecycle.
   """
 
-  require Logger
-
   alias FirehoseSimulator.Player.EventFeeder
   alias FirehoseSimulator.Player.Scheduler.Supervisor, as: SchedulerSupervisor
   alias FirehoseSimulator.Player.Scheduler.Worker
@@ -14,6 +12,7 @@ defmodule FirehoseSimulator.Player do
   alias FirehoseSimulator.PlayerSupervisor
   alias FirehoseSimulator.Scenario
   alias FirehoseSimulator.State
+  require Logger
 
   @registry FirehoseSimulator.Player.Registry
 
