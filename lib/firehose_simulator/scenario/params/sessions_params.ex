@@ -20,9 +20,6 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
   @default_request_interval_ms 30_000
   @default_timeline_limit 20
 
-  def default_request_interval_ms, do: @default_request_interval_ms
-  def default_timeline_limit, do: @default_timeline_limit
-
   @primary_key false
   embedded_schema do
     field(:num_users, :integer)
@@ -32,6 +29,9 @@ defmodule FirehoseSimulator.Scenario.Params.SessionsParams do
     field(:timeline_limit, :integer, default: @default_timeline_limit)
     embeds_many(:tiers, SessionTier, on_replace: :delete)
   end
+
+  def default_request_interval_ms, do: @default_request_interval_ms
+  def default_timeline_limit, do: @default_timeline_limit
 
   @spec load(String.t()) :: {:ok, t()} | {:error, String.t()}
   def load(json) when is_binary(json) do
