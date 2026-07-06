@@ -46,6 +46,12 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
     assert meta.files.follow.path == follow_path
   end
 
+  test "builds copy sql with escaped file paths" do
+    sql = UserbaseImport.copy_actor_sql("/tmp/actor's.csv")
+    assert sql =~ "COPY bsky.actor"
+    assert sql =~ "/tmp/actor''s.csv"
+  end
+
   defmodule RepoStub do
   end
 end
