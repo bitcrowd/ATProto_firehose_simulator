@@ -96,13 +96,14 @@ defmodule FirehoseSimulator.MixProject do
         "esbuild firehose_simulator --minify",
         "phx.digest"
       ],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       precommit: [
         "hex.audit",
         "compile --warnings-as-errors",
         "dialyzer",
         "deps.unlock --unused",
-        "format --check-formatted",
+        "format",
+        "ecto.create --quiet",
+        "ecto.migrate --quiet",
         "test",
         "credo --all --strict"
       ]
