@@ -98,9 +98,11 @@ defmodule FirehoseSimulator.MixProject do
       ],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       precommit: [
+        "hex.audit",
         "compile --warnings-as-errors",
+        "dialyzer",
         "deps.unlock --unused",
-        "format",
+        "format --check-formatted",
         "test",
         "credo --all --strict"
       ]
