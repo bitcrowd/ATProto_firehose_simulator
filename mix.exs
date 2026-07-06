@@ -96,6 +96,7 @@ defmodule FirehoseSimulator.MixProject do
         "esbuild firehose_simulator --minify",
         "phx.digest"
       ],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
