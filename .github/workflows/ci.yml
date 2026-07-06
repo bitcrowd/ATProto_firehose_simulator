@@ -77,5 +77,10 @@ jobs:
       - name: Dialyzer
         run: mix dialyzer
 
+      - name: Create and migrate database
+        run: |
+          mix ecto.create
+          mix dataplane.migrate
+
       - name: Run tests
         run: mix test
