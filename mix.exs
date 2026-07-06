@@ -103,7 +103,7 @@ defmodule FirehoseSimulator.MixProject do
         "deps.unlock --unused",
         "format",
         "ecto.create --quiet",
-        "ecto.migrate --quiet",
+        "dataplane.migrate",
         "test",
         "credo --all --strict"
       ]
