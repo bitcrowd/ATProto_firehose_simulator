@@ -784,7 +784,6 @@ defmodule FirehoseSimulatorTest do
     end
 
     @tag :tmp_dir
-    @tag :skip
     test "imports a manifest file through the top-level path api", %{tmp_dir: tmp_dir} do
       export_dir = Path.join(tmp_dir, "userbase-export-for-import")
 
