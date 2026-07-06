@@ -76,5 +76,4 @@ defmodule FirehoseSimulator.Player.StoreTest do
     assert Store.count_active(store_one) == 0
     assert Store.count_active(store_two) == 1
   end
-
 end
