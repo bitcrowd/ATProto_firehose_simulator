@@ -130,5 +130,4 @@ defmodule FirehoseSimulatorWeb.Telemetry do
   defp worker_query_lag_tag_values(_metadata) do
     %{kind: "session_request"}
   end
-
 end
