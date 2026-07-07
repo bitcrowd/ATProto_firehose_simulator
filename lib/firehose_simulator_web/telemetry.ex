@@ -69,9 +69,6 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       sum("firehose_simulator.player.stop.active_sessions_cleared"),
       counter("firehose_simulator.event_feeder.inject.count"),
       sum("firehose_simulator.event_feeder.inject.sessions_started"),
-      distribution("firehose_simulator.event_feeder.inject.elapsed_ms",
-        reporter_options: [buckets: [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000]]
-      ),
       counter("firehose_simulator.event_feeder.posts.dispatch.count"),
       sum("firehose_simulator.event_feeder.posts.dispatch.events_dispatched"),
       counter("firehose_simulator.event_feeder.posts.complete.count"),
