@@ -7,30 +7,6 @@ defmodule FirehoseSimulator.MetricsTest do
     before_snapshot = Metrics.snapshot()
 
     :telemetry.execute(
-      [:firehose_simulator, :json, :file, :loaded],
-      %{count: 1},
-      %{path: "/tmp/scenario.json", kind: "scenario"}
-    )
-
-    :telemetry.execute(
-      [:firehose_simulator, :player, :load],
-      %{count: 1},
-      %{player_id: "player-metrics", scenario_id: nil, schedulers: 1}
-    )
-
-    :telemetry.execute(
-      [:firehose_simulator, :player, :start],
-      %{count: 1},
-      %{player_id: "player-metrics", from_state: :loaded}
-    )
-
-    :telemetry.execute(
-      [:firehose_simulator, :player, :pause],
-      %{count: 1},
-      %{player_id: "player-metrics"}
-    )
-
-    :telemetry.execute(
       [:firehose_simulator, :event_feeder, :inject],
       %{sessions_started: 3},
       %{player_id: "player-metrics", elapsed_ms: 100}
@@ -50,15 +26,9 @@ defmodule FirehoseSimulator.MetricsTest do
 
     after_snapshot =
       await_snapshot(fn snapshot ->
-        snapshot.player_stop >= before_snapshot.player_stop + 1 and
-          snapshot.active_sessions_total == before_snapshot.active_sessions_total
+        snapshot.active_sessions_total == before_snapshot.active_sessions_total and
+          not Map.has_key?(snapshot.active_sessions_by_player, "player-metrics")
       end)
-
-    assert after_snapshot.json_files_loaded == before_snapshot.json_files_loaded + 1
-    assert after_snapshot.player_load == before_snapshot.player_load + 1
-    assert after_snapshot.player_start == before_snapshot.player_start + 1
-    assert after_snapshot.player_pause == before_snapshot.player_pause + 1
-    assert after_snapshot.player_stop == before_snapshot.player_stop + 1
 
     assert after_snapshot.event_feeder_sessions_started >=
              before_snapshot.event_feeder_sessions_started + 3
@@ -85,7 +55,7 @@ defmodule FirehoseSimulator.MetricsTest do
     refute Map.has_key?(snapshot.active_sessions_by_player, "player-clamp")
   end
 
-  test "aggregates worker query lag totals, buckets, and window stats" do
+  test "aggregates worker query window stats" do
     before_snapshot = Metrics.snapshot()
 
     :telemetry.execute(
@@ -103,20 +73,6 @@ defmodule FirehoseSimulator.MetricsTest do
     after_snapshot = Metrics.snapshot()
 
     assert after_snapshot.worker_query_total_count == before_snapshot.worker_query_total_count + 2
-
-    assert after_snapshot.worker_query_lag_total_ms ==
-             before_snapshot.worker_query_lag_total_ms + 1_525
-
-    assert bucket_delta(after_snapshot, before_snapshot, "0") == 0
-    assert bucket_delta(after_snapshot, before_snapshot, "10") == 0
-    assert bucket_delta(after_snapshot, before_snapshot, "50") == 1
-    assert bucket_delta(after_snapshot, before_snapshot, "100") == 1
-    assert bucket_delta(after_snapshot, before_snapshot, "500") == 1
-    assert bucket_delta(after_snapshot, before_snapshot, "1000") == 1
-    assert bucket_delta(after_snapshot, before_snapshot, "5000") == 2
-    assert bucket_delta(after_snapshot, before_snapshot, "10000") == 2
-    assert bucket_delta(after_snapshot, before_snapshot, "+Inf") == 2
-
     assert after_snapshot.worker_query_window_stats.max_lag_ms >= 1_500
   end
 
@@ -140,10 +96,5 @@ defmodule FirehoseSimulator.MetricsTest do
         10 -> do_await_snapshot(predicate, deadline)
       end
     end
-  end
-
-  defp bucket_delta(after_snapshot, before_snapshot, bucket) do
-    Map.fetch!(after_snapshot.worker_query_lag_bucket_counts, bucket) -
-      Map.fetch!(before_snapshot.worker_query_lag_bucket_counts, bucket)
   end
 end

@@ -5,12 +5,7 @@ defmodule FirehoseSimulator.Metrics do
   require Logger
 
   @handler_id "firehose-simulator-metrics"
-  @worker_query_lag_buckets [0, 10, 50, 100, 500, 1_000, 5_000, 10_000]
   @telemetry_events [
-    [:firehose_simulator, :json, :file, :loaded],
-    [:firehose_simulator, :player, :load],
-    [:firehose_simulator, :player, :start],
-    [:firehose_simulator, :player, :pause],
     [:firehose_simulator, :player, :stop],
     [:firehose_simulator, :event_feeder, :inject],
     [:firehose_simulator, :event_feeder, :posts, :dispatch],
@@ -32,6 +27,11 @@ defmodule FirehoseSimulator.Metrics do
   @spec snapshot() :: snapshot()
   def snapshot do
     GenServer.call(__MODULE__, :snapshot)
+  end
+
+  def emit_active_sessions do
+    %{active_sessions_total: count} = snapshot()
+    :telemetry.execute([:firehose_simulator, :active_sessions], %{count: count}, %{})
   end
 
   @impl true
@@ -74,61 +74,13 @@ defmodule FirehoseSimulator.Metrics do
   end
 
   @impl true
-  def handle_cast({:telemetry_json_file_loaded, measurements, metadata}, state) do
-    next_state =
-      Map.update!(state, :json_files_loaded, &(&1 + measurement_value(measurements, :count)))
-
-    Logger.debug(
-      "[metrics] json.file.loaded total=#{next_state.json_files_loaded} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
-    )
-
-    {:noreply, next_state}
-  end
-
-  @impl true
-  def handle_cast({:telemetry_player_load, measurements, metadata}, state) do
-    next_state =
-      Map.update!(state, :player_load, &(&1 + measurement_value(measurements, :count)))
-
-    Logger.debug(
-      "[metrics] player.load total=#{next_state.player_load} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
-    )
-
-    {:noreply, next_state}
-  end
-
-  def handle_cast({:telemetry_player_start, measurements, metadata}, state) do
-    next_state =
-      Map.update!(state, :player_start, &(&1 + measurement_value(measurements, :count)))
-
-    Logger.debug(
-      "[metrics] player.start total=#{next_state.player_start} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
-    )
-
-    {:noreply, next_state}
-  end
-
-  def handle_cast({:telemetry_player_pause, measurements, metadata}, state) do
-    next_state =
-      Map.update!(state, :player_pause, &(&1 + measurement_value(measurements, :count)))
-
-    Logger.debug(
-      "[metrics] player.pause total=#{next_state.player_pause} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
-    )
-
-    {:noreply, next_state}
-  end
-
   def handle_cast({:telemetry_player_stop, measurements, metadata}, state) do
     cleared = measurement_value(measurements, :active_sessions_cleared)
 
-    next_state =
-      state
-      |> Map.update!(:player_stop, &(&1 + measurement_value(measurements, :count)))
-      |> drop_active_sessions(player_id(metadata), cleared)
+    next_state = drop_active_sessions(state, player_id(metadata), cleared)
 
     Logger.debug(
-      "[metrics] player.stop total=#{next_state.player_stop} cleared=#{cleared} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
+      "[metrics] player.stop cleared=#{cleared} measurements=#{inspect(measurements)} metadata=#{inspect(metadata)}"
     )
 
     {:noreply, next_state}
@@ -216,12 +168,6 @@ defmodule FirehoseSimulator.Metrics do
       state
       |> Map.update!(:worker_query_total_count, &(&1 + 1))
       |> Map.update!(:worker_query_rows, &(&1 + rows))
-      |> Map.update!(:worker_query_total_latency_ms, &(&1 + latency_ms))
-      |> Map.update!(:worker_query_lag_total_ms, &(&1 + lag_ms))
-      |> Map.update!(:worker_query_by_status, fn acc ->
-        Map.update(acc, status, 1, &(&1 + 1))
-      end)
-      |> Map.update!(:worker_query_lag_bucket_counts, &increment_lag_buckets(&1, lag_ms))
       |> Map.update!(:worker_query_window, &:queue.in(sample, &1))
       |> prune_worker_query_window(now_ms)
 
@@ -233,7 +179,6 @@ defmodule FirehoseSimulator.Metrics do
   end
 
   def handle_cast({:telemetry_worker_cycle, measurements, metadata}, state) do
-    partition = normalize_partition(metadata)
     completed = measurement_value(measurements, :completed)
 
     next_state =
@@ -245,55 +190,16 @@ defmodule FirehoseSimulator.Metrics do
       |> add_measurement(:worker_cycle_completed, measurements, :completed)
       |> add_measurement(:worker_cycle_timeouts, measurements, :timeouts)
       |> add_measurement(:worker_cycle_duration_ms, measurements, :duration_ms)
-      |> Map.update!(:worker_cycle_by_partition, fn acc ->
-        Map.update(acc, partition, 1, &(&1 + 1))
-      end)
       |> update_active_sessions(player_id(metadata), -completed)
 
     Logger.debug(
-      "[metrics] worker.cycle count=#{next_state.worker_cycle_count} partition=#{partition} measurements=#{inspect(measurements)}"
+      "[metrics] worker.cycle count=#{next_state.worker_cycle_count} measurements=#{inspect(measurements)}"
     )
 
     {:noreply, next_state}
   end
 
   @doc false
-  def handle_telemetry(
-        [:firehose_simulator, :json, :file, :loaded],
-        measurements,
-        metadata,
-        _config
-      ) do
-    GenServer.cast(__MODULE__, {:telemetry_json_file_loaded, measurements, metadata})
-  end
-
-  def handle_telemetry(
-        [:firehose_simulator, :player, :load],
-        measurements,
-        metadata,
-        _config
-      ) do
-    GenServer.cast(__MODULE__, {:telemetry_player_load, measurements, metadata})
-  end
-
-  def handle_telemetry(
-        [:firehose_simulator, :player, :start],
-        measurements,
-        metadata,
-        _config
-      ) do
-    GenServer.cast(__MODULE__, {:telemetry_player_start, measurements, metadata})
-  end
-
-  def handle_telemetry(
-        [:firehose_simulator, :player, :pause],
-        measurements,
-        metadata,
-        _config
-      ) do
-    GenServer.cast(__MODULE__, {:telemetry_player_pause, measurements, metadata})
-  end
-
   def handle_telemetry(
         [:firehose_simulator, :player, :stop],
         measurements,
@@ -372,11 +278,6 @@ defmodule FirehoseSimulator.Metrics do
 
   defp default_state do
     %{
-      json_files_loaded: 0,
-      player_load: 0,
-      player_start: 0,
-      player_pause: 0,
-      player_stop: 0,
       active_sessions_total: 0,
       active_sessions_by_player: %{},
       event_feeder_inject_count: 0,
@@ -393,10 +294,6 @@ defmodule FirehoseSimulator.Metrics do
       event_feeder_follows_error: 0,
       worker_query_total_count: 0,
       worker_query_rows: 0,
-      worker_query_total_latency_ms: 0,
-      worker_query_lag_total_ms: 0,
-      worker_query_by_status: %{},
-      worker_query_lag_bucket_counts: lag_bucket_counts_template(),
       worker_query_window: :queue.new(),
       worker_cycle_count: 0,
       worker_cycle_session_count: 0,
@@ -404,8 +301,7 @@ defmodule FirehoseSimulator.Metrics do
       worker_cycle_errors: 0,
       worker_cycle_completed: 0,
       worker_cycle_timeouts: 0,
-      worker_cycle_duration_ms: 0,
-      worker_cycle_by_partition: %{}
+      worker_cycle_duration_ms: 0
     }
   end
 
@@ -427,12 +323,6 @@ defmodule FirehoseSimulator.Metrics do
       "exit" -> "exit"
       _other -> "error"
     end
-  end
-
-  defp normalize_partition(metadata) do
-    metadata
-    |> Map.get(:partition, "unknown")
-    |> to_string()
   end
 
   defp player_id(metadata) do
@@ -508,26 +398,6 @@ defmodule FirehoseSimulator.Metrics do
 
   defp ratio(_numerator, 0), do: 0.0
   defp ratio(numerator, denominator), do: Float.round(numerator / denominator, 2)
-
-  defp lag_bucket_counts_template do
-    @worker_query_lag_buckets
-    |> Enum.map(&{Integer.to_string(&1), 0})
-    |> Kernel.++([{"+Inf", 0}])
-    |> Map.new()
-  end
-
-  defp increment_lag_buckets(counts, lag_ms) do
-    counts =
-      Enum.reduce(@worker_query_lag_buckets, counts, fn bucket, acc ->
-        if lag_ms <= bucket do
-          Map.update!(acc, Integer.to_string(bucket), &(&1 + 1))
-        else
-          acc
-        end
-      end)
-
-    Map.update!(counts, "+Inf", &(&1 + 1))
-  end
 
   defp update_active_sessions(state, nil, _delta), do: state
 
