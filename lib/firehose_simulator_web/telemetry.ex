@@ -12,7 +12,7 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       # Telemetry poller will execute the given period measurements
       # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
-      {TelemetryMetricsPrometheus.Core, metrics: metrics()}
+      {TelemetryMetricsPrometheus.Core, metrics: prometheus_metrics()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -55,9 +55,12 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
-      summary("vm.total_run_queue_lengths.io"),
+      summary("vm.total_run_queue_lengths.io")
+    ]
+  end
 
-      # Firehose Simulator Metrics
+  def prometheus_metrics do
+    [
       counter("firehose_simulator.json.file.loaded.count"),
       counter("firehose_simulator.player.load.count"),
       counter("firehose_simulator.player.start.count"),
@@ -88,15 +91,11 @@ defmodule FirehoseSimulatorWeb.Telemetry do
         tags: [:status],
         tag_values: &worker_query_tag_values/1
       ),
-      sum("firehose_simulator.worker.query.latency_ms",
-        unit: {:millisecond, :millisecond}
-      ),
       distribution("firehose_simulator.worker.query.rows",
         reporter_options: [buckets: [1, 10, 100, 1_000, 10_000]],
         tags: [:status],
         tag_values: &worker_query_tag_values/1
       ),
-      sum("firehose_simulator.worker.query.rows"),
       distribution("firehose_simulator.worker.query.lag_ms",
         reporter_options: [buckets: [0, 10, 50, 100, 500, 1_000, 5_000, 10_000]],
         tags: [:kind],
@@ -113,12 +112,7 @@ defmodule FirehoseSimulatorWeb.Telemetry do
       sum("firehose_simulator.worker.cycle.completed"),
       sum("firehose_simulator.worker.cycle.timeouts"),
       distribution("firehose_simulator.worker.cycle.duration_ms",
-        reporter_options: [buckets: [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000]],
-        keep: &cycle_duration_present?/2
-      ),
-      sum("firehose_simulator.worker.cycle.duration_ms",
-        unit: {:millisecond, :millisecond},
-        keep: &cycle_duration_present?/2
+        reporter_options: [buckets: [5, 10, 25, 50, 100, 250, 500, 1_000, 5_000]]
       ),
       last_value("firehose_simulator.active_sessions.count")
     ]
@@ -140,7 +134,4 @@ defmodule FirehoseSimulatorWeb.Telemetry do
     %{kind: "session_request"}
   end
 
-  defp cycle_duration_present?(measurements, _metadata) do
-    Map.has_key?(measurements, :duration_ms)
-  end
 end
