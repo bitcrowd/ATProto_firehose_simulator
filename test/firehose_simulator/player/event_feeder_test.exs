@@ -59,7 +59,8 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
     assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :posts, :complete]},
                    1_000
 
-    assert_receive {:telemetry_complete, [:firehose_simulator, :event_feeder, :follows, :complete]},
+    assert_receive {:telemetry_complete,
+                    [:firehose_simulator, :event_feeder, :follows, :complete]},
                    1_000
 
     snapshot = Metrics.snapshot()

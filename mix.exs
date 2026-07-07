@@ -97,9 +97,13 @@ defmodule FirehoseSimulator.MixProject do
         "phx.digest"
       ],
       precommit: [
+        "hex.audit",
         "compile --warnings-as-errors",
+        "dialyzer",
         "deps.unlock --unused",
         "format",
+        "ecto.create --quiet",
+        "dataplane.migrate",
         "test",
         "credo --all --strict"
       ]

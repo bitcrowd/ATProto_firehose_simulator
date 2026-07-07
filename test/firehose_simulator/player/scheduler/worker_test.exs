@@ -149,5 +149,4 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
     :ok = :gen_tcp.close(socket)
     port
   end
-
 end
