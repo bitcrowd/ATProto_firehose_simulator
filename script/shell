@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+SCRIPTDIR=$(cd "$(dirname "$0")"; pwd)
+
+cd "$SCRIPTDIR/.."
+
+CONTAINER=$(docker compose --profile elixir --profile node ps --status running -q dataplane-elixir dataplane-node)
+
+if [ -z "$CONTAINER" ]; then
+  echo "no dataplane container is running" >&2
+  exit 1
+fi
+
+exec docker exec -it "$CONTAINER" bash

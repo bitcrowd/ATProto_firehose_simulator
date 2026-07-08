@@ -33,6 +33,8 @@ Then open:
 - Prometheus: [`localhost:9090`](http://localhost:9090)
 - Grafana: [`localhost:3000`](http://localhost:3000) (`admin` / `admin`)
 
+Open a shell in the running dataplane container (Elixir or Node) with `script/shell`.
+
 Example [userbase](example/userbase.json) and [scenario params](example/scenario_params.json) are available.
 
 ## Configuration
@@ -44,6 +46,29 @@ cp .env.example .env
 ```
 
 For more details about specific configuration options read [configuration-and-files](docs/configuration-and-files.md).
+
+## Loading data into the dataplane
+
+The Elixir dataplane can be seeded with users and follows from CSV files. Load users before follows, since follows reference existing users. See [dataplane_elixir](https://github.com/bitcrowd/dataplane_elixir#loading-users-and-follows) for the expected CSV columns.
+
+The dataplane runs as a release in Docker, so copy the CSV files into the container and attach a remote console:
+
+```bash
+docker compose cp users.csv dataplane-elixir:/tmp/users.csv
+docker compose cp follows.csv dataplane-elixir:/tmp/follows.csv
+docker compose exec dataplane-elixir bin/dataplane_ex remote
+```
+
+Then load the data:
+
+```elixir
+alias DataplaneEx.Indexer
+
+Indexer.bulk_users_from_file("/tmp/users.csv")
+Indexer.bulk_follows_from_file("/tmp/follows.csv")
+```
+
+Delete all loaded data with `Indexer.vacuum()`.
 
 ## Metrics
 
