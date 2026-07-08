@@ -80,7 +80,7 @@ Grafana is available at [`localhost:3000`](http://localhost:3000). It already ha
 
 ## Web UI
 
-1. `Setup`: create the userbase or import one using the configured database.
+1. `Setup`: create the userbase or import one using the configured database (only for the Node dataplane).
 2. `Planning`: generate scenarios from params JSON, import scenarios, or import a simulation plan JSON file.
 3. `Simulation`: select one available scenario and play/stop while building up the active simulation plan.
 4. `Metrics`: a summary of the most important metrics, use Grafana for better insights.
@@ -88,14 +88,14 @@ Grafana is available at [`localhost:3000`](http://localhost:3000). It already ha
 
 ## In IEx
 
-Create your userbase from a userbase JSON file:
+Create your userbase from a userbase JSON file (only for the Node dataplane, see `Loading data into the dataplane` for instructions for the Elixir dataplane):
 
 ```elixir
 userbase_path = "example/userbase.json"
 {:ok, _result} = FirehoseSimulator.create_userbase(userbase_path)
 ```
 
- Generate a scenario from params JSON:
+Generate a scenario from params JSON:
 
 ```elixir
 {:ok, scenario} = FirehoseSimulator.generate_scenario_from_json("example/scenario_params.json")
