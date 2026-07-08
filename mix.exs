@@ -53,7 +53,7 @@ defmodule FirehoseSimulator.MixProject do
       {:dasl, "~> 0.1"},
       {:multiformats_ex, "~> 0.2"},
       {:varint, "~> 1.5.1"},
-      {:phoenix, "~> 1.8.5"},
+      {:phoenix, "~> 1.8.9"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.1.0"},
