@@ -7,6 +7,7 @@ defmodule FirehoseSimulator.Player.Scheduler.WorkerTest do
   alias FirehoseSimulator.TestTimelinePlug
 
   setup do
+    start_supervised!(FirehoseSimulator.Runtime)
     original_url = Application.get_env(:firehose_simulator, :dataplane_url)
     on_exit(fn -> Application.put_env(:firehose_simulator, :dataplane_url, original_url) end)
     :ok

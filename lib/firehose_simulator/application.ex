@@ -31,10 +31,7 @@ defmodule FirehoseSimulator.Application do
         {DNSCluster,
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: FirehoseSimulator.PubSub},
-        {Registry, keys: :unique, name: FirehoseSimulator.Player.Registry},
-        {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
-        {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
-        {FirehoseSimulator.State, run_storage_directory: run_storage_directory},
+        runtime(run_storage_directory),
         {Bandit,
          plug: FirehoseSimulator.Metrics.PrometheusExporter,
          ip: {0, 0, 0, 0},
@@ -44,6 +41,7 @@ defmodule FirehoseSimulator.Application do
         PDSWeb.Endpoint,
         FirehoseSimulatorWeb.Endpoint
       ]
+      |> Enum.reject(&is_nil(&1))
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -130,6 +128,12 @@ defmodule FirehoseSimulator.Application do
 
       {:error, _reason} = error ->
         error
+    end
+  end
+
+  defp runtime(run_storage_directory) do
+    if Application.get_env(:firehose_simulator, :start_runtime, true) do
+      {FirehoseSimulator.Runtime, run_storage_directory: run_storage_directory}
     end
   end
 end
