@@ -7,6 +7,7 @@ defmodule FirehoseSimulator.Player.EventFeederTest do
   alias FirehoseSimulator.Scenario
 
   setup do
+    start_supervised!(FirehoseSimulator.Runtime)
     Phoenix.PubSub.subscribe(FirehoseSimulator.PubSub, "firehose")
 
     test_pid = self()

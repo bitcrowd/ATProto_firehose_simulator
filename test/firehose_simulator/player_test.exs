@@ -5,8 +5,7 @@ defmodule FirehoseSimulator.PlayerTest do
   alias FirehoseSimulator.Scenario
 
   setup do
-    Player.stop_all()
-    on_exit(fn -> Player.stop_all() end)
+    start_supervised!(FirehoseSimulator.Runtime)
     :ok
   end
 

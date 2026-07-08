@@ -9,12 +9,7 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
   @moduletag :tmp_dir
 
   setup do
-    clear_test_state()
-
-    on_exit(fn ->
-      clear_test_state()
-    end)
-
+    start_supervised!(FirehoseSimulator.Runtime)
     :ok
   end
 
@@ -324,15 +319,5 @@ defmodule FirehoseSimulatorWeb.SimulationFlowLiveTest do
 
     File.write!(path, content)
     path
-  end
-
-  defp clear_test_state do
-    {:ok, simulation_plan} = SimulationPlan.new(%{entries: []})
-    :ok = FirehoseSimulator.stop()
-    :ok = State.clear_scenarios()
-    :ok = State.clear_players()
-    :ok = State.put_simulation_plan(simulation_plan)
-    :ok = State.put_userbase_result(false, nil)
-    :ok
   end
 end

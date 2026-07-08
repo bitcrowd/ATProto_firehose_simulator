@@ -13,6 +13,7 @@ config :firehose_simulator,
        System.get_env("DATAPLANE_URL", "http://localhost:2585")
 
 config :firehose_simulator, :run_storage_enabled, false
+config :firehose_simulator, :start_runtime, false
 
 config :firehose_simulator, FirehoseSimulator.Repo,
   url: "postgres://postgres:postgres@localhost:5432/dataplane_test",
