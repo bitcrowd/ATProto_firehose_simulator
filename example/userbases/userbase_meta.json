@@ -1,21 +1,21 @@
 {
-	"exported_at": "2026-07-08T12:17:35Z",
-	"files": {
-		"actor": {
-			"path": "./actor.csv",
-			"row_count": 1000
-		},
-		"follow": {
-			"path": "./follow.csv",
-			"row_count": 6449
-		}
-	},
-	"kind": "userbase",
-	"run_id": "not-yet-twitter-20260708T121735Z",
-	"userbase": {
-		"follower_density": 1.0,
-		"name": "not yet twitter",
-		"num_users": 1000
-	},
-	"version": 1
+  "exported_at": "2026-07-08T12:17:35Z",
+  "files": {
+    "actor": {
+      "path": "./actor.csv",
+      "row_count": 1000
+     },
+    "follow": {
+      "path": "./follow.csv",
+      "row_count": 6449
+    }
+  },
+  "kind": "userbase",
+  "run_id": "not-yet-twitter-20260708T121735Z",
+  "userbase": {
+    "follower_density": 1.0,
+    "name": "not yet twitter",
+    "num_users": 1000
+  },
+  "version": 1
 }
