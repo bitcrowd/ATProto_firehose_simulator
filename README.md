@@ -33,10 +33,7 @@ script/start node
 Then open:
 
 - Web UI / firehose: [`localhost:4000`](http://localhost:4000)
-- Stub PLC: [`localhost:4001`](http://localhost:4001), stub PDS: [`localhost:4002`](http://localhost:4002)
-- Metrics: [`localhost:9568/metrics`](http://localhost:9568/metrics)
-- Prometheus: [`localhost:9090`](http://localhost:9090)
-- Grafana: [`localhost:3000`](http://localhost:3000) (`admin` / `admin`)
+- Grafana: [`localhost:3000`](http://localhost:3000) (user: `admin` / password: `admin`)
 
 Open a shell in the running dataplane container (Elixir or Node) with `script/shell`.
 
