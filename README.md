@@ -56,8 +56,8 @@ The Elixir dataplane can be seeded with users and follows from CSV files. Load u
 The dataplane runs as a release in Docker, so copy the CSV files into the container and attach a remote console:
 
 ```bash
-docker compose cp users.csv dataplane-elixir:/tmp/users.csv
-docker compose cp follows.csv dataplane-elixir:/tmp/follows.csv
+docker compose cp example/userbases/users.csv dataplane-elixir:/tmp/users.csv
+docker compose cp example/userbases/follows.csv dataplane-elixir:/tmp/follows.csv
 docker compose exec dataplane-elixir bin/dataplane_ex remote
 ```
 
