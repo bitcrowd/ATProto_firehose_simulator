@@ -6,6 +6,11 @@ This project simulates incoming traffic and user requests for an atproto datapla
 
 Here is brief [overview](docs/overview.md) document that describes the functionality of the simulator.
 
+The project is set up to work with two variants of the dataplane:
+
+1. Bluesky's [open source dataplane](./dataplane) which is based on Node and Postgres
+2. An [Elixir implementation](https://github.com/bitcrowd/dataplane_elixir/) that stores data in ETS
+
 ## Getting Started
 
 Install Elixir 1.20 and Erlang 28, for instance with [mise](https://mise.jdx.dev/), and make sure Docker is running.
