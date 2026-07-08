@@ -137,7 +137,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_posts_dispatched_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_posts_dispatch_events_dispatched[1m])",
           "legendFormat": "Posts dispatched",
           "range": true,
           "refId": "A",
@@ -148,7 +148,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_posts_ok_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_posts_complete_ok[1m])",
           "instant": false,
           "legendFormat": "Posts created",
           "range": true,
@@ -160,7 +160,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_posts_error_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_posts_complete_error[1m])",
           "instant": false,
           "legendFormat": "Posts dropped",
           "range": true,
@@ -172,7 +172,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_posts_complete_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_posts_complete_count[1m])",
           "instant": false,
           "legendFormat": "Post batches complete",
           "range": true,
@@ -272,7 +272,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_follows_dispatched_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_follows_dispatch_events_dispatched[1m])",
           "legendFormat": "Follows dispatched",
           "range": true,
           "refId": "A",
@@ -283,7 +283,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_follows_ok_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_follows_complete_ok[1m])",
           "legendFormat": "Follows ok",
           "range": true,
           "refId": "B",
@@ -294,7 +294,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_follows_error_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_follows_complete_error[1m])",
           "legendFormat": "Follows error",
           "range": true,
           "refId": "C",
@@ -305,7 +305,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_event_feeder_follows_complete_total[1m])",
+          "expr": "rate(firehose_simulator_event_feeder_follows_complete_count[1m])",
           "legendFormat": "Follow batches complete",
           "range": true,
           "refId": "D",
@@ -404,7 +404,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(firehose_simulator_worker_query_total[1m])",
+          "expr": "rate(firehose_simulator_worker_query_count[1m])",
           "instant": false,
           "legendFormat": "get_timeline/s",
           "range": true,
@@ -521,7 +521,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_avg_latency_ms",
+          "expr": "histogram_quantile(0.5, rate(firehose_simulator_worker_query_latency_ms_bucket[5m]))",
           "legendFormat": "p50 get_timeline",
           "range": true,
           "refId": "A",
@@ -532,7 +532,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_p95_latency_ms",
+          "expr": "histogram_quantile(0.95, rate(firehose_simulator_worker_query_latency_ms_bucket[5m]))",
           "instant": false,
           "legendFormat": "p95 get_timeline",
           "range": true,
@@ -544,7 +544,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_p99_latency_ms",
+          "expr": "histogram_quantile(0.99, rate(firehose_simulator_worker_query_latency_ms_bucket[5m]))",
           "instant": false,
           "legendFormat": "p99 get_timeline",
           "range": true,
@@ -657,7 +657,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_active_sessions",
+          "expr": "firehose_simulator_active_sessions_count",
           "instant": false,
           "legendFormat": "Active Sessions",
           "range": true,
@@ -761,7 +761,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_avg_lag_ms",
+          "expr": "histogram_quantile(0.5, rate(firehose_simulator_worker_query_lag_ms_bucket{kind=\"session_request\"}[5m]))",
           "legendFormat": "p50 lag",
           "range": true,
           "refId": "A",
@@ -772,7 +772,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_p95_lag_ms",
+          "expr": "histogram_quantile(0.95, rate(firehose_simulator_worker_query_lag_ms_bucket{kind=\"session_request\"}[5m]))",
           "legendFormat": "p95 lag",
           "range": true,
           "refId": "B",
@@ -783,8 +783,8 @@
         },
         {
           "editorMode": "code",
-          "expr": "firehose_simulator_worker_query_window_max_lag_ms",
-          "legendFormat": "max lag",
+          "expr": "histogram_quantile(0.99, rate(firehose_simulator_worker_query_lag_ms_bucket{kind=\"session_request\"}[5m]))",
+          "legendFormat": "p99 lag",
           "range": true,
           "refId": "C",
           "datasource": {

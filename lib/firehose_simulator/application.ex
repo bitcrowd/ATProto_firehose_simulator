@@ -26,6 +26,7 @@ defmodule FirehoseSimulator.Application do
          pools: %{
            default: [size: finch_pool_size]
          }},
+        FirehoseSimulator.Metrics,
         FirehoseSimulatorWeb.Telemetry,
         {DNSCluster,
          query: Application.get_env(:firehose_simulator, :dns_cluster_query) || :ignore},
@@ -34,7 +35,6 @@ defmodule FirehoseSimulator.Application do
         {DynamicSupervisor, name: FirehoseSimulator.PlayerSupervisor, strategy: :one_for_one},
         {Task.Supervisor, name: FirehoseSimulator.Player.TaskSupervisor},
         {FirehoseSimulator.State, run_storage_directory: run_storage_directory},
-        FirehoseSimulator.Metrics,
         {Bandit,
          plug: FirehoseSimulator.Metrics.PrometheusExporter,
          ip: {0, 0, 0, 0},
