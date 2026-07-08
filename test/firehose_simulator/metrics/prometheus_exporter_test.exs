@@ -3,7 +3,7 @@ defmodule FirehoseSimulator.Metrics.PrometheusExporterTest do
   import Plug.Test
   alias FirehoseSimulator.Metrics.PrometheusExporter
 
-  test "returns 200 for GET /metrics" do
+  test "GET /metrics returns 200" do
     conn = conn(:get, "/metrics") |> PrometheusExporter.call(PrometheusExporter.init([]))
 
     assert conn.status == 200
