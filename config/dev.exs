@@ -1,20 +1,6 @@
 import Config
 
-config :firehose_simulator, :plc,
-  multikey: System.get_env("PLC_MULTIKEY", "zQ3shaSUSFjTPxogQR7eQ9QGwKWUdMmrHyjNiUg9oGJ8Lefiv"),
-  private_hex:
-    System.get_env(
-      "PLC_PRIVATE_HEX",
-      "bfe084f28e8bd6a64cbc18eea04c17457c9c48ce34498bc635b19ec7530d5e4a"
-    )
-
-config :firehose_simulator,
-       :dataplane_url,
-       System.get_env("DATAPLANE_URL", "http://localhost:2585")
-
 config :firehose_simulator, FirehoseSimulator.Repo,
-  url: "postgres://postgres:postgres@localhost:5432/dataplane",
-  pool_size: 10,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
 
@@ -25,9 +11,6 @@ config :firehose_simulator, FirehoseSimulator.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
-  # Binding to loopback ipv6 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -38,9 +21,6 @@ config :firehose_simulator, FirehoseSimulatorWeb.Endpoint,
   ]
 
 config :firehose_simulator, PLCWeb.Endpoint,
-  # Binding to loopback ipv6 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -51,9 +31,6 @@ config :firehose_simulator, PLCWeb.Endpoint,
   ]
 
 config :firehose_simulator, PDSWeb.Endpoint,
-  # Binding to loopback ipv6 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0, 0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

@@ -1,0 +1,119 @@
+---
+
+name: firehose-simulator
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dataplane
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dataplane"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dataplane-elixir:
+    profiles: ["elixir"]
+    build:
+      context: ${DATAPLANE_ELIXIR_CONTEXT:-https://github.com/bitcrowd/dataplane_elixir.git#main}
+      secrets:
+        - GIT_AUTH_TOKEN
+    environment:
+      PHX_SERVER: "true"
+      BSKY_DATAPLANE_PORT: "2585"
+      BSKY_DATAPLANE_IP: 0.0.0.0
+      BSKY_RELAY_WEBSOCKET: ws://host.docker.internal:4000
+      SECRET_KEY_BASE: dzBwxkPjLe4CT4lYgnkdT9wYU+LDEo4RmpmyU55hOxjUb0aY569FQ/RmpSBTpdHD
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "2585:2585"
+    healthcheck:
+      test: ["CMD", "/app/bin/dataplane_ex", "rpc", "1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  dataplane-node:
+    profiles: ["node"]
+    build: ./dataplane
+    environment:
+      BSKY_DID_PLC_URL: http://host.docker.internal:4001
+      BSKY_DB_POSTGRES_URL: postgres://postgres:postgres@postgres:5432/dataplane
+      BSKY_RELAY_WEBSOCKET: ws://host.docker.internal:4000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "2585:2585"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(2585,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  prometheus:
+    image: prom/prometheus
+    configs:
+      - source: prometheus
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    configs:
+      - source: grafana_datasource
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
+configs:
+  prometheus:
+    content: |
+      global:
+        scrape_interval: 5s
+      scrape_configs:
+        - job_name: "feed_simulator"
+          static_configs:
+            - targets: ["host.docker.internal:9568"]
+  grafana_datasource:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
+          isDefault: true
+          editable: true
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+
+secrets:
+  GIT_AUTH_TOKEN:
+    environment: GIT_AUTH_TOKEN
