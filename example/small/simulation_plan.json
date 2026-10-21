@@ -1,0 +1,7 @@
+{
+  "name": "small: quiet with a spike",
+  "entries": [
+    { "scenario_name": "quiet", "scenario_path": "scenarios/quiet.json", "offset_ms": 0 },
+    { "scenario_name": "spike", "scenario_path": "scenarios/spike.json", "offset_ms": 90000 }
+  ]
+}
