@@ -41,13 +41,13 @@ defmodule FirehoseSimulator.BaseData.UserbaseImport do
   @spec copy_actor_sql(String.t()) :: String.t()
   def copy_actor_sql(path) when is_binary(path) do
     ~s/COPY bsky.actor (did, "indexedAt", "trustedVerifier") FROM / <>
-      quoted_path(path) <> " WITH (FORMAT csv)"
+      quoted_path(path) <> " WITH (FORMAT csv, HEADER true)"
   end
 
   @spec copy_follow_sql(String.t()) :: String.t()
   def copy_follow_sql(path) when is_binary(path) do
     ~s/COPY bsky.follow (uri, cid, creator, "subjectDid", "createdAt", "indexedAt") FROM / <>
-      quoted_path(path) <> " WITH (FORMAT csv)"
+      quoted_path(path) <> " WITH (FORMAT csv, HEADER true)"
   end
 
   defp copy_userbase_files(repo, meta) do

@@ -51,6 +51,8 @@ defmodule FirehoseSimulator.BaseData.UserbaseImportTest do
     sql = UserbaseImport.copy_actor_sql("/tmp/actor's.csv")
     assert sql =~ "COPY bsky.actor"
     assert sql =~ "/tmp/actor''s.csv"
+    assert sql =~ "HEADER true"
+    assert UserbaseImport.copy_follow_sql("/tmp/follow.csv") =~ "HEADER true"
   end
 
   defmodule RepoStub do

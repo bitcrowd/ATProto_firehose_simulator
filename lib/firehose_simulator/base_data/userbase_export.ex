@@ -7,6 +7,9 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
   alias FirehoseSimulator.BulkCreation
   alias FirehoseSimulator.Utils
 
+  @actor_csv_header ["did", "indexedAt", "trustedVerifier"]
+  @follow_csv_header ["uri", "cid", "creator", "subjectDid", "createdAt", "indexedAt"]
+
   @spec export(Userbase.t(), String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def export(%Userbase{} = userbase, export_root, opts \\ [])
       when is_binary(export_root) and is_list(opts) do
@@ -74,6 +77,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     with {:ok, device} <- open_file(path) do
       try do
         counter = :counters.new(1, [])
+        write_line(csv_row(@actor_csv_header), device)
 
         1..userbase.num_users
         |> Stream.map(&BulkCreation.actor_row(&1, indexed_at))
@@ -99,6 +103,7 @@ defmodule FirehoseSimulator.BaseData.UserbaseExport do
     with {:ok, device} <- open_file(path) do
       try do
         counter = :counters.new(1, [])
+        write_line(csv_row(@follow_csv_header), device)
 
         userbase.num_users
         |> FollowerGraph.stream_follow_batches_by_subject(

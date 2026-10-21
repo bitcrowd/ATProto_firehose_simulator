@@ -172,11 +172,11 @@ With the default config:
 
 ### Userbase CSV export
 
-| File                 | Format                       | Fields / contents                                               |
-|---                   |---                           |---                                                              |
-| `actor.csv`          | CSV, one actor row per line  | `did`, `indexedAt`, `trustedVerifier`                           |
-| `follow.csv`         | CSV, one follow row per line | `uri`, `cid`, `creator`, `subjectDid`, `createdAt`, `indexedAt` |
-| `userbase_meta.json` | JSON manifest                | export metadata plus absolute CSV paths and row counts          |
+| File                 | Format                                         | Fields / contents                                               |
+|---                   |---                                             |---                                                              |
+| `actor.csv`          | CSV with a header row, one actor row per line  | `did`, `indexedAt`, `trustedVerifier`                           |
+| `follow.csv`         | CSV with a header row, one follow row per line | `uri`, `cid`, `creator`, `subjectDid`, `createdAt`, `indexedAt` |
+| `userbase_meta.json` | JSON manifest                                  | export metadata plus absolute CSV paths and row counts          |
 
 The export result also returns the paths and row counts.
 
