@@ -23,8 +23,6 @@ services:
     profiles: ["elixir"]
     build:
       context: ${DATAPLANE_ELIXIR_CONTEXT:-https://github.com/bitcrowd/dataplane_elixir.git#main}
-      secrets:
-        - GIT_AUTH_TOKEN
     environment:
       PHX_SERVER: "true"
       BSKY_DATAPLANE_PORT: "2585"
@@ -113,7 +111,3 @@ volumes:
   postgres-data:
   prometheus-data:
   grafana-data:
-
-secrets:
-  GIT_AUTH_TOKEN:
-    environment: GIT_AUTH_TOKEN
