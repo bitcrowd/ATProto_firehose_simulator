@@ -44,6 +44,23 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     refute File.exists?(run_dir)
   end
 
+  test "csv files start with a header row", %{tmp_dir: tmp_dir} do
+    userbase = %Userbase{
+      name: "Header Export",
+      num_users: 3,
+      follower_density: 1.0
+    }
+
+    export_root = temp_export_root!(tmp_dir)
+
+    assert {:ok, result} = UserbaseExport.export(userbase, export_root, run_id: "header")
+
+    assert csv_header(result.actor_csv_path) == ~s("did","indexedAt","trustedVerifier")
+
+    assert csv_header(result.follow_csv_path) ==
+             ~s("uri","cid","creator","subjectDid","createdAt","indexedAt")
+  end
+
   test "actor csv row count matches num_users", %{tmp_dir: tmp_dir} do
     userbase = %Userbase{
       name: "Actor Count Export",
@@ -138,18 +155,34 @@ defmodule FirehoseSimulator.BaseData.UserbaseExportTest do
     path
   end
 
+  defp csv_header(path) do
+    path
+    |> csv_lines()
+    |> hd()
+  end
+
   defp count_lines(path) do
     path
-    |> File.read!()
-    |> String.split("\n", trim: true)
+    |> csv_rows()
     |> length()
   end
 
   defp read_csv(path) do
     path
+    |> csv_rows()
+    |> Enum.map(&parse_csv_line/1)
+  end
+
+  defp csv_rows(path) do
+    path
+    |> csv_lines()
+    |> tl()
+  end
+
+  defp csv_lines(path) do
+    path
     |> File.read!()
     |> String.split("\n", trim: true)
-    |> Enum.map(&parse_csv_line/1)
   end
 
   defp follow_edge([_uri, _cid, creator, subject_did, _created_at, _indexed_at]) do
