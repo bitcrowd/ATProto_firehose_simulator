@@ -37,7 +37,41 @@ Then open:
 
 Open a shell in the running dataplane container (Elixir or Node) with `script/shell`.
 
-Example [userbase](example/userbase.json) and [scenario params](example/scenario_params.json) are available.
+See [examples](example/README.md) for example userbases, scenarios and simulation plans, and how to write your own.
+
+## Quickstart
+
+Play a small example (100 users, a 4 minute baseline with a 1 minute spike) against the Elixir dataplane.
+
+1. Start everything:
+
+   ```bash
+   script/start
+   ```
+
+2. In a second terminal, load the users and follows into the dataplane:
+
+   ```bash
+   docker compose cp example/small/users.csv dataplane-elixir:/tmp/users.csv
+   docker compose cp example/small/follows.csv dataplane-elixir:/tmp/follows.csv
+   docker compose exec dataplane-elixir bin/dataplane_ex rpc '
+     DataplaneEx.Indexer.bulk_users_from_file("/tmp/users.csv")
+     DataplaneEx.Indexer.bulk_follows_from_file("/tmp/follows.csv")'
+   ```
+
+   With the Node dataplane (`script/start node`), run `FirehoseSimulator.create_userbase("example/small/userbase.json")` in IEx instead.
+
+3. Back in IEx, import the simulation plan and start it:
+
+   ```elixir
+   {:ok, _plan} = FirehoseSimulator.import_simulation_plan_from_json("example/small/simulation_plan.json")
+
+   FirehoseSimulator.State.list_players()
+   |> Map.keys()
+   |> Enum.each(&FirehoseSimulator.start/1)
+   ```
+
+4. Watch the players in the web UI at [`localhost:4000/simulation`](http://localhost:4000/simulation) and the metrics in Grafana. Stop with `FirehoseSimulator.stop()`.
 
 ## Configuration
 
